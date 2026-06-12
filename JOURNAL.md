@@ -1,5 +1,10 @@
 # Journal du projet (ajouter en haut)
 
+## 12/06/2026 (après-midi) — Claude (session Florian)
+- FIX mot de passe dashboard : en HTTP (cert HTTPS GitHub pas encore émis), WebCrypto est indisponible → ajout d'un fallback pur-JS (@noble/ciphers + @noble/hashes, bundle esbuild, window.nobleDecrypt) dans index.html. Testé OK en live : canaweed2025! déchiffre (compter ~20-30 s en HTTP, instantané une fois en HTTPS)
+- DNS o2switch fait : CNAME dash → florian-all-projects.github.io (A et TXT supprimés). Site live sur dash.secoursvert.net
+- TODO : cocher « Enforce HTTPS » dans Settings > Pages quand le certificat sera émis ; supprimer ensuite l'ancien site Netlify ml-affil-dashboard
+
 ## 12/06/2026 — Claude (session Florian)
 - Migration dashboard Netlify → GitHub Pages (repo dash-affil) ; CNAME dash.secoursvert.net préparé (DNS o2switch à faire)
 - Get Kush : affilié ACTIVÉ, lien récupéré (https://getkush.cc/?ref=michellelanoy)
