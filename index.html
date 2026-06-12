@@ -27,7 +27,10 @@ async function dec(pw){
  } else {
   pt = await new Promise((res, rej)=>{ setTimeout(()=>{ try{ res(window.nobleDecrypt(enc, b(P.salt), b(P.nonce), b(P.ct))); }catch(e){ rej(e); } }, 80); });
  }
- document.open(); document.write('<meta name="robots" content="noindex, nofollow"><meta charset="utf-8">'+new TextDecoder().decode(pt)); document.close();
+ const doc = new DOMParser().parseFromString('<meta name="robots" content="noindex, nofollow"><meta charset="utf-8">'+new TextDecoder().decode(pt), 'text/html');
+ document.replaceChild(document.adoptNode(doc.documentElement), document.documentElement);
+ document.querySelectorAll('script').forEach(sc=>{ const n=document.createElement('script'); n.textContent=sc.textContent; sc.replaceWith(n); });
+ window.scrollTo(0,0);
 }
 function showLoading(){
  let d=document.getElementById('decwait');
