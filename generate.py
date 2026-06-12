@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """Génère index.html (dashboard chiffré) à partir de data.csv.
+
+⚠️ ATTENTION : data.csv (public) ne contient NI identifiants NI mots de passe NI liens affiliés.
+Régénérer avec ce script PERD ces données dans la page. Pour une mise à jour, préférer :
+déchiffrer le payload de index.html (mdp dashboard), patcher le HTML, re-chiffrer, réinjecter.
+Les secrets sont dans secrets.enc (même mdp).
 Usage: python3 generate.py --password 'MDP_DASHBOARD'
 Dépendance: pip install cryptography --break-system-packages
 Le HTML produit contient: porte de mdp (WebCrypto AES-GCM/PBKDF2-310000), noindex,
@@ -96,16 +101,44 @@ gate="""<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow, noarchive"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Dashboard privé</title>
 <style>body{font-family:system-ui,sans-serif;background:#1d2b1f;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;color:#fff}#gate{background:#27392a;padding:36px;border-radius:12px;text-align:center;max-width:340px}input[type=password]{padding:10px;width:100%;border-radius:6px;border:none;margin:12px 0;box-sizing:border-box}button{padding:10px 24px;border:none;border-radius:6px;background:#5cb85c;color:#fff;font-weight:700;cursor:pointer}#err{color:#ff8a8a;font-size:.85rem;min-height:1em}label{font-size:.9rem;display:block;margin:8px 0}</style></head>
 <body><div id="gate"><h2>🔒 Accès privé</h2><p>Entre le mot de passe</p><input type="password" id="pw" autofocus><label><input type="checkbox" id="keep" checked> Rester connecté sur cet appareil</label><button onclick="go()">Entrer</button><p id="err"></p></div>
+<script>FALLBACK_JS</script>
 <script>const P = PAYLOAD_JSON;
 const b = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
-async function dec(pw){const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
-const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b(P.salt),iterations:310000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
-const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b(P.nonce)},key,b(P.ct));
-document.open();document.write('<meta name="robots" content="noindex, nofollow"><meta charset="utf-8">'+new TextDecoder().decode(pt));document.close();}
-async function go(){const pw=document.getElementById('pw').value;
-try{await dec(pw); if(document.getElementById('keep')?.checked!==false) localStorage.setItem('dashpw',pw);}catch(e){const er=document.getElementById('err'); if(er) er.textContent='Mot de passe incorrect';}}
-const saved=localStorage.getItem('dashpw'); if(saved){dec(saved).catch(()=>{localStorage.removeItem('dashpw')});}
+async function dec(pw){
+ const enc = new TextEncoder().encode(pw);
+ let pt;
+ if (window.crypto && crypto.subtle) {
+  const km = await crypto.subtle.importKey('raw', enc, 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:b(P.salt), iterations:310000, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  pt = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:b(P.nonce)}, key, b(P.ct)));
+ } else {
+  pt = await new Promise((res, rej)=>{ setTimeout(()=>{ try{ res(window.nobleDecrypt(enc, b(P.salt), b(P.nonce), b(P.ct))); }catch(e){ rej(e); } }, 80); });
+ }
+ const doc = new DOMParser().parseFromString('<meta name="robots" content="noindex, nofollow"><meta charset="utf-8">'+new TextDecoder().decode(pt), 'text/html');
+ document.replaceChild(document.adoptNode(doc.documentElement), document.documentElement);
+ document.querySelectorAll('script').forEach(sc=>{ const n=document.createElement('script'); n.textContent=sc.textContent; sc.replaceWith(n); });
+ window.scrollTo(0,0);
+}
+function showLoading(){
+ let d=document.getElementById('decwait');
+ if(!d){ d=document.createElement('div'); d.id='decwait';
+  d.style.cssText='position:fixed;inset:0;background:#1d2a1d;color:#e8efe6;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,sans-serif;z-index:9999;text-align:center;padding:20px';
+  d.innerHTML='<div style="font-size:42px">\U0001F510</div><div style="font-size:20px;margin-top:12px">D\u00e9chiffrement en cours\u2026</div><div style="opacity:.75;margin-top:8px;max-width:420px">Peut prendre jusqu\u2019\u00e0 ~30 secondes tant que le site est en HTTP. Ne ferme pas la page.</div>';
+  document.body.appendChild(d);
+ }
+ d.style.display='flex';
+}
+function hideLoading(){ const d=document.getElementById('decwait'); if(d) d.style.display='none'; }
+async function go(){
+ const pw = document.getElementById('pw').value;
+ showLoading();
+ try{ await dec(pw); if(document.getElementById('keep')?.checked!==false) localStorage.setItem('dashpw', pw); }
+ catch(e){ hideLoading(); const er=document.getElementById('err'); if(er) er.textContent='Mot de passe incorrect'; }
+}
+const saved = localStorage.getItem('dashpw');
+if(saved){ showLoading(); dec(saved).catch(()=>{ hideLoading(); localStorage.removeItem('dashpw'); }); }
 document.getElementById('pw').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
 </script></body></html>"""
-open(a.out,"w").write(gate.replace("PAYLOAD_JSON",payload))
+fallback=open(os.path.join(os.path.dirname(os.path.abspath(__file__)),"fallback.js"),encoding="utf-8").read()
+open(a.out,"w").write(gate.replace("FALLBACK_JS",fallback).replace("PAYLOAD_JSON",payload))
 print("OK ->",a.out)
