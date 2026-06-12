@@ -1,5 +1,11 @@
 # Journal du projet (ajouter en haut)
 
+## 12/06/2026 (16h45) — Claude (session Florian)
+- Cloudflare débloqués par Florian → LIENS RÉCUPÉRÉS : Ganja West https://ganjawest.co?ref=73813 (7,5%) et Low Price Bud https://lowpricebud.co/?ref=michellelanoy. Avec BMWO et Get Kush : 4 liens actifs
+- Grasscity : correction — le compte plateforme est actif mais la candidature au programme 8% est encore « Pending » (générateur de liens verrouillé). L'email du matin n'était qu'une bienvenue
+- Tous les emails du projet ouverts un par un (inbox + spam) ; restent des notifs LinkedIn sans rapport
+- TODO : payout LPB à configurer ; surveiller approbations Grasscity/CBD Magic/CBD2HEAL/Kush Station/Chronic Farms ; BC Bud Supply attend le plan de promo
+
 ## 12/06/2026 (16h05) — Claude (session Florian)
 - BMWO : LIEN AFFILIÉ RÉCUPÉRÉ (session active dans l'affiliate area) → ajouté au dashboard + secrets.enc
 - Emails : tout vérifié (boîte + spam). Rien de nouveau hors Grasscity validé. Herbies : aucun email reçu — candidature partnership toujours en attente
