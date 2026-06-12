@@ -25,16 +25,27 @@ async function dec(pw){
   const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:b(P.salt), iterations:310000, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['decrypt']);
   pt = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:b(P.nonce)}, key, b(P.ct)));
  } else {
-  pt = window.nobleDecrypt(enc, b(P.salt), b(P.nonce), b(P.ct));
+  pt = await new Promise((res, rej)=>{ setTimeout(()=>{ try{ res(window.nobleDecrypt(enc, b(P.salt), b(P.nonce), b(P.ct))); }catch(e){ rej(e); } }, 80); });
  }
  document.open(); document.write('<meta name="robots" content="noindex, nofollow"><meta charset="utf-8">'+new TextDecoder().decode(pt)); document.close();
 }
-async function go(){ const er=document.getElementById('err'); if(er) er.textContent='Déchiffrement…';
+function showLoading(){
+ let d=document.getElementById('decwait');
+ if(!d){ d=document.createElement('div'); d.id='decwait';
+  d.style.cssText='position:fixed;inset:0;background:#1d2a1d;color:#e8efe6;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,sans-serif;z-index:9999;text-align:center;padding:20px';
+  d.innerHTML='<div style="font-size:42px">🔐</div><div style="font-size:20px;margin-top:12px">Déchiffrement en cours…</div><div style="opacity:.75;margin-top:8px;max-width:420px">Peut prendre jusqu’à ~30 secondes tant que le site est en HTTP (certificat HTTPS en cours d’émission). Ne ferme pas la page.</div>';
+  document.body.appendChild(d);
+ }
+ d.style.display='flex';
+}
+function hideLoading(){ const d=document.getElementById('decwait'); if(d) d.style.display='none'; }
+async function go(){
  const pw = document.getElementById('pw').value;
+ showLoading();
  try{ await dec(pw); if(document.getElementById('keep')?.checked!==false) localStorage.setItem('dashpw', pw); }
- catch(e){ const er=document.getElementById('err'); if(er) er.textContent='Mot de passe incorrect'; }
+ catch(e){ hideLoading(); const er=document.getElementById('err'); if(er) er.textContent='Mot de passe incorrect'; }
 }
 const saved = localStorage.getItem('dashpw');
-if(saved){ dec(saved).catch(()=>{localStorage.removeItem('dashpw')}); }
+if(saved){ showLoading(); dec(saved).catch(()=>{ hideLoading(); localStorage.removeItem('dashpw'); }); }
 document.getElementById('pw').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
 </script></body></html>
