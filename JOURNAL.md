@@ -1,5 +1,10 @@
 # Journal du projet (ajouter en haut)
 
+## 12/06/2026 (16h05) — Claude (session Florian)
+- BMWO : LIEN AFFILIÉ RÉCUPÉRÉ (session active dans l'affiliate area) → ajouté au dashboard + secrets.enc
+- Emails : tout vérifié (boîte + spam). Rien de nouveau hors Grasscity validé. Herbies : aucun email reçu — candidature partnership toujours en attente
+- Cloudflare bloque Low Price Bud / Ganja West / Grasscity (affiliates.) : clic humain requis puis extraction des liens
+
 ## 12/06/2026 (15h45) — Claude (session Florian)
 - FIX affichage : la porte mdp restait visible avec le tableau superposé (quirk document.write) → remplacement par DOMParser+replaceChild, et écran « Déchiffrement en cours… » au chargement (plus de page blanche avec « rester connecté »)
 - generate.py mis à jour avec le nouveau template + fallback.js (bundle noble) ; ⚠️ generate.py ne réinjecte pas les identifiants/liens (data.csv public) — patcher le payload plutôt que régénérer
