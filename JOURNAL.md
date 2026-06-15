@@ -1,5 +1,10 @@
 # Journal du projet (ajouter en haut)
 
+## 15/06/2026 (11h) — Claude (session Florian)
+- The High Club : INSCRIT au programme Ambassador (thehighclub.biz/ambassador-program/) — compte créé, statut « en attente d'approbation ». Conditions : 3% à vie, cookie 7 jours, paiement EMT (Interac). Identifiants ajoutés à secrets.enc (Mlanoy#THC-2026!w8). Lien affilié à récupérer après approbation
+- CBD2GO : candidature affiliée ACCEPTÉE (email 12/06) — espace affilié cbd2go.co/affiliate-area/. TODO : récupérer le lien affilié + définir le mot de passe
+- data.csv + index.html (dashboard chiffré, patch du payload) + secrets.enc mis à jour et poussés sur le repo → GitHub Pages redéploie dash.secoursvert.net
+
 ## 12/06/2026 (16h45) — Claude (session Florian)
 - Cloudflare débloqués par Florian → LIENS RÉCUPÉRÉS : Ganja West https://ganjawest.co?ref=73813 (7,5%) et Low Price Bud https://lowpricebud.co/?ref=michellelanoy. Avec BMWO et Get Kush : 4 liens actifs
 - Grasscity : correction — le compte plateforme est actif mais la candidature au programme 8% est encore « Pending » (générateur de liens verrouillé). L'email du matin n'était qu'une bienvenue
