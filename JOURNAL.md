@@ -1,5 +1,8 @@
 # Journal du projet (ajouter en haut)
 
+## 15/06/2026 (18h15) — Claude (session Florian)
+- The High Club : connexion à l'espace affilié OK (après approbation 16h) → LIEN AFFILIÉ RÉCUPÉRÉ : https://www.thehighclub.biz/ref/140/ (ID affilié 140). Statut passé à 🟢 ACTIF. index.html (payload patché) + data.csv + secrets.enc mis à jour. → 6 liens affiliés actifs (Get Kush, BMWO, Ganja West, LPB, CBD2GO, The High Club)
+
 ## 15/06/2026 (18h) — Claude (tâche planifiée « surveillance-emails-affiliation-cannabis »)
 - Surveillance boîte michelle.lanoy.pro@gmail.com (in:anywhere newer_than:2d). 2 développements nouveaux :
 - **The High Club : candidature APPROUVÉE** (email « Affiliate Application Accepted », 15/06 16h00). Espace affilié : https://www.thehighclub.biz/affiliate-area/ — statut data.csv passé de 🟡 en attente → 🟢 Approuvé. TODO humain : se connecter (identifiants dans secrets.enc) et récupérer le lien affilié. (Un email intermédiaire « Your Affiliate Application Is Being Reviewed » reçu à 12h39, désormais caduc.)
