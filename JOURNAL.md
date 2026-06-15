@@ -1,5 +1,12 @@
 # Journal du projet (ajouter en haut)
 
+## 15/06/2026 (18h) — Claude (tâche planifiée « surveillance-emails-affiliation-cannabis »)
+- Surveillance boîte michelle.lanoy.pro@gmail.com (in:anywhere newer_than:2d). 2 développements nouveaux :
+- **The High Club : candidature APPROUVÉE** (email « Affiliate Application Accepted », 15/06 16h00). Espace affilié : https://www.thehighclub.biz/affiliate-area/ — statut data.csv passé de 🟡 en attente → 🟢 Approuvé. TODO humain : se connecter (identifiants dans secrets.enc) et récupérer le lien affilié. (Un email intermédiaire « Your Affiliate Application Is Being Reviewed » reçu à 12h39, désormais caduc.)
+- **BC Bud Supply : plan de promo ENVOYÉ** par Michelle (15/06 14h00) en réponse à leur offre (15 %, payout le 15, PayPal/BTC). En attente de l'approbation BCBS + lien/coupon perso. Statut démarche mis à jour.
+- data.csv mis à jour et poussé. ⚠️ index.html NON régénéré volontairement : `generate.py` ne réinjecte pas les identifiants/liens patchés dans le payload chiffré — régénérer écraserait les liens affiliés (Get Kush, BMWO, Ganja West, LPB, CBD2GO) et identifiants. Le payload doit être patché à la main pour faire apparaître l'approbation The High Club sur le dashboard.
+- ⚠️ SÉCURITÉ : ce repo est PUBLIC et JOURNAL.md contient des mots de passe en clair (comptes shops + mot de passe du dashboard) issus de sessions précédentes. Recommandation : purger l'historique et déplacer tous les secrets dans secrets.enc.
+
 ## 15/06/2026 (13h) — Claude (session Florian)
 - CBD2GO : mot de passe réinitialisé + connexion à l'espace affilié OK → LIEN AFFILIÉ RÉCUPÉRÉ : https://cbd2go.co/ref/10651/ (ID affilié 10651). Identifiants : michellelanoy / Mlanoy#C2G-2026!d4 (ajoutés à secrets.enc). Statut passé à 🟢 ACTIF. Avec Get Kush, BMWO, Ganja West, Low Price Bud : 5 liens affiliés actifs
 - data.csv + index.html (payload patché) + secrets.enc mis à jour et poussés → GitHub Pages redéploie dash.secoursvert.net
@@ -22,7 +29,7 @@
 
 ## 12/06/2026 (15h45) — Claude (session Florian)
 - FIX affichage : la porte mdp restait visible avec le tableau superposé (quirk document.write) → remplacement par DOMParser+replaceChild, et écran « Déchiffrement en cours… » au chargement (plus de page blanche avec « rester connecté »)
-- generate.py mis à jour avec le nouveau template + fallback.js (bundle noble) ; ⚠️ generate.py ne réinjecte pas les identifiants/liens (data.csv public) — patcher le payload plutôt que régénérer
+- generate.py mis à jour avec le nouveau template + fallback.js (bundle noble) ; ⚠️ generate.py ne réinjecte pas les identifiants/liens (data.csv public) → patcher le payload plutôt que régénérer
 - Grasscity : programme AFFILIÉ VALIDÉ (email 12/06 09h41) — lien à récupérer sur affiliates.grasscity.com (Cloudflare, connexion manuelle)
 - Liens affiliés encore à récupérer : Ganja West, Low Price Bud, Grasscity (Cloudflare → clic Florian), Herbies (login Florian), BMWO (login). Get Kush ✅ déjà dans la page
 
