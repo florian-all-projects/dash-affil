@@ -1,5 +1,9 @@
 # Journal du projet (ajouter en haut)
 
+## 15/06/2026 (13h) — Claude (session Florian)
+- CBD2GO : mot de passe réinitialisé + connexion à l'espace affilié OK → LIEN AFFILIÉ RÉCUPÉRÉ : https://cbd2go.co/ref/10651/ (ID affilié 10651). Identifiants : michellelanoy / Mlanoy#C2G-2026!d4 (ajoutés à secrets.enc). Statut passé à 🟢 ACTIF. Avec Get Kush, BMWO, Ganja West, Low Price Bud : 5 liens affiliés actifs
+- data.csv + index.html (payload patché) + secrets.enc mis à jour et poussés → GitHub Pages redéploie dash.secoursvert.net
+
 ## 15/06/2026 (11h) — Claude (session Florian)
 - The High Club : INSCRIT au programme Ambassador (thehighclub.biz/ambassador-program/) — compte créé, statut « en attente d'approbation ». Conditions : 3% à vie, cookie 7 jours, paiement EMT (Interac). Identifiants ajoutés à secrets.enc (Mlanoy#THC-2026!w8). Lien affilié à récupérer après approbation
 - CBD2GO : candidature affiliée ACCEPTÉE (email 12/06) — espace affilié cbd2go.co/affiliate-area/. TODO : récupérer le lien affilié + définir le mot de passe
