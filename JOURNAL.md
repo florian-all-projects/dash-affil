@@ -1,5 +1,10 @@
 # Journal du projet (ajouter en haut)
 
+## 15/06/2026 (19h) — Claude (session Florian)
+- Seed banks : inscriptions soumises avec adresse + tél fournis par Florian (5678 Bd Saint-Laurent, Montréal). True North Seed Bank + Canuk et Quebec Cannabis Seeds inscrits via Post Affiliate Pro (en attente d'approbation, mdp envoyé par email ; paiement/banque à finaliser côté humain). QCS couvre aussi Toronto Cannabis Seeds (même société/programme).
+- Green Avenger : compte client WooCommerce créé (mdp temporaire envoyé par email) ; pas de formulaire d'affiliation self-service → affiliation à demander par email à leur support.
+- NB : Referral ID « mlanoy » à renseigner sur les futures inscriptions PAP (True North/QCS déjà soumis sans, car instruction reçue après).
+
 ## 15/06/2026 (18h30) — Claude (session Florian)
 - Green Affiliates (Crop King + 6 marques) : INSCRIT (Post Affiliate Pro, greenaffiliates.com) avec adresse + téléphone fournis par Florian. Email « Your Application Is Being Reviewed » reçu → en attente d'approbation manuelle. Identifiants : michellelanoy / Mlanoy#GA-2026!q3 (secrets.enc). 1 compte = 7 boutiques. Lien à récupérer après approbation
 - Coordonnées Michelle ajoutées à secrets.enc pour les autres seed banks (True North, QCS, Toronto, Green Avenger)
