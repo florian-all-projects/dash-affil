@@ -1,13 +1,8 @@
 # Journal du projet (ajouter en haut)
 
-## 16/06/2026 (09h25) — Claude (tâche planifiée « surveillance-emails-affiliation-cannabis »)
-- Surveillance boîte michelle.lanoy.pro@gmail.com (in:anywhere newer_than:2d). 2 nouveautés depuis le dernier run (15/06 18h) :
-- **CBD Magic : candidature APPROUVÉE** (email « Welcome to the CBD Magic Team », 15/06 20h07, de sales@cbdmagic.co). Le mail fournit directement le **lien affilié : https://cbdmagic.co/cbd/1061/** (username michellelanoy). Espace affilié : https://cbdmagic.co/affiliate-area/. Statut data.csv : ✅ Soumis → 🟢 ACTIF — lien obtenu. Conditions : 15% + 5% à vie + 5% tier2, cookie 30j, E-transfer/PayPal 1re semaine.
-- **CBD2HEAL : candidature APPROUVÉE** (email « Congratulations! Your Affiliate Application has been accepted », 15/06 20h08, de sales@cbd2heal.ca). Accès espace affilié : https://cbd2heal.ca/affiliate-area/ — le lien affilié n'est PAS dans le mail, à récupérer après connexion. Statut data.csv : ✅ Soumis → 🟢 Approuvé — accès espace affilié. Conditions : 15% + 5% à vie + 5% tier2, cookie 30j, coupon 20%.
-- **BC Bud Supply : RAS** — le fil contient seulement leur réponse du 12/06 et le plan de promo envoyé par Michelle le 15/06 14h (déjà journalisé). Pas de nouvelle réponse de BCBS → toujours en attente d'approbation.
-- The High Club : les 2 mails (approbation + « being reviewed ») apparaissent dans la recherche mais sont déjà traités (run 15/06).
-- ⚠️ index.html NON régénéré (comme au run précédent) : `generate.py` ne réinjecte pas les liens/identifiants patchés → régénérer écraserait les 6 liens affiliés actifs. Le payload chiffré doit être patché à la main pour faire apparaître CBD Magic (ID 1061) et l'approbation CBD2HEAL sur le dashboard. TODO humain : patch payload + récupérer le lien CBD2HEAL via login.
-- data.csv + JOURNAL.md mis à jour et poussés sur le repo.
+## 15/06/2026 (18h30) — Claude (session Florian)
+- Green Affiliates (Crop King + 6 marques) : INSCRIT (Post Affiliate Pro, greenaffiliates.com) avec adresse + téléphone fournis par Florian. Email « Your Application Is Being Reviewed » reçu → en attente d'approbation manuelle. Identifiants : michellelanoy / Mlanoy#GA-2026!q3 (secrets.enc). 1 compte = 7 boutiques. Lien à récupérer après approbation
+- Coordonnées Michelle ajoutées à secrets.enc pour les autres seed banks (True North, QCS, Toronto, Green Avenger)
 
 ## 15/06/2026 (18h15) — Claude (session Florian)
 - The High Club : connexion à l'espace affilié OK (après approbation 16h) → LIEN AFFILIÉ RÉCUPÉRÉ : https://www.thehighclub.biz/ref/140/ (ID affilié 140). Statut passé à 🟢 ACTIF. index.html (payload patché) + data.csv + secrets.enc mis à jour. → 6 liens affiliés actifs (Get Kush, BMWO, Ganja West, LPB, CBD2GO, The High Club)
