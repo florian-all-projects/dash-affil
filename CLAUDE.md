@@ -30,6 +30,7 @@ de cannabis/CBD/graines/accessoires canadiens, sous l'identité :
   (le mot de passe du dashboard est fourni par Florian en chat — ne jamais le committer en clair).
 - **`index.html`** = dashboard généré (contenu AES-256-GCM + porte de mot de passe WebCrypto, noindex).
 - Déploiement : **commit/push sur main = mise en ligne auto (GitHub Pages)**.
+- ⚠️ Mise à jour du dashboard : NE PAS régénérer index.html avec generate.py (efface liens/identifiants) — **patcher le payload chiffré** (déchiffrer avec le mdp dashboard, modifier les `<tr>`, re-chiffrer). Push via l'**upload web** github.com/.../upload/main + file_upload + « Commit changes » (l'API tree-save échoue en 422).
 
 ## Déchiffrement de secrets.enc (dans le sandbox)
 ```python
@@ -42,20 +43,27 @@ key=PBKDF2HMAC(algorithm=hashes.SHA256(),length=32,salt=b(d['salt']),iterations=
 print(AESGCM(key).decrypt(b(d['nonce']), b(d['ct']), None).decode())
 ```
 
-## État au 12/06/2026 (résumé — détail dans data.csv et JOURNAL.md)
-- 🟢 ACTIF : Get Kush (lien : https://getkush.cc/?ref=michellelanoy), Grasscity (compte ok, programme 8% pending)
-- ✅ Comptes créés : Low Price Bud, BMWO, Herbies, Ganja West + inscriptions soumises : WTF Cannabis, Chronic Farms, Kush Station, The Herb Centre, Cannaffex, Plant of Life, CBD Magic, CBD2HEAL (en examen)
-- 📨 Réponse reçue : **BC Bud Supply = 15 %, payout le 15, PayPal/BTC, lien + coupon perso** — attend un plan de promo pour approuver (répondre depuis la boîte de Michelle)
-- 📧 Emails envoyés (12/06, en attente) : CheapWeed, CBDNorth, Vitality, Mellow, The High Club, Crystal Cloud 9, ODC, Vancouver Seed Bank, Jordan of the Islands
-- ⏸ Bloqués : seed banks Green Affiliates/True North/QCS/Toronto/Green Avenger (adresse postale + tél + banque requis), Haute Health (tél + pièce d'identité), POTV/CBD Oil Canada/Happy Bears (comptes Refersion à créer)
-- ⛔ Morts/cassés : BuyWeedPacks (domaine en vente), Vaped.ca (404), Resolve (GRIN abandonné), Birch+Fog, BC Seeds, Goldbuds (fermé), Daily Marijuana & Tools420 & Low Price Bud & Ganja West dashboards (Cloudflare → clic humain requis)
+## État au 15/06/2026 (résumé — détail dans data.csv et JOURNAL.md)
+- 🟢 ACTIFS — 6 liens affiliés obtenus :
+  - Get Kush : https://getkush.cc/?ref=michellelanoy (7,5%)
+  - BMWO : https://buymyweedonline.cc/ref/michellelanoy/ (15% récurrent)
+  - Ganja West : https://ganjawest.co?ref=73813 (7,5%)
+  - Low Price Bud : https://lowpricebud.co/?ref=michellelanoy (payout à configurer)
+  - CBD2GO : https://cbd2go.co/ref/10651/ (10%, cookie 90j, E-transfer) — approuvé 12/06, lien récupéré 15/06
+  - The High Club : https://www.thehighclub.biz/ref/140/ (3% à vie, cookie 7j, EMT) — Ambassador approuvé 15/06
+- 📨 BC Bud Supply : plan de promo ENVOYÉ (15/06). Offre 15%, payout le 15, PayPal/BTC. Attend leur approbation + lien + coupon perso
+- ⏳ En attente d'approbation (à surveiller) : Grasscity (programme 8% pending, générateur verrouillé, Cloudflare), CBD Magic, CBD2HEAL (en examen), Kush Station, Chronic Farms
+- ✅ Comptes créés sans lien encore : Herbies, Speed Greens + inscriptions soumises : WTF Cannabis, Cannaffex, Plant of Life
+- ⏸ Bloqués : seed banks Green Affiliates/True North/QCS/Toronto/Green Avenger (adresse + tél + banque requis), Haute Health (tél + pièce d'identité), POTV/CBD Oil Canada/Happy Bears (comptes Refersion à créer)
+- ⛔ Morts/cassés : BuyWeedPacks (domaine en vente), Vaped.ca (404), Resolve (GRIN abandonné), Birch+Fog, BC Seeds, Goldbuds (fermé)
 
 ## Prochaines étapes
-1. Répondre à BC Bud Supply (plan de promo) depuis la boîte de Michelle
-2. Récupérer les liens affiliés restants (Ganja West, LPB, Herbies — sessions/Cloudflare)
-3. Finaliser DNS dash.secoursvert.net (CNAME `dash` → `florian-all-projects.github.io` chez o2switch) puis custom domain dans Settings→Pages
-4. Seed banks dès que Florian fournit adresse/téléphone
-5. Surveiller la boîte Gmail (réponses CheapWeed, CBDNorth, Vitality, Mellow…) et mettre à jour data.csv + dashboard + JOURNAL.md
+1. Récupérer le lien + coupon de BC Bud Supply dès leur réponse
+2. Surveiller les approbations : Grasscity (8%), CBD Magic, CBD2HEAL, Kush Station, Chronic Farms
+3. Configurer le moyen de paiement Low Price Bud (onglet Payments) pour pouvoir encaisser
+4. ⚠️ SÉCURITÉ : purger les mots de passe en clair de l'historique de JOURNAL.md (repo PUBLIC) et ne garder les secrets que dans secrets.enc
+5. Finaliser HTTPS (cocher « Enforce HTTPS » dans Settings > Pages quand le certificat est émis) puis supprimer l'ancien site Netlify ml-affil-dashboard
+6. Seed banks dès que Florian fournit adresse postale + téléphone
 
 ## Règles pour Claude
 - Ne jamais committer de mot de passe en clair (utiliser secrets.enc)
