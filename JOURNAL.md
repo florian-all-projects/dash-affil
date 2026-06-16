@@ -1,5 +1,9 @@
 # Journal du projet (ajouter en haut)
 
+## 15/06/2026 (19h30) — Claude (session Florian)
+- Quebec Cannabis Seeds : APPROUVÉ + mot de passe défini (Mlanoy#QCS-2026!m4) + connexion → LIEN AFFILIÉ : https://quebeccannabisseeds.com/?a_aid=12345. Le même a_aid couvre Toronto Cannabis Seeds : https://torontocannabisseeds.com/?a_aid=12345. Statuts passés à 🟢 ACTIF.
+- Green Avenger : email de demande d'affiliation envoyé à support@greenavengerseeds.com.
+
 ## 15/06/2026 (19h) — Claude (session Florian)
 - Seed banks : inscriptions soumises avec adresse + tél fournis par Florian (5678 Bd Saint-Laurent, Montréal). True North Seed Bank + Canuk et Quebec Cannabis Seeds inscrits via Post Affiliate Pro (en attente d'approbation, mdp envoyé par email ; paiement/banque à finaliser côté humain). QCS couvre aussi Toronto Cannabis Seeds (même société/programme).
 - Green Avenger : compte client WooCommerce créé (mdp temporaire envoyé par email) ; pas de formulaire d'affiliation self-service → affiliation à demander par email à leur support.
