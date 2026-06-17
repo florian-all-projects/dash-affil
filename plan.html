@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Plan — Réseau de 10 sites marchands d'affiliation cannabis (Canada)</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #f4f6f4;
+    color: #1c241c;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 80px; }
+  header.hero {
+    background: linear-gradient(135deg, #1f5132 0%, #2e7d4f 60%, #3f9d63 100%);
+    color: #fff;
+    padding: 44px 20px 38px;
+    text-align: center;
+  }
+  header.hero h1 { margin: 0 0 8px; font-size: 27px; line-height: 1.25; letter-spacing: -.01em; }
+  header.hero .sub { opacity: .92; font-size: 15px; max-width: 760px; margin: 0 auto; }
+  header.hero .meta { margin-top: 14px; font-size: 12.5px; opacity: .82; }
+
+  .toc {
+    background: #fff; border: 1px solid #e1e7e1; border-radius: 14px;
+    padding: 18px 22px; margin: 26px 0 30px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .toc h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: #5a6b5a; }
+  .toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+  .toc li { margin: 4px 0; break-inside: avoid; }
+  .toc a { color: #226140; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  section.card {
+    background: #fff; border: 1px solid #e1e7e1; border-radius: 14px;
+    padding: 24px 26px; margin: 0 0 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    scroll-margin-top: 16px;
+  }
+  section.card h2 {
+    margin: 0 0 14px; font-size: 19px; color: #1f5132;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  section.card h2 .n {
+    font-size: 13px; font-weight: 700; color: #fff; background: #2e7d4f;
+    border-radius: 7px; padding: 3px 9px; flex: none;
+  }
+  section.card h3 { font-size: 15px; margin: 18px 0 8px; color: #2a402f; }
+  p { margin: 10px 0; }
+  ul { margin: 10px 0; padding-left: 22px; }
+  li { margin: 5px 0; }
+  strong { color: #14301d; }
+  code {
+    background: #eef3ee; color: #1f5132; padding: 1px 6px; border-radius: 5px;
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 13px;
+  }
+  pre {
+    background: #14241a; color: #d7ece0; padding: 18px 20px; border-radius: 12px;
+    overflow-x: auto; font-size: 12.5px; line-height: 1.45;
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+  th, td { border: 1px solid #e1e7e1; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #f0f5f0; color: #2a402f; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafcfa; }
+
+  .pillars { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 12px; margin: 16px 0; }
+  .pillar { border: 1px solid #d7e3d7; border-radius: 12px; padding: 14px 16px; background: #f7faf7; }
+  .pillar .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    color: #fff; background: #2e7d4f; border-radius: 6px; padding: 2px 8px; margin-bottom: 8px; }
+  .pillar.b .tag { background: #3a7bd5; }
+  .pillar.c .tag { background: #c2740f; }
+  .pillar.d .tag { background: #7a4fb5; }
+  .pillar p { margin: 0; font-size: 13.5px; }
+
+  .warn { background: #fff7ec; border: 1px solid #f0d9b0; border-left: 4px solid #d98a16;
+    border-radius: 10px; padding: 12px 16px; margin: 12px 0; font-size: 14px; }
+  .note { background: #eef5f9; border: 1px solid #c9dcea; border-left: 4px solid #3a7bd5;
+    border-radius: 10px; padding: 12px 16px; margin: 12px 0; font-size: 14px; }
+
+  footer { text-align: center; color: #7a887a; font-size: 12.5px; margin-top: 28px; }
+  @media (max-width: 640px) { .toc ol { columns: 1; } header.hero h1 { font-size: 22px; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Réseau de 10 sites marchands d'affiliation cannabis — Canada</h1>
+  <div class="sub">Document de cadrage. Scraping hebdomadaire des catalogues, base centrale, sites statiques uniques (FR/EN/ES), SEO maximal — objectif&nbsp;: ranker au-dessus des shops affiliés.</div>
+  <div class="meta">Projet « Cana canada » · persona Michelle Lanoy · version du 17/06/2026 · plan uniquement — rien n'est codé</div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h2>Sommaire</h2>
+    <ol>
+      <li><a href="#s1">Objectif</a></li>
+      <li><a href="#s2">Architecture générale</a></li>
+      <li><a href="#s3">Pilier A — Collecte des produits</a></li>
+      <li><a href="#s4">Base de données centrale</a></li>
+      <li><a href="#s5">Doublons & priorité lifetime</a></li>
+      <li><a href="#s6">Pilier B — Annuaire local & SEO</a></li>
+      <li><a href="#s6b">Pilier C — Coupons & codes promo</a></li>
+      <li><a href="#s6t">Pilier D — Axes additionnels</a></li>
+      <li><a href="#s7">Génération de contenu</a></li>
+      <li><a href="#s8">Génération d'images</a></li>
+      <li><a href="#s9">Design & différenciation</a></li>
+      <li><a href="#s10">SEO</a></li>
+      <li><a href="#s11">Boutons d'achat & deep-linking</a></li>
+      <li><a href="#s12">Hébergement & déploiement</a></li>
+      <li><a href="#s13">Pipeline hebdomadaire</a></li>
+      <li><a href="#s14">Stack technique</a></li>
+      <li><a href="#s15">Risques & garde-fous</a></li>
+      <li><a href="#s16">À fournir par toi</a></li>
+      <li><a href="#s17">Roadmap</a></li>
+    </ol>
+  </nav>
+
+  <section class="card" id="s1">
+    <h2><span class="n">1</span> Objectif</h2>
+    <p>Construire un réseau de <strong>10 sites marchands</strong> (extensible), hébergés sur des noms de domaine expirés, qui&nbsp;:</p>
+    <ul>
+      <li>Présentent <strong>tous les produits</strong> de tous les shops affiliés (scrap hebdomadaire, sans tri).</li>
+      <li>Renvoient chaque bouton « Acheter » vers le shop affilié avec l'ID d'affiliation (deep-link).</li>
+      <li>Intègrent un <strong>annuaire local + SEO programmatique</strong> : pages « acheter weed + ville » sur tout le Canada.</li>
+      <li>Proposent, <strong>pour chaque shop affilié et sur chacun des sites</strong>, des <strong>pages coupons / codes promo</strong>.</li>
+      <li>Sont en <strong>3 langues</strong> (FR / EN / ES), avec <strong>contenu unique par site et par langue</strong>, et <strong>design unique par site</strong>.</li>
+      <li>Ont une <strong>optimisation SEO maximale</strong> visant à <strong>ranker au-dessus des shops affiliés eux-mêmes</strong>.</li>
+    </ul>
+    <p><strong>Quatre piliers de contenu&nbsp;:</strong></p>
+    <div class="pillars">
+      <div class="pillar a"><span class="tag">Pilier A</span><p><strong>Catalogue produits</strong> — dynamique, mis à jour chaque semaine.</p></div>
+      <div class="pillar b"><span class="tag">Pilier B</span><p><strong>Annuaire local & guides villes</strong> — figé une fois généré, gros maillage interne.</p></div>
+      <div class="pillar c"><span class="tag">Pilier C</span><p><strong>Coupons & codes promo</strong> — par shop, sur chaque site, rafraîchis chaque semaine.</p></div>
+      <div class="pillar d"><span class="tag">Pilier D</span><p><strong>Axes additionnels</strong> — comparateur de prix, strains, nouveautés, deals, comparatifs, avis, guides, usages.</p></div>
+    </div>
+  </section>
+
+  <section class="card" id="s2">
+    <h2><span class="n">2</span> Architecture générale</h2>
+<pre>
+                 ┌───────────────────────────────────────────┐
+                 │              SERVEUR PRIVÉ                  │
+                 │                                             │
+  Shops          │   ┌──────────┐     ┌──────────────────┐    │
+  affiliés  ───► │   │ SCRAPER  │ ──► │  BASE CENTRALE    │    │
+  (Woo/Shopify)  │   │ (Python) │     │  PostgreSQL       │    │
+                 │   └──────────┘     │  (produits, shops,│    │
+                 │        ▲           │   villes, contenu,│    │
+  Données        │        │           │   coupons, images)│    │
+  shops physiques│   (cron hebdo)     └─────────┬─────────┘    │
+  (fournies)  ──►│                              │              │
+                 │   ┌──────────────┐           │              │
+  Clés API IA ──►│   │ GÉNÉRATION   │ ◄─────────┘              │
+  (texte+image)  │   │ contenu+image│                          │
+                 │   └──────┬───────┘                          │
+                 │          │                                  │
+                 │   ┌──────▼────────────────────────────┐     │
+                 │   │  BUILD STATIQUE (Astro) × 10 sites │     │
+                 │   │  templates/identités distincts     │     │
+                 │   └──────┬────────────────────────────┘     │
+                 └──────────┼──────────────────────────────────┘
+                            ▼
+                  10 sites statiques publiés (FR/EN/ES)
+                  → CTA affiliés → shops en ligne
+</pre>
+    <div class="note"><strong>Principe clé&nbsp;:</strong> une seule base centrale alimente les 10 sites. Un changement (prix, nouveau produit) se propage partout au prochain build, automatiquement.</div>
+  </section>
+
+  <section class="card" id="s3">
+    <h2><span class="n">3</span> Pilier A — Collecte des produits (scraper)</h2>
+    <h3>Méthode en cascade (du plus stable au moins stable)</h3>
+    <ul>
+      <li><strong>Shopify</strong> → endpoint public <code>/products.json</code> (paginé) : catalogue complet, structuré, stable.</li>
+      <li><strong>WooCommerce</strong> → Store API <code>/wp-json/wc/store/v1/products</code> : public, structuré (nom, prix, images, variantes, stock).</li>
+      <li><strong>Fallback universel</strong> → <code>sitemap.xml</code> + lecture du <strong>JSON-LD <code>schema.org/Product</code></strong> de chaque fiche.</li>
+      <li><strong>Dernier recours</strong> → scraping CSS ciblé, configuré shop par shop.</li>
+    </ul>
+    <h3>Bonnes pratiques techniques</h3>
+    <ul>
+      <li>Détection automatique de la plateforme par shop.</li>
+      <li>Respect du <code>robots.txt</code>, throttling + back-off, rotation de user-agent.</li>
+      <li><strong>Hash de contenu par produit</strong> pour ne traiter que nouveautés/modifications.</li>
+      <li>Journalisation par shop (un shop cassé ne bloque pas les autres).</li>
+      <li>Champs : nom, marque, catégorie, type, THC/CBD, format/poids, prix, variantes, images, description, stock, URL, shop.</li>
+    </ul>
+    <h3>Périmètre</h3>
+    <p>Tous les shops <strong>🟢 ACTIF</strong> de <code>data.csv</code> au lancement (BMWO, Get Kush, Ganja West, Low Price Bud, CBD2GO, CBD Magic, CBD2HEAL, The High Club, QCS/Toronto Seeds, Herbies…), puis ajout au fil des approbations. <strong>Tous les produits, aucun tri.</strong></p>
+  </section>
+
+  <section class="card" id="s4">
+    <h2><span class="n">4</span> Base de données centrale (PostgreSQL)</h2>
+    <ul>
+      <li><code>shops</code> — nom, domaine, plateforme, lien affilié, <strong>lifetime (oui/non)</strong>, priorité, statut.</li>
+      <li><code>products</code> — clé canonique, nom, marque, catégorie, type, attributs, <code>content_hash</code>, first/last_seen, statut.</li>
+      <li><code>product_offers</code> — produit × shop : prix, devise, url, en_stock, date_maj (gestion des doublons).</li>
+      <li><code>product_images</code> — 2 images par produit (générées une fois, partagées entre sites).</li>
+      <li><code>content</code> — texte généré par (produit|page) × site × langue, avec hash de génération.</li>
+      <li><code>cities</code> — villes du Canada, province, population, données locales.</li>
+      <li><code>physical_shops</code> — annuaire fourni : nom, ville, adresse, province, (horaires/avis).</li>
+      <li><code>coupons</code> — shop, code, description, type (% / montant / livraison), validité, source, date_maj, vérifié.</li>
+      <li><code>strains</code> — souche, type, effets, THC/CBD, arômes ; lien produits ↔ souche.</li>
+      <li><code>sites</code> — les 10 sites : domaine, identité/angle, langue(s), thème de design.</li>
+    </ul>
+    <h3>Logique d'ingestion hebdomadaire</h3>
+    <ul>
+      <li><strong>Nouveau</strong> → insertion + enrichissement (images + contenu).</li>
+      <li><strong>Existant, prix changé</strong> → mise à jour → <strong>propagation auto sur les 10 sites</strong>.</li>
+      <li><strong>Existant, prix inchangé</strong> → ignoré (pas de retraitement).</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s5">
+    <h2><span class="n">5</span> Doublons & priorité « lifetime »</h2>
+    <ul>
+      <li><strong>Clé canonique</strong> = <code>normalisation(nom) + marque + format/poids</code> + matching flou pour les quasi-doublons.</li>
+      <li>Doublon multi-shops → bouton « Acheter » vers le vendeur en <strong>affiliation lifetime</strong> (BMWO 15 % à vie, CBD Magic, CBD2HEAL, Kush Station, Vitality CBD, WTF Cannabis, Mellow, Plant of Life…).</li>
+      <li>À défaut de lifetime → commission la plus élevée, puis fiabilité (DR, avis).</li>
+      <li><strong>Aucun doublon affiché</strong> : un produit = une fiche unique par site, meilleur vendeur.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s6">
+    <h2><span class="n">6</span> Pilier B — Annuaire local & SEO programmatique</h2>
+    <h3>Pages « ville »</h3>
+    <ul>
+      <li><strong>Combien ça coûte</strong> — fourchettes de prix locales + comparatif.</li>
+      <li><strong>Où trouver</strong> — annuaire des shops physiques de la ville (données fournies).</li>
+      <li><strong>Est-ce légal</strong> — cadre fédéral (Cannabis Act 2018) + règles de la province. Factuel et exact (E-E-A-T).</li>
+      <li><strong>Modes d'achat</strong> — magasin physique vs livraison en ligne. <strong>FAQ</strong> locale.</li>
+      <li><strong>Gros CTA</strong> vers les shops en ligne avec livraison (liens affiliés).</li>
+    </ul>
+    <h3>Variation lexicale (anti-duplication)</h3>
+    <p>Rotation pilotée par un dictionnaire par langue&nbsp;: verbes (acheter / trouver / obtenir / commander / se procurer…) et noms (weed / cannabis / marijuana / hash / herbe / beuh…), combinés par ville et par site.</p>
+    <h3>Maillage interne (silos)</h3>
+    <p><code>page ville ↔ fiches produits ↔ catégories ↔ villes voisines ↔ hub provincial ↔ accueil</code>. Objectif : concentrer le jus SEO sur « acheter weed + ville ». Contenu <strong>unique par site</strong>, figé une fois généré.</p>
+  </section>
+
+  <section class="card" id="s6b">
+    <h2><span class="n">C</span> Pilier C — Pages coupons & codes promo</h2>
+    <ul>
+      <li>Pour <strong>chaque shop affilié</strong>, une page coupons <strong>sur chacun des 10 sites</strong> (+ page hub « tous les codes promo »).</li>
+      <li>Cible « code promo [shop] », « [shop] coupon code », « [shop] rabais / discount », en <strong>FR/EN/ES</strong> avec variations lexicales.</li>
+      <li><strong>Contenu unique par site et par langue</strong>.</li>
+      <li><strong>Fraîcheur</strong> : date de maj affichée ; codes vérifiés et rafraîchis à chaque run hebdo.</li>
+      <li><strong>Sources</strong> : codes perso (ex. CBD2HEAL <code>MICHELLE20</code>, BC Bud Supply, referrals…) + coupons publics scrapés. Table <code>coupons</code>.</li>
+      <li><strong>Gros CTA</strong> affiliés + maillage vers fiches et catégories du shop. Données structurées (Offer / FAQPage).</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s6t">
+    <h2><span class="n">D</span> Pilier D — Axes de contenu additionnels (tous validés)</h2>
+    <h3>Data-driven (alimentés par le scraping, uniques, frais, durs à répliquer)</h3>
+    <ul>
+      <li><strong>Comparateur de prix</strong> — prix multi-shops par produit / catégorie / province, hebdo (depuis <code>product_offers</code>). Avantage concurrentiel fort.</li>
+      <li><strong>Pages variétés / strains</strong> — fiche par souche (effets, THC/CBD, goût, où acheter), mappée sur les produits.</li>
+      <li><strong>Nouveautés de la semaine</strong> — générées auto depuis le diff du scraper. Fraîcheur, coût quasi nul.</li>
+      <li><strong>Deals & promos saisonniers</strong> — hub 4/20, Black Friday, soldes. Complète le pilier coupons.</li>
+    </ul>
+    <h3>Éditoriaux à forte intention d'achat</h3>
+    <ul>
+      <li><strong>Comparatifs « meilleurs shops / produits »</strong> — listicles « top sites pour acheter du weed en ligne au Canada ».</li>
+      <li><strong>Avis / reviews de chaque shop affilié</strong> — requêtes de marque « [shop] avis », forte conversion.</li>
+      <li><strong>Guides d'achat</strong> — Interac e-transfer, livraison discrète, 1re commande, sécurité. Autorité + E-E-A-T.</li>
+      <li><strong>Pages par usage</strong> (sommeil, douleur, edibles, vapes…) — santé / YMYL.</li>
+    </ul>
+    <div class="warn">⚠️ <strong>Pages par usage (santé/YMYL)</strong> : disclaimers obligatoires, ton prudent, <strong>pas d'allégations médicales</strong>, sources fiables.</div>
+    <p>Tous : contenu unique par site et par langue (FR/EN/ES), variations lexicales, maillage interne fort vers les pages money.</p>
+  </section>
+
+  <section class="card" id="s7">
+    <h2><span class="n">7</span> Génération de contenu</h2>
+    <ul>
+      <li><strong>Faits = variables</strong> injectées partout (specs, prix, légalité, annuaire). Identiques entre sites = pas un problème de duplicate content.</li>
+      <li><strong>Éditorial = généré, unique par site × langue</strong> : prose conditionnée par (faits + identité du site + langue). Angle/voix/structure différents → texte réellement distinct.</li>
+    </ul>
+    <p><strong>Garde-fous&nbsp;:</strong> régénération seulement si les faits changent (hash) → coût IA borné ; multilingue FR/EN/ES avec <code>hreflang</code> ; modèle de texte selon les clés fournies.</p>
+  </section>
+
+  <section class="card" id="s8">
+    <h2><span class="n">8</span> Génération d'images</h2>
+    <ul>
+      <li><strong>2 images par produit</strong>, générées une fois et <strong>partagées entre les 10 sites</strong>.</li>
+      <li>API : <strong>Gemini (nano banana)</strong> et/ou <strong>GPT Image</strong> selon tes clés.</li>
+      <li>Stockées en base, servies en local (rapidité + indépendance vis-à-vis des sources).</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s9">
+    <h2><span class="n">9</span> Design & différenciation des 10 sites</h2>
+    <ul>
+      <li><strong>10 angles/marques distincts</strong> (catégorie, audience, région, usage) → réduit l'empreinte de réseau.</li>
+      <li><strong>Templates Astro différents par site</strong> : mise en page, composants, palette, typographie.</li>
+      <li><strong>Structures de page variables</strong> : avis en avant, guide d'usage, comparatif…</li>
+      <li>Objectif : « impression d'arriver sur des sites différents », pas un réseau cloné.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s10">
+    <h2><span class="n">10</span> SEO</h2>
+    <ul>
+      <li><strong>Technique</strong> : sites statiques rapides, sitemap, robots, Core Web Vitals.</li>
+      <li><strong>Données structurées</strong> : Product, Offer, LocalBusiness, FAQPage, BreadcrumbList.</li>
+      <li><strong>Multilingue</strong> : hreflang FR/EN/ES, URLs par langue.</li>
+      <li><strong>Maillage interne</strong> fort (silos produits + silos villes).</li>
+      <li><strong>Objectif outranking</strong> : contenu plus riche + maillage + vitesse + fraîcheur hebdo.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s11">
+    <h2><span class="n">11</span> Boutons d'achat & deep-linking affilié</h2>
+    <ul>
+      <li>Liens affiliés au niveau du shop (ex. <code>getkush.cc/?ref=michellelanoy</code>).</li>
+      <li>Bouton « Acheter » = <strong>URL produit + paramètre <code>ref</code></strong>, fallback page d'accueil si le shop ne tracke qu'à l'atterrissage.</li>
+      <li>Vérification du tracking par shop au moment de l'implémentation.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s12">
+    <h2><span class="n">12</span> Hébergement & déploiement</h2>
+    <ul>
+      <li><strong>Serveur privé</strong> (config proposée, accès à valider).</li>
+      <li><strong>Build statique</strong> des 10 sites (Astro) régénéré après chaque scrap.</li>
+      <li><strong>Cron hebdomadaire</strong> : scrap → ingestion → génération → build → publication.</li>
+      <li>Composants : PostgreSQL, Python, Node (Astro), Nginx, cron.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s13">
+    <h2><span class="n">13</span> Pipeline hebdomadaire</h2>
+    <ol>
+      <li>Scrap de tous les shops actifs (cascade).</li>
+      <li>Dédup + détection de changements (hash).</li>
+      <li>Mise à jour BDD (insert / update prix / skip).</li>
+      <li>Génération contenu + images <strong>pour le nouveau/modifié uniquement</strong>.</li>
+      <li>Rafraîchissement + vérification des <strong>coupons</strong>.</li>
+      <li>Build des 10 sites statiques.</li>
+      <li>Publication + sitemaps régénérés.</li>
+      <li>Rapport de run (ajoutés/modifiés, erreurs par shop).</li>
+    </ol>
+  </section>
+
+  <section class="card" id="s14">
+    <h2><span class="n">14</span> Stack technique</h2>
+    <table>
+      <tr><th>Couche</th><th>Choix</th></tr>
+      <tr><td>Scraping</td><td>Python (cascade Shopify / Woo / JSON-LD / CSS)</td></tr>
+      <tr><td>Base centrale</td><td>PostgreSQL</td></tr>
+      <tr><td>Génération texte</td><td>IA (modèle selon clés fournies)</td></tr>
+      <tr><td>Génération images</td><td>Gemini nano banana / GPT Image</td></tr>
+      <tr><td>Sites</td><td>Astro (statique, multilingue) — design distinct par site</td></tr>
+      <tr><td>Service web</td><td>Nginx sur serveur privé</td></tr>
+      <tr><td>Orchestration</td><td>cron hebdomadaire</td></tr>
+    </table>
+  </section>
+
+  <section class="card" id="s15">
+    <h2><span class="n">15</span> Risques & garde-fous</h2>
+    <ul>
+      <li><strong>Doorway / pages minces</strong> (villes) → richesse réelle + données locales + variation lexicale.</li>
+      <li><strong>Empreinte de réseau</strong> → designs, identités, contenus distincts ; WHOIS/IP/structures variés.</li>
+      <li><strong>Exactitude juridique</strong> → pages « est-ce légal » à jour par province.</li>
+      <li><strong>Stabilité du scraping</strong> → cascade + fallback JSON-LD + tolérance aux pannes par shop.</li>
+      <li><strong>Coupons expirés</strong> → vérification hebdo + date de maj affichée.</li>
+      <li><strong>Pages par usage (YMYL)</strong> → disclaimers, pas d'allégations médicales, sources fiables.</li>
+      <li><strong>CGU des programmes</strong> → à surveiller programme par programme.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="s16">
+    <h2><span class="n">16</span> À fournir par toi (non bloquant pour le plan)</h2>
+    <ol>
+      <li>Les <strong>10 NDD</strong> + l'angle/identité de chaque site.</li>
+      <li>Les <strong>clés API</strong> : Gemini (nano banana) et/ou GPT Image, + éventuel modèle de texte.</li>
+      <li>Les <strong>données des shops physiques</strong> (annuaire local).</li>
+      <li><strong>Accès au serveur privé</strong> (SSH ou exécution guidée) + specs.</li>
+      <li>Une <strong>enveloppe budget IA</strong> mensuelle indicative.</li>
+      <li>L'<strong>angle éditorial</strong> des pages « est-ce légal » / CTA livraison.</li>
+    </ol>
+  </section>
+
+  <section class="card" id="s17">
+    <h2><span class="n">17</span> Roadmap de mise en œuvre</h2>
+    <ul>
+      <li><strong>Phase 0 — Fondations</strong> : serveur + PostgreSQL + schéma BDD + squelette d'orchestration.</li>
+      <li><strong>Phase 1 — Scraper</strong> : cascade + dédup + change-detection sur les shops actifs.</li>
+      <li><strong>Phase 2 — Génération</strong> : pipeline contenu (faits/éditorial, FR/EN/ES) + images (2/produit).</li>
+      <li><strong>Phase 3 — 1er site</strong> : 1 template Astro complet (catalogue + villes + coupons), bout en bout.</li>
+      <li><strong>Phase 4 — Industrialisation</strong> : 9 autres sites avec identités/designs distincts.</li>
+      <li><strong>Phase 4 bis — Axes additionnels</strong> : comparateur de prix, strains, nouveautés, deals, comparatifs, avis, guides, usages.</li>
+      <li><strong>Phase 5 — SEO & maillage</strong> : sitemaps, schema, hreflang, silos, soumission.</li>
+      <li><strong>Phase 6 — Automatisation</strong> : cron hebdo + rapports + monitoring.</li>
+    </ul>
+  </section>
+
+  <footer>Plan « Cana canada » — réseau de sites d'affiliation cannabis Canada · 17/06/2026</footer>
+
+</div>
+</body>
+</html>
