@@ -1,5 +1,8 @@
 # Journal du projet (ajouter en haut)
 
+## 16/06/2026 (10h15) — Claude (session Florian)
+- CBD2HEAL : connexion espace affilié OK → lien récupéré https://cbd2heal.ca/heal/213/ + coupon MICHELLE20 (20%). Statut 🟢 ACTIF.
+
 ## 16/06/2026 (10h) — Claude (session Florian)
 - CBD Magic : APPROUVÉ (email 15/06) — lien affilié reçu dans l'email : https://cbdmagic.co/cbd/1061/ (username michellelanoy). Statut 🟢 ACTIF.
 - CBD2HEAL : APPROUVÉ (email 15/06) — pas de lien dans l'email, espace cbd2heal.ca/affiliate-area/. Lien/coupon à récupérer après connexion (mdp dans secrets.enc).
