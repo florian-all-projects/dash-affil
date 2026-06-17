@@ -1,5 +1,8 @@
 # Journal du projet (ajouter en haut)
 
+## 16/06/2026 (10h30) — Claude (session Florian)
+- CORRECTION QCS : le lien enregistré a_aid=12345 était un PLACEHOLDER erroné. Vrai lien vérifié dans le panneau PAP : https://quebeccannabisseeds.com/?a_aid=mlanoy (et Toronto: https://torontocannabisseeds.com/?a_aid=mlanoy). Corrigé partout (dashboard, secrets).
+
 ## 16/06/2026 (10h15) — Claude (session Florian)
 - CBD2HEAL : connexion espace affilié OK → lien récupéré https://cbd2heal.ca/heal/213/ + coupon MICHELLE20 (20%). Statut 🟢 ACTIF.
 
