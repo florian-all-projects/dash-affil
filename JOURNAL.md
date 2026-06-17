@@ -1,5 +1,10 @@
 # Journal du projet (ajouter en haut)
 
+## 16/06/2026 (10h) — Claude (session Florian)
+- CBD Magic : APPROUVÉ (email 15/06) — lien affilié reçu dans l'email : https://cbdmagic.co/cbd/1061/ (username michellelanoy). Statut 🟢 ACTIF.
+- CBD2HEAL : APPROUVÉ (email 15/06) — pas de lien dans l'email, espace cbd2heal.ca/affiliate-area/. Lien/coupon à récupérer après connexion (mdp dans secrets.enc).
+- ⚠️ À vérifier : le lien QCS a_aid=12345 enregistré pourrait être un placeholder (l'email PAP contient encore un lien set-password) — à confirmer dans le panneau QCS.
+
 ## 15/06/2026 (19h30) — Claude (session Florian)
 - Quebec Cannabis Seeds : APPROUVÉ + mot de passe défini (Mlanoy#QCS-2026!m4) + connexion → LIEN AFFILIÉ : https://quebeccannabisseeds.com/?a_aid=12345. Le même a_aid couvre Toronto Cannabis Seeds : https://torontocannabisseeds.com/?a_aid=12345. Statuts passés à 🟢 ACTIF.
 - Green Avenger : email de demande d'affiliation envoyé à support@greenavengerseeds.com.
