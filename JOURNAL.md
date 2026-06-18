@@ -1,5 +1,13 @@
 # Journal du projet (ajouter en haut)
 
+## 17/06/2026 (12h52) — Claude (session Florian)
+- **Phase 2 lancée — réseau de 10 sites marchands** : plan complet rédigé et ajouté au repo (**PLAN.md**). 4 piliers (catalogue produits scrapé / annuaire local & pages villes Canada / coupons par shop / axes additionnels : comparateur de prix, strains, nouveautés, deals, comparatifs, avis, guides, usages). Stack : scraper Python en cascade (Shopify products.json → WooCommerce Store API → JSON-LD → CSS), PostgreSQL central, génération contenu unique par site/langue (FR/EN/ES) + images Gemini/GPT, sites Astro statiques (design distinct par site), serveur privé, cron hebdo. Doublons → vendeur lifetime. En attente de Florian : 10 NDD+angles, clés API, données shops physiques, accès serveur, budget IA.
+- **Page plan publiée** : `plan.html` ajoutée au repo → http://dash.secoursvert.net/plan.html (noindex). Contient un bouton « ← Retour au dashboard ».
+- **Dashboard (index.html) modifié** : ajout d'un lien « 📋 Plan du projet » dans le header, **retrait des 2 liens Google Sheets** (comparatif + identifiants), date « Dernière mise à jour » corrigée → 17/06/2026 12h52. Méthode : déchiffrement du payload (mdp dashboard), édition du HTML, re-chiffrement même salt + nonce neuf, **vérif round-trip OK**, push via upload web. Les Sheets restent accessibles via le Drive (juste plus liés depuis le dashboard).
+- **Décision HTTPS** : on **reste en HTTP**. GitHub n'a pas émis le certificat (DNS check « in progress » alors que le DNS est correct, IPs 185.199.108-111.153 vérifiées). Florian choisit de **ne pas activer Enforce HTTPS** car le passage en https changerait l'origine et **réinitialiserait le localStorage** (vues + disposition du dashboard). Vues confirmées fonctionnelles (vue « flo » présente en localStorage).
+- **Netlify** : tentative de déploiement échouée — **crédit de build du compte épuisé** (« account credit usage exceeded »). On héberge donc sur GitHub Pages.
+- **Correction doc** : la tâche de surveillance emails est en réalité **1×/jour à 9h** (et non 2×/jour). CLAUDE.md réécrit (état 17/06, Phase 2, infra, et nouveau **§ Protocole de documentation partagée** obligatoire pour tout Claude).
+
 ## 16/06/2026 (10h30) — Claude (session Florian)
 - CORRECTION QCS : le lien enregistré a_aid=12345 était un PLACEHOLDER erroné. Vrai lien vérifié dans le panneau PAP : https://quebeccannabisseeds.com/?a_aid=mlanoy (et Toronto: https://torontocannabisseeds.com/?a_aid=mlanoy). Corrigé partout (dashboard, secrets).
 
