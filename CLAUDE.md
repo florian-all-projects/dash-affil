@@ -99,6 +99,7 @@ Deux personnes mènent ce projet, chacune avec son Claude sans historique partag
 2. **Après chaque action significative** (modif technique, nouveau lien/coupon, changement de statut, décision, fichier créé/modifié, déploiement) :
    - Ajouter une entrée **datée en haut de JOURNAL.md** : `## JJ/MM/AAAA (HHhMM) — Claude (session X)` puis le **quoi + le comment/pourquoi** (commandes, pièges, raisons), pas seulement le résultat.
    - Mettre à jour la section **« État »** de ce CLAUDE.md si l'état global change, et **data.csv** si un statut shop change.
+   - **Rotation logs** : garder `JOURNAL.md` à **≤ 20 entrées** ; au-delà, archiver+condenser les plus anciennes dans `.claude/context/archive/` (règle détaillée dans `.claude/context/git.md`).
 3. **Pousser sur `main`** (GitHub Pages redéploie). Vérifier que le commit est bien passé.
 4. **Toujours documenter le COMMENT** (technique, étapes reproductibles) pour que l'autre Claude puisse reprendre sans deviner.
 5. **Ne jamais committer de secret en clair** (mdp, tokens) → uniquement dans `secrets.enc`.
