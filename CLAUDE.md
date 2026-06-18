@@ -1,6 +1,7 @@
 # PROJET : Affiliation Cannabis Canada — « Michelle Lanoy »
 
-> **LIS CE FICHIER EN ENTIER avant d'agir, puis survole les dernières entrées de JOURNAL.md.**
+> **LIS CE FICHIER EN ENTIER avant d'agir, puis lis `.claude/context/index.md` et survole les dernières entrées de JOURNAL.md.**
+> `.claude/context/` = modules de contexte (audience, design, brand-voice, seo, stack, git, progress, v1) orchestrés par `index.md` : charge ceux utiles à ta tâche (table dans l'index).
 > Ce repo est la **source de vérité unique** du projet, partagée entre Florian (vk) et son associé.
 > Les deux travaillent chacun avec leur propre Claude **sans historique commun** : le git est le seul
 > canal de mémoire partagée. Voir **§ Protocole de documentation partagée** (obligatoire).
@@ -73,7 +74,8 @@ print(AESGCM(key).decrypt(b(d['nonce']), b(d['ct']), None).decode())
 - Toronto Cannabis Seeds : https://torontocannabisseeds.com/?a_aid=mlanoy (couvert par le compte QCS)
 
 📨 BC Bud Supply : plan de promo ENVOYÉ (15/06). Offre 15%, payout le 15, PayPal/BTC, contact affiliates@bcbudsupply.com. Attend approbation + lien + coupon perso.
-⏳ En attente d'approbation : Grasscity (8% pending, Cloudflare), Kush Station, Chronic Farms, Green Affiliates (Crop King +6), True North Seed Bank, Green Avenger (demande envoyée 16/06).
+🟢 True North Seed Bank (NASB) : **approuvé** 16/06 (Post Affiliate Pro tnsb) — lien à générer (définir mdp via email, finaliser paiement/banque).
+⏳ En attente d'approbation : Grasscity (8% pending, Cloudflare), Kush Station, Chronic Farms, Green Affiliates (Crop King +6), Green Avenger (demande envoyée 16/06).
 ✅ Inscrits/comptes créés sans lien : Herbies, Speed Greens, WTF Cannabis (10%→5% à vie, soumis pending), Cannaffex, Plant of Life.
 ⏸ Bloqués : Haute Health (tél + pièce ID), POTV/CBD Oil Canada/Happy Bears (comptes Refersion à créer).
 ⛔ Morts/cassés : BuyWeedPacks, Vaped.ca, Resolve (GRIN), Birch+Fog, BC Seeds, Goldbuds.
@@ -93,7 +95,7 @@ print(AESGCM(key).decrypt(b(d['nonce']), b(d['ct']), None).decode())
 
 ## Protocole de documentation partagée (OBLIGATOIRE pour TOUT Claude)
 Deux personnes mènent ce projet, chacune avec son Claude sans historique partagé. **Le repo git est la seule mémoire commune.** Donc, pour que l'autre soit toujours au courant des modifs, process et techniques :
-1. **Au démarrage de chaque session** : lire ce CLAUDE.md en entier + les dernières entrées de JOURNAL.md avant toute action.
+1. **Au démarrage de chaque session** : lire ce CLAUDE.md en entier + `.claude/context/index.md` (charger les modules utiles à la tâche) + les dernières entrées de JOURNAL.md avant toute action.
 2. **Après chaque action significative** (modif technique, nouveau lien/coupon, changement de statut, décision, fichier créé/modifié, déploiement) :
    - Ajouter une entrée **datée en haut de JOURNAL.md** : `## JJ/MM/AAAA (HHhMM) — Claude (session X)` puis le **quoi + le comment/pourquoi** (commandes, pièges, raisons), pas seulement le résultat.
    - Mettre à jour la section **« État »** de ce CLAUDE.md si l'état global change, et **data.csv** si un statut shop change.
