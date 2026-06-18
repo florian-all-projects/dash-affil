@@ -9,6 +9,7 @@
 2. `JOURNAL.md` (racine) = historique daté des actions (survoler les dernières entrées).
 3. `PLAN.md` (racine) = plan détaillé du réseau de sites marchands (Phase 2).
 4. `.claude/context/*` = ce dossier, modules thématiques (ci-dessous).
+5. `.claude/context/archive/` = anciens logs condensés (historique ancien uniquement).
 
 ## Modules disponibles
 | Fichier | Contenu |

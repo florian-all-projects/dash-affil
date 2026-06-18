@@ -23,3 +23,10 @@ Deux personnes, deux Claude sans historique commun → le git est la seule mémo
 
 ## Note environnement
 Le mount sandbox (bash) peut être en léger décalage avec le filesystem des outils Read/Write ; pour l'upload navigateur, se fier aux fichiers Windows (Read/Write).
+
+## Rotation & compression des logs (anti-saturation du contexte)
+- `JOURNAL.md` et tout fichier de log conservent au maximum **20 entrées récentes**.
+- Au-delà de 20 : déplacer les plus anciennes vers `.claude/context/archive/JOURNAL-archive.md` (créer le dossier `archive/` si besoin), les plus récentes en haut.
+- **Compression** : dans l'archive, condenser chaque entrée en **1 ligne** (`JJ/MM — fait clé`), pas le détail complet. Si une archive dépasse ~quelques centaines de lignes, la gziper (`*.md.gz`).
+- Pourquoi : sans cap + compression, les logs finissent par occuper la majeure partie du contexte chargé.
+- L'archive n'est lue que si on a besoin de l'historique ancien.
