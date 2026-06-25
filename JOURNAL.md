@@ -1,5 +1,9 @@
 # Journal du projet (ajouter en haut)
 
+## 25/06/2026 (17h44) — Claude (session Florian)
+- **Chronic Farms : ACTIF** — Florian a défini le mot de passe et fourni le lien de parrainage. Lien affilié récupéré : https://chronicfarms.cc/ref/117/ (username michellelanoy). Statut 🟢 Approuvé → 🟢 ACTIF — lien obtenu.
+- Mise à jour poussée : index.html (payload patché : cellule « Lien affilié » + « Mot de passe » avec bouton copier) + secrets.enc (mdp + lien, chiffrés) + data.csv (statut ACTIF, aucun secret en clair). Round-trips vérifiés.
+
 ## 25/06/2026 (16h17) — Claude (tâche planifiée « surveillance-emails-affiliation-cannabis »)
 - Surveillance boîte michelle.lanoy.pro@gmail.com (in:anywhere newer_than:8d pour couvrir l'écart depuis la dernière MAJ du 18/06 09h11 ; inbox + spam, lus + non lus). **1 développement nouveau** :
 - **Chronic Farms : candidature APPROUVÉE** — email « Affiliate Application Accepted » de noreply@chronicfarms.cc (18/06 20h11, donc reçu après l'exécution de 09h11). Espace affilié : https://chronicfarms.cc/affiliate-area/. Pas de lien affilié ni de lien set-password dans l'email (aucun lien cliqué). Statut data.csv + dashboard : ✅ Inscrit (pending) → 🟢 Approuvé — lien à générer. TODO humain : se connecter à l'espace affilié (définir le mdp), générer le lien affilié, finaliser le paiement.
