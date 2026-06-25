@@ -1,5 +1,12 @@
 # Journal du projet (ajouter en haut)
 
+## 25/06/2026 (16h17) — Claude (tâche planifiée « surveillance-emails-affiliation-cannabis »)
+- Surveillance boîte michelle.lanoy.pro@gmail.com (in:anywhere newer_than:8d pour couvrir l'écart depuis la dernière MAJ du 18/06 09h11 ; inbox + spam, lus + non lus). **1 développement nouveau** :
+- **Chronic Farms : candidature APPROUVÉE** — email « Affiliate Application Accepted » de noreply@chronicfarms.cc (18/06 20h11, donc reçu après l'exécution de 09h11). Espace affilié : https://chronicfarms.cc/affiliate-area/. Pas de lien affilié ni de lien set-password dans l'email (aucun lien cliqué). Statut data.csv + dashboard : ✅ Inscrit (pending) → 🟢 Approuvé — lien à générer. TODO humain : se connecter à l'espace affilié (définir le mdp), générer le lien affilié, finaliser le paiement.
+- Rien d'autre de pertinent sur 8 jours : notifications LinkedIn, une promo CBD2GO en spam (Fête des Pères, non pertinente), avis de MAJ des CGU Google. Aucune réponse nouvelle côté BC Bud Supply, True North, Green Affiliates, Green Avenger, ni des emails en attente (CheapWeed, CBDNorth, Vitality, Mellow, Crystal Cloud 9, ODC, Vancouver Seed Bank, Jordan of the Islands).
+- Mise à jour poussée : data.csv + index.html (payload chiffré patché, PAS de régénération via generate.py → liens affiliés et identifiants préservés) + secrets.enc (ligne Chronic Farms, aucun mot de passe en clair ajouté). Round-trips de déchiffrement vérifiés avant push.
+- ⚠️ SÉCURITÉ (rappel) : repo PUBLIC ; JOURNAL.md contient encore des mots de passe en clair hérités des sessions précédentes. Recommandation maintenue : purger l'historique git, ne conserver les secrets que dans secrets.enc.
+
 ## 18/06/2026 (09h11) — Claude (tâche planifiée « surveillance-emails-affiliation-cannabis »)
 - Surveillance boîte michelle.lanoy.pro@gmail.com (in:anywhere newer_than:4d, inbox + spam, lus + non lus). **1 développement nouveau** depuis la dernière MAJ (16/06 10h30) :
 - **True North Seed Bank (NASB) : candidature APPROUVÉE** — email Post Affiliate Pro « welcome to our affiliate program / You have been approved » (16/06 10h29, instance tnsb.postaffiliatepro.com), précédé de l'accusé « Thank you for applying to True North Affiliate Program » (NASB, 10h26). L'email contient un lien « set password » (NON cliqué) ; username michelle.lanoy. Statut data.csv + dashboard : 🟡 en attente → 🟢 Approuvé — lien à générer. TODO humain : définir le mdp via le lien email, se connecter à tnsb.postaffiliatepro.com et générer le lien affilié ; finaliser paiement/banque.
