@@ -1,0 +1,73 @@
+---
+// Fiche boutique (mode "shop") ou page codes promo d'une boutique (mode "coupon").
+import Base from "../layouts/Base.astro";
+import ProductRow from "../components/ProductRow.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_ORDER, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
+import { productsByShop, couponsForShop, exportedAt, type Shop } from "../lib/catalog";
+import { SHOP_INTRO } from "../data/shops-content";
+interface Props { lang: Lang; shop: Shop; mode: "shop" | "coupon" }
+const { lang, shop, mode } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const list = productsByShop(shop.slug);
+const priceAt = (p: (typeof list)[number]) => p.offers.find((o) => o.shop.slug === shop.slug)!.price;
+const cheapest = [...list].sort((a, b) => priceAt(a) - priceAt(b)).slice(0, 10);
+const byCat = CATEGORY_ORDER.map((c) => ({ c, n: list.filter((p) => p.category === c).length })).filter((x) => x.n);
+const cps = couponsForShop(shop.slug);
+const home = shop.affiliate_url ?? `https://${shop.domain}/`;
+const path = mode === "shop" ? r.shop(lang, shop.slug) : r.coupon(lang, shop.slug);
+const altPath = mode === "shop" ? r.shop(other, shop.slug) : r.coupon(other, shop.slug);
+const title = mode === "shop"
+  ? (lang === "en" ? `${shop.name}: ${list.length} products and prices compared` : `${shop.name} : ${list.length} produits et prix comparés`)
+  : (lang === "en" ? `${shop.name} promo codes and coupons` : `Codes promo ${shop.name}`);
+const lede = mode === "shop"
+  ? SHOP_INTRO[shop.slug]?.[lang] ?? ""
+  : (lang === "en"
+      ? `Promo codes for ${shop.name}, checked against what the shop sends us. Enter the code at checkout on the shop's site.`
+      : `Les codes promo de ${shop.name}, tels que la boutique nous les envoie. Saisissez le code au moment de payer sur le site de la boutique.`);
+---
+<Base lang={lang} title={`${title} | Budboard`} description={lede} path={path} alt={altPath}>
+  <div class="wrap pt-8">
+    <nav aria-label="Breadcrumb" class="text-sm text-moss"><a href={mode === "shop" ? r.shops(lang) : r.coupons(lang)}>{mode === "shop" ? s.nav.shops : s.nav.coupons}</a> / {shop.name}</nav>
+    <h1 class="mt-3 text-5xl md:text-6xl max-w-3xl">{title}</h1>
+    <p class="mt-4 max-w-2xl text-lg">{lede}</p>
+
+    {mode === "coupon" && (
+      <section class="mt-8">
+        {cps.length ? (
+          <ul class="grid gap-4 sm:grid-cols-2">
+            {cps.map((c) => (
+              <li class="rounded-lg bg-paper ring-1 ring-lichen p-5">
+                <p class="display text-4xl text-leaf tracking-wide">{c.code}</p>
+                <p class="mt-2">{c.kind === "percent" && c.value ? (lang === "en" ? `${c.value}% off` : `${c.value} % de rabais`) : c.description}</p>
+                <p class="mt-1 text-sm text-moss">{c.source === "affiliate" ? (lang === "en" ? "Code issued to Budboard readers." : "Code réservé aux lecteurs de Budboard.") : (lang === "en" ? "Public code sent by the shop; it may have expired." : "Code public envoyé par la boutique ; il a peut-être expiré.")}</p>
+                <p class="mt-1 text-xs text-moss">{lang === "en" ? "Added" : "Ajouté le"} {fmtDate(c.updated_at, lang)}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="text-moss">{lang === "en" ? `No code for ${shop.name} right now. Prices below are already the lowest we found.` : `Pas de code pour ${shop.name} en ce moment. Les prix ci-dessous sont déjà les plus bas relevés.`}</p>
+        )}
+        <a class="btn-buy mt-6" href={home} rel="sponsored nofollow noopener" target="_blank">{lang === "en" ? `Go to ${shop.name}` : `Aller sur ${shop.name}`}</a>
+      </section>
+    )}
+
+    {mode === "shop" && (
+      <section class="mt-8 flex flex-wrap gap-3 items-center">
+        <a class="btn-buy" href={home} rel="sponsored nofollow noopener" target="_blank">{lang === "en" ? `Visit ${shop.name}` : `Visiter ${shop.name}`}</a>
+        {cps.length > 0 && <a href={r.coupon(lang, shop.slug)} class="font-semibold text-copper">{lang === "en" ? `${cps.length} promo code${cps.length > 1 ? "s" : ""}` : `${cps.length} code${cps.length > 1 ? "s" : ""} promo`}</a>}
+        <ul class="flex flex-wrap gap-2 text-sm">
+          {byCat.map(({ c, n }) => <li class="chip">{CATEGORY_SLUGS[c].label[lang]} <span class="num">{n}</span></li>)}
+        </ul>
+      </section>
+    )}
+
+    {cheapest.length > 0 && (
+      <section class="mt-12">
+        <h2 class="text-4xl">{lang === "en" ? `Cheapest products at ${shop.name}` : `Les produits les moins chers chez ${shop.name}`}</h2>
+        <p class="mt-2 text-sm text-moss">{s.updated(fmtDate(exportedAt, lang))}. {s.disclosure}</p>
+        <ul class="mt-3">{cheapest.map((p) => <ProductRow p={p} lang={lang} showCategory />)}</ul>
+      </section>
+    )}
+  </div>
+</Base>

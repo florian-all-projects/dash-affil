@@ -1,5 +1,14 @@
 # Journal du projet (ajouter en haut)
 
+## 23/10/2026 (17h24) — Claude (session Florian) [Flo] Scraper en production + site Budboard en ligne (EN/FR)
+- **Clés** : token Cloudflare `cana-deploy` créé dans le dashboard de Florian (D1, Pages, Workers Scripts en écriture, ce compte seulement) ; clé OpenAI et clé 21st.dev fournies par Florian. Les trois sont **dans `secrets.enc`** (re-chiffré, round-trip vérifié).
+- **Florian ne prend pas Workers Paid** → scraper réécrit en mode « une page par minute » (`stepper.ts`, table `scrape_state`), déployé, cron `* * * * *`, sans URL publique. Vérifié en conditions réelles (Store API joignable depuis Cloudflare).
+- **Correctifs données** : la clé produit fusionnait les grades (AAA/AAAA/AAAAA = produits différents) → clé = nom complet ; catégories : celles du shop d'abord (« Candyland » n'est pas un bonbon), accessoires évidents d'après le nom (Boveda), graines ≠ « hemp seed oil », entités HTML dans les formats. **Catalogue vidé et recollecté** (cycle complet ≈ 1 h 30).
+- **Site pilote Budboard** (`Flo/sites/pilot/`, Astro 5 statique, EN + FR à la demande de Florian) en ligne sur **https://budboard-ca.pages.dev**, **noindex** (balise + en-tête + robots.txt) tant que le NDD n'est pas branché. Détail des pages, contenus et design dans `Flo/README.md`.
+- **21st.dev** branché (MCP HTTP, plan gratuit : 2 récupérations de code/jour, IA désactivée) : thème « Forest Copper » utilisé pour la palette ; composants écrits maison.
+- **Images** : test A/B gpt-image-1-mini / 1.5 / 2 → 1.5 retenu ; 8 visuels de catégories. Coût OpenAI de la session < 1 $.
+- ⚠️ **Piège** : `wrangler pages project create` a converti le site en Worker publié sur `budboard-ca.floriancaux.workers.dev` (nom de Florian visible) → Worker supprimé quelques minutes après, projet Pages classique créé par l'API, config statique restaurée. Ne plus utiliser cette commande (voir README).
+
 ## 23/10/2026 (16h38) — Claude (session Florian) [Flo] Infra Cloudflare : base D1 + scraper
 - **Décision de Florian : tout sur le compte Cloudflare relié à Claude** (pas de VPS, pas de compte séparé). Détail et tableau des briques dans `Flo/README.md`.
 - **D1 `cana-catalog` créée** (id `b1792254-2898-4c6b-8175-4a7ad127d183`, ENAM) via le connecteur Cloudflare. **Schéma appliqué** (`Flo/db/schema.sql`, 13 tables, adapté du PostgreSQL du PLAN) et **données initiales** (`Flo/db/seed.sql` : 11 shops actifs avec plateforme et deep-link, 3 coupons, 13 provinces avec âge légal, site `pilot`). Vérifié par requête : 11 shops / 8 WooCommerce / 3 coupons / 13 provinces / 1 site.
@@ -104,9 +113,3 @@
 - The High Club : INSCRIT au programme Ambassador (thehighclub.biz/ambassador-program/) — compte créé, statut « en attente d'approbation ». Conditions : 3% à vie, cookie 7 jours, paiement EMT (Interac). Identifiants ajoutés à secrets.enc (Mlanoy#THC-2026!w8). Lien affilié à récupérer après approbation
 - CBD2GO : candidature affiliée ACCEPTÉE (email 12/06) — espace affilié cbd2go.co/affiliate-area/. TODO : récupérer le lien affilié + définir le mot de passe
 - data.csv + index.html (dashboard chiffré, patch du payload) + secrets.enc mis à jour et poussés sur le repo → GitHub Pages redéploie dash.secoursvert.net
-
-## 12/06/2026 (16h45) — Claude (session Florian)
-- Cloudflare débloqués par Florian → LIENS RÉCUPÉRÉS : Ganja West https://ganjawest.co?ref=73813 (7,5%) et Low Price Bud https://lowpricebud.co/?ref=michellelanoy. Avec BMWO et Get Kush : 4 liens actifs
-- Grasscity : correction — le compte plateforme est actif mais la candidature au programme 8% est encore « Pending » (générateur de liens verrouillé). L'email du matin n'était qu'une bienvenue
-- Tous les emails du projet ouverts un par un (inbox + spam) ; restent des notifs LinkedIn sans rapport
-- TODO : payout LPB à configurer ; surveiller approbations Grasscity/CBD Magic/CBD2HEAL/Kush Station/Chronic Farms ; BC Bud Supply attend le plan de promo

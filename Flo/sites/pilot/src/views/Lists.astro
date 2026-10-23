@@ -1,0 +1,76 @@
+---
+// Pages d'index : villes, boutiques, codes promo (une seule vue, trois modes).
+import Base from "../layouts/Base.astro";
+import { t, r, fmtPrice, type Lang } from "../lib/i18n";
+import { shops, products, productsByShop, coupons } from "../lib/catalog";
+import { CITIES, PROVINCES } from "../data/geo";
+import { SHOP_INTRO } from "../data/shops-content";
+interface Props { lang: Lang; kind: "cities" | "shops" | "coupons" }
+const { lang, kind } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const active = shops.filter((sh) => productsByShop(sh.slug).length > 0);
+const C = {
+  cities: {
+    path: r.cities, title: lang === "en" ? "Weed delivery by city across Canada" : "Livraison de cannabis par ville au Canada",
+    lede: lang === "en" ? `Delivery prices and local rules for ${CITIES.length} Canadian cities, grouped by province.` : `Prix de livraison et règles locales pour ${CITIES.length} villes canadiennes, regroupées par province.`,
+  },
+  shops: {
+    path: r.shops, title: lang === "en" ? "The online shops we compare" : "Les boutiques en ligne comparées",
+    lede: lang === "en" ? "Each shop's full catalogue is read every week. We list only cannabis, CBD, seeds and accessories." : "Le catalogue complet de chaque boutique est relu chaque semaine. Nous ne listons que le cannabis, le CBD, les graines et les accessoires.",
+  },
+  coupons: {
+    path: r.coupons, title: lang === "en" ? "Weed promo codes for Canadian online shops" : "Codes promo cannabis des boutiques en ligne canadiennes",
+    lede: lang === "en" ? "Codes we have received from the shops. Public codes can expire without notice: the shop's checkout has the final word." : "Codes reçus directement des boutiques. Les codes publics peuvent expirer sans préavis : la caisse de la boutique fait foi.",
+  },
+}[kind];
+---
+<Base lang={lang} title={`${C.title} | Budboard`} description={C.lede} path={C.path(lang)} alt={C.path(other)}>
+  <div class="wrap pt-8">
+    <h1 class="text-5xl md:text-6xl max-w-3xl">{C.title}</h1>
+    <p class="mt-3 max-w-2xl text-moss">{C.lede}</p>
+
+    {kind === "cities" && (
+      <div class="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {PROVINCES.filter((p) => CITIES.some((c) => c.province === p.code)).map((p) => (
+          <section>
+            <h2 class="text-2xl"><a class="text-spruce no-underline hover:text-leaf" href={r.province(lang, p.slug, p.slugFr)}>{lang === "en" ? p.name : p.nameFr}</a> <span class="text-sm text-moss num font-normal">{p.age}+</span></h2>
+            <ul class="mt-2 space-y-1">{CITIES.filter((c) => c.province === p.code).map((c) => <li><a href={r.city(lang, c.slug)}>{lang === "en" ? `Weed delivery in ${c.name}` : `Livraison à ${c.nameFr}`}</a></li>)}</ul>
+          </section>
+        ))}
+      </div>
+    )}
+
+    {kind === "shops" && (
+      <ul class="mt-8 divide-y divide-lichen border-y border-lichen">
+        {active.map((sh) => {
+          const list = productsByShop(sh.slug);
+          const min = Math.min(...list.map((p) => p.offers.find((o) => o.shop.slug === sh.slug)!.price));
+          return (
+            <li class="py-5 grid gap-2 md:grid-cols-[1fr_auto] md:items-baseline">
+              <div>
+                <a href={r.shop(lang, sh.slug)} class="display text-3xl text-spruce no-underline hover:text-leaf">{sh.name}</a>
+                <p class="mt-1 text-moss max-w-2xl">{SHOP_INTRO[sh.slug]?.[lang]}</p>
+              </div>
+              <p class="num text-sm text-moss md:text-right">{s.productsCount(list.length)}<br /><span class="text-xs">{s.from}</span> <span class="display text-2xl text-copper">{fmtPrice(min, lang)}</span></p>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+
+    {kind === "coupons" && (
+      <ul class="mt-8 divide-y divide-lichen border-y border-lichen">
+        {active.map((sh) => {
+          const cps = coupons.filter((c) => c.shop === sh.slug);
+          return (
+            <li class="py-4 flex flex-wrap items-baseline justify-between gap-3">
+              <a href={r.coupon(lang, sh.slug)} class="font-semibold text-lg">{lang === "en" ? `${sh.name} promo codes` : `Codes promo ${sh.name}`}</a>
+              <span class="text-sm text-moss">{cps.length ? (lang === "en" ? `${cps.length} code${cps.length > 1 ? "s" : ""}` : `${cps.length} code${cps.length > 1 ? "s" : ""}`) : (lang === "en" ? "No code right now" : "Aucun code pour l'instant")}</span>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </div>
+</Base>

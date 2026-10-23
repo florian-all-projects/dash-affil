@@ -1,0 +1,141 @@
+---
+import Base from "../layouts/Base.astro";
+import ProductRow from "../components/ProductRow.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_ORDER, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
+import { categoryStats, products, exportedAt, pick, shops, couponsForShop } from "../lib/catalog";
+import { CITIES, provinceOf, LEGAL_SOURCE, type City } from "../data/geo";
+import intros from "../data/city-intros.json";
+interface Props { lang: Lang; city: City }
+const { lang, city } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const prov = provinceOf(city.province);
+const cityName = lang === "en" ? city.name : city.nameFr;
+const provName = lang === "en" ? prov.name : prov.nameFr;
+const intro = (intros as Record<string, { en: string; fr: string }>)[city.slug]?.[lang] ?? "";
+const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st);
+// Sélection de produits propre à chaque ville (variation stable) parmi les fleurs et comestibles en stock
+const pool = products.filter((p) => p.category === "flower" || p.category === "edible");
+const start = pool.length ? (city.slug.length * 7) % Math.max(1, pool.length - 8) : 0;
+const featured = pool.slice(start, start + 8);
+const activeShops = shops.filter((sh) => products.some((p) => p.offers.some((o) => o.shop.slug === sh.slug)));
+const nearby = CITIES.filter((c) => c.province === city.province && c.slug !== city.slug).slice(0, 6);
+
+const v = (en: string[], fr: string[]) => pick(city.slug, lang === "en" ? en : fr);
+const h1 = lang === "en"
+  ? v([`Weed delivery in ${cityName}`, `Weed delivery in ${cityName}: prices compared`, `Cannabis delivery to ${cityName}`], [])
+  : v([], [`Livraison de cannabis à ${cityName}`, `Livraison de weed à ${cityName} : prix comparés`, `Se faire livrer du cannabis à ${cityName}`]);
+const faq = lang === "en"
+  ? [
+      { q: `What is the legal age for cannabis in ${cityName}?`, a: `${prov.age} or older, the minimum set by ${provName}.` },
+      { q: `Where can you legally buy cannabis in ${cityName}?`, a: `In ${provName}, legal sales go through ${prov.retailer}. The mail-order shops compared on this page are not licensed by the province.` },
+      { q: `Can you grow cannabis at home in ${provName}?`, a: prov.homeGrow ? `Yes. Adults can grow up to four plants per household under federal law, and ${provName} allows it.` : `No. ${provName} bans home cultivation for non-medical use.` },
+      { q: `How much cannabis can you carry in public?`, a: "Up to 30 grams of dried cannabis, or the equivalent in other forms, under the federal Cannabis Act." },
+      { q: `Can you smoke weed in public in ${cityName}?`, a: `In ${provName}, public consumption is ${prov.publicUse}. Cities can add their own bylaws.` },
+    ]
+  : [
+      { q: `Quel est l'âge légal pour le cannabis à ${cityName} ?`, a: `${prov.age} ans ou plus, l'âge minimum fixé par la province (${provName}).` },
+      { q: `Où acheter du cannabis légalement à ${cityName} ?`, a: `Dans la province (${provName}), la vente légale passe par ${prov.retailerFr}. Les boutiques de vente par correspondance comparées ici ne détiennent pas de licence provinciale.` },
+      { q: `Peut-on cultiver du cannabis chez soi (${provName}) ?`, a: prov.homeGrow ? `Oui. La loi fédérale permet jusqu'à quatre plants par résidence et la province l'autorise.` : `Non. La province interdit la culture à domicile à des fins non médicales.` },
+      { q: `Combien de cannabis peut-on transporter en public ?`, a: "Jusqu'à 30 grammes de cannabis séché, ou l'équivalent sous d'autres formes, selon la Loi sur le cannabis fédérale." },
+      { q: `Peut-on fumer du cannabis en public à ${cityName} ?`, a: `Dans la province, la consommation en public est ${prov.publicUseFr}. Les municipalités peuvent ajouter leurs propres règlements.` },
+    ];
+const howTo = lang === "en"
+  ? [
+      "Pick a product and compare its price across shops on its page.",
+      "Order on the shop's own website; payment options are shown at its checkout.",
+      `The shop ships your order to ${cityName} by mail or courier. Delivery times depend on the shop.`,
+    ]
+  : [
+      "Choisissez un produit et comparez son prix d'une boutique à l'autre sur sa fiche.",
+      "Commandez sur le site de la boutique ; les moyens de paiement sont indiqués au moment de payer.",
+      `La boutique expédie le colis à ${cityName} par la poste ou par messagerie. Les délais dépendent de la boutique.`,
+    ];
+const site = Astro.site!.toString().replace(/\/$/, "");
+const jsonld = [{
+  "@context": "https://schema.org", "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+}];
+const desc = intro.split("\n")[0].slice(0, 155);
+---
+<Base lang={lang} title={`${h1} | Budboard`} description={desc} path={r.city(lang, city.slug)} alt={r.city(other, city.slug)} jsonld={jsonld}>
+  <section class="bg-spruce text-mist">
+    <div class="wrap py-10 md:py-14 grid gap-8 lg:grid-cols-[1fr_minmax(0,24rem)]">
+      <div>
+        <nav aria-label="Breadcrumb" class="text-sm text-mist/70"><a class="text-mist/80" href={r.cities(lang)}>{s.nav.cities}</a> / {provName}</nav>
+        <h1 class="mt-3 text-5xl md:text-6xl">{h1}</h1>
+        <div class="prose-bb mt-5 text-mist/85">{intro.split(/\n+/).map((para) => <p>{para}</p>)}</div>
+      </div>
+      <aside class="rounded-lg bg-spruce-deep ring-1 ring-mist/10 p-5 self-start">
+        <p class="display text-2xl text-mist">{lang === "en" ? `${provName} at a glance` : `${provName} en bref`}</p>
+        <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          <dt class="text-mist/60">{lang === "en" ? "Legal age" : "Âge légal"}</dt><dd class="num">{prov.age}+</dd>
+          <dt class="text-mist/60">{lang === "en" ? "Home grow" : "Culture à domicile"}</dt><dd>{prov.homeGrow ? (lang === "en" ? "Allowed, 4 plants" : "Permise, 4 plants") : (lang === "en" ? "Banned" : "Interdite")}</dd>
+          <dt class="text-mist/60">{lang === "en" ? "Legal sales" : "Vente légale"}</dt><dd>{lang === "en" ? prov.retailer : prov.retailerFr}</dd>
+        </dl>
+        <a class="mt-4 inline-block text-sm text-copper-light" href={r.province(lang, prov.slug, prov.slugFr)}>{lang === "en" ? `Cannabis rules in ${provName}` : `Les règles du cannabis : ${provName}`}</a>
+      </aside>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="mt-12">
+      <h2 class="text-4xl">{lang === "en" ? `Lowest delivered prices for ${cityName}` : `Les prix les plus bas livrés à ${cityName}`}</h2>
+      <p class="mt-2 text-sm text-moss">{s.updated(fmtDate(exportedAt, lang))}. {lang === "en" ? "Shipping costs and minimum orders vary by shop." : "Les frais de port et minimums de commande varient selon la boutique."}</p>
+      <ul class="mt-4 grid gap-x-8 sm:grid-cols-2">
+        {board.map(({ c, st }) => (
+          <li class="flex items-baseline justify-between border-b border-lichen py-3">
+            <a href={r.category(lang, c)} class="font-semibold">{CATEGORY_SLUGS[c].label[lang]}</a>
+            <span class="num"><span class="text-xs text-moss">{s.from}</span> <span class="display text-2xl text-copper">{fmtPrice(st!.from, lang)}</span></span>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {featured.length > 0 && (
+      <section class="mt-12">
+        <h2 class="text-4xl">{lang === "en" ? "Popular picks to compare" : "Des produits à comparer"}</h2>
+        <ul class="mt-3">{featured.map((p) => <ProductRow p={p} lang={lang} showCategory />)}</ul>
+      </section>
+    )}
+
+    <section class="mt-12 grid gap-10 md:grid-cols-2">
+      <div>
+        <h2 class="text-4xl">{lang === "en" ? `How delivery to ${cityName} works` : `Comment se passe la livraison à ${cityName}`}</h2>
+        <ol class="mt-4 space-y-3 list-decimal pl-5 marker:text-copper marker:font-bold">{howTo.map((h) => <li>{h}</li>)}</ol>
+      </div>
+      <div>
+        <h2 class="text-4xl">{lang === "en" ? "Shops that deliver here" : "Les boutiques qui livrent ici"}</h2>
+        <ul class="mt-4 space-y-2">
+          {activeShops.map((sh) => {
+            const cps = couponsForShop(sh.slug);
+            return (
+              <li class="flex flex-wrap items-baseline gap-x-3"><a href={r.shop(lang, sh.slug)} class="font-semibold">{sh.name}</a>
+                {cps.length > 0 && <a href={r.coupon(lang, sh.slug)} class="text-sm text-copper">{lang === "en" ? "promo codes" : "codes promo"}</a>}</li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+
+    <section class="mt-12" aria-labelledby="faq">
+      <h2 id="faq" class="text-4xl">{lang === "en" ? `Questions about weed in ${cityName}` : `Questions sur le cannabis à ${cityName}`}</h2>
+      <div class="mt-4 divide-y divide-lichen border-y border-lichen">
+        {faq.map((f) => (
+          <details class="py-4 group">
+            <summary class="cursor-pointer font-semibold list-none flex justify-between gap-4">{f.q}<span class="text-copper group-open:rotate-45 transition-transform" aria-hidden="true">+</span></summary>
+            <p class="mt-2 text-moss prose-bb">{f.a}</p>
+          </details>
+        ))}
+      </div>
+      <p class="mt-3 text-xs text-moss">{lang === "en" ? "Legal facts: " : "Faits juridiques : "}<a href={LEGAL_SOURCE} rel="nofollow noopener">Wikipedia</a>, {lang === "en" ? "checked" : "vérifié le"} {fmtDate("2026-10-23", lang)}.</p>
+    </section>
+
+    {nearby.length > 0 && (
+      <section class="mt-12">
+        <h2 class="text-3xl">{lang === "en" ? `Delivery elsewhere in ${provName}` : `Livraison ailleurs : ${provName}`}</h2>
+        <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-2">{nearby.map((c) => <li><a href={r.city(lang, c.slug)}>{lang === "en" ? c.name : c.nameFr}</a></li>)}</ul>
+      </section>
+    )}
+  </div>
+</Base>

@@ -1,0 +1,3 @@
+# Site pilote sur adresse provisoire : pas d'indexation tant que le nom de domaine définitif n'est pas branché.
+User-agent: *
+Disallow: /

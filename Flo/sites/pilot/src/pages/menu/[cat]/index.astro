@@ -1,0 +1,13 @@
+---
+import Category from "../../../views/Category.astro";
+import { CATEGORY_SLUGS, CATEGORY_ORDER } from "../../../lib/i18n";
+import { productsByCategory } from "../../../lib/catalog";
+export function getStaticPaths() {
+  return CATEGORY_ORDER.filter((c) => productsByCategory(c).length).map((c) => {
+    const all = productsByCategory(c);
+    return { params: { cat: CATEGORY_SLUGS[c].en }, props: { c, items: all.slice(0, 50), pages: Math.ceil(all.length / 50) } };
+  });
+}
+const { c, items, pages } = Astro.props;
+---
+<Category lang="en" cat={c} page={1} items={items} pages={pages} />

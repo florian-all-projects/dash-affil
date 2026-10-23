@@ -53,8 +53,9 @@ const shroom: WooProduct = {
 test("normalisation des noms et clés canoniques", () => {
   assert.equal(decodeEntities("Purple Rockstar &#8211; Thunder Buddies"), "Purple Rockstar – Thunder Buddies");
   assert.equal(decodeEntities("Mix &#038; Match"), "Mix & Match");
-  assert.equal(canonicalKey("Pink Rockstar (AAAA+) &#8211; Smalls Only"), "pink-rockstar");
-  assert.equal(canonicalKey("Girl Scout Cookies (AAA)"), canonicalKey("Girl Scout Cookies"));
+  assert.equal(canonicalKey("Pink Rockstar (AAAA+) &#8211; Smalls Only"), "pink-rockstar-aaaa-smalls-only");
+  // Deux grades = deux produits distincts
+  assert.notEqual(canonicalKey("1 Ounce Mix and Match (AAAAA)"), canonicalKey("1 Ounce Mix and Match (AAA)"));
 });
 
 test("exclusions hors périmètre (psilocybine)", () => {
@@ -71,6 +72,9 @@ test("catégories", () => {
   assert.equal(categorize("Anything", [], "Graines"), "seed");
   assert.equal(categorize("THC Hemp Seed Oil Capsules", ["edibles"], "MOM"), "edible");
   assert.equal(categorize("Gelato Feminized Seeds", ["seeds"], "MOM"), "seed");
+  assert.equal(categorize("Candyland (AAAA+)", ["flower", "aaaa"], "MOM"), "flower");
+  assert.equal(categorize("Wedding Cake (AAA)", ["indica"], "MOM"), "flower");
+  assert.equal(categorize("Boveda Humidity Pack – 4gram 62%", ["cannabis"], "MOM"), "accessory");
 });
 
 test("mapping d'un vrai produit WooCommerce", () => {
@@ -78,7 +82,7 @@ test("mapping d'un vrai produit WooCommerce", () => {
   assert.equal(o.name, "Purple Rockstar – Thunder Buddies");
   assert.equal(o.priceCents, 14000);
   assert.equal(o.category, "flower");
-  assert.equal(o.strainType, "hybrid");
+  assert.equal(o.strainType, "indica"); // catégorie « indica » du shop
   assert.equal(o.weights, "14g|28g|3.5g|7g");
   const c = mapWooProduct(coolingStick, "MOM")!;
   assert.equal(c.priceCents, 6000);

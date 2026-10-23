@@ -1,0 +1,118 @@
+---
+import Base from "../layouts/Base.astro";
+import ProductRow from "../components/ProductRow.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_ORDER, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
+import { categoryStats, deals, exportedAt, products, shops, coupons } from "../lib/catalog";
+import { CITIES, PROVINCES } from "../data/geo";
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st);
+const topDeals = deals(6);
+const tracked = new Set(products.flatMap((p) => p.offers.map((o) => o.shop.slug))).size;
+const big = CITIES.slice(0, 12);
+const copy = lang === "en"
+  ? {
+      h1: "Weed delivery prices across Canada, checked every week.",
+      lede: `We read the full menus of ${tracked} online shops that ship across Canada and list every product at its lowest price. Pick a city to see what delivery looks like where you live, or open the menu.`,
+      boardTitle: "This week's lowest prices",
+      boardCols: ["Category", "Products", "Lowest price"],
+      dealsTitle: "Biggest price cuts right now",
+      dealsNote: "Discount compared with the regular price the shop itself displays.",
+      citiesTitle: "Weed delivery by city",
+      allCities: "All cities",
+      lawTitle: "The rules depend on your province",
+      lawBody: "Legal age, where you can smoke and whether you can grow at home change from one province to the next.",
+      shopsTitle: "Shops we compare",
+      couponsLink: "See all promo codes",
+    }
+  : {
+      h1: "Les prix de livraison de cannabis au Canada, vérifiés chaque semaine.",
+      lede: `Nous lisons le menu complet de ${tracked} boutiques en ligne qui livrent partout au Canada et affichons chaque produit à son prix le plus bas. Choisissez une ville pour voir la livraison chez vous, ou ouvrez le menu.`,
+      boardTitle: "Les prix les plus bas cette semaine",
+      boardCols: ["Catégorie", "Produits", "Prix le plus bas"],
+      dealsTitle: "Les plus fortes baisses de prix",
+      dealsNote: "Remise calculée sur le prix habituel affiché par la boutique elle-même.",
+      citiesTitle: "Livraison de cannabis par ville",
+      allCities: "Toutes les villes",
+      lawTitle: "Les règles dépendent de votre province",
+      lawBody: "L'âge légal, les lieux où l'on peut fumer et la culture à domicile changent d'une province à l'autre.",
+      shopsTitle: "Les boutiques comparées",
+      couponsLink: "Voir tous les codes promo",
+    };
+const jsonld = [{ "@context": "https://schema.org", "@type": "WebSite", name: "Budboard", inLanguage: lang === "en" ? "en-CA" : "fr-CA", url: Astro.site!.toString() }];
+---
+<Base lang={lang} title={lang === "en" ? "Budboard: weed delivery prices across Canada" : "Budboard : prix de la livraison de cannabis au Canada"} description={copy.lede} path={r.home(lang)} alt={r.home(lang === "en" ? "fr" : "en")} jsonld={jsonld}>
+  <section class="bg-spruce text-mist">
+    <div class="wrap grid gap-10 py-12 md:py-16 lg:grid-cols-[1fr_minmax(0,30rem)] items-start">
+      <div>
+        <h1 class="text-5xl md:text-7xl">{copy.h1}</h1>
+        <p class="mt-6 text-lg text-mist/85 max-w-xl leading-relaxed">{copy.lede}</p>
+        <form class="mt-8 flex flex-wrap gap-2" action={r.cities(lang)} method="get" onsubmit="var v=this.querySelector('select').value; if(v){location.href=v; return false;}">
+          <label for="city" class="sr-only">{copy.citiesTitle}</label>
+          <select id="city" class="min-w-56 rounded-[var(--radius-chip)] bg-paper text-spruce px-3 py-2.5 font-semibold">
+            <option value="">{lang === "en" ? "Choose your city" : "Choisissez votre ville"}</option>
+            {CITIES.map((c) => <option value={r.city(lang, c.slug)}>{lang === "en" ? c.name : c.nameFr}</option>)}
+          </select>
+          <button class="btn-buy bg-copper hover:bg-copper-light hover:text-spruce" type="submit">{lang === "en" ? "See delivery" : "Voir la livraison"}</button>
+        </form>
+      </div>
+
+      <div class="rounded-lg bg-spruce-deep ring-1 ring-mist/10 p-5 md:p-6" aria-labelledby="board-title">
+        <h2 id="board-title" class="text-2xl text-mist">{copy.boardTitle}</h2>
+        <p class="text-xs text-mist/60 mt-1">{s.updated(fmtDate(exportedAt, lang))}</p>
+        <table class="mt-4 w-full text-left num">
+          <thead class="text-xs text-mist/60">
+            <tr><th class="font-normal pb-2">{copy.boardCols[0]}</th><th class="font-normal pb-2 text-right">{copy.boardCols[1]}</th><th class="font-normal pb-2 text-right">{copy.boardCols[2]}</th></tr>
+          </thead>
+          <tbody>
+            {board.map(({ c, st }) => (
+              <tr class="border-t border-mist/10">
+                <td class="py-2.5"><a class="text-mist font-semibold no-underline hover:underline" href={r.category(lang, c)}>{CATEGORY_SLUGS[c].label[lang]}</a></td>
+                <td class="py-2.5 text-right text-mist/70">{st!.count}</td>
+                <td class="py-2.5 text-right"><span class="display text-2xl text-copper-light">{fmtPrice(st!.from, lang)}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  {topDeals.length > 0 && (
+    <section class="wrap mt-14">
+      <h2 class="text-4xl">{copy.dealsTitle}</h2>
+      <p class="mt-2 text-moss text-sm">{copy.dealsNote}</p>
+      <ul class="mt-4">{topDeals.map((p) => <ProductRow p={p} lang={lang} showCategory />)}</ul>
+    </section>
+  )}
+
+  <section class="wrap mt-16 grid gap-10 md:grid-cols-2">
+    <div>
+      <h2 class="text-4xl">{copy.citiesTitle}</h2>
+      <ul class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2">
+        {big.map((c) => <li><a href={r.city(lang, c.slug)} class="text-leaf font-semibold">{lang === "en" ? c.name : c.nameFr}</a></li>)}
+      </ul>
+      <a href={r.cities(lang)} class="inline-block mt-4 text-sm font-semibold">{copy.allCities}</a>
+    </div>
+    <div>
+      <h2 class="text-4xl">{copy.lawTitle}</h2>
+      <p class="mt-3 text-moss">{copy.lawBody}</p>
+      <ul class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+        {PROVINCES.map((p) => (
+          <li><a href={r.province(lang, p.slug, p.slugFr)}>{lang === "en" ? p.name : p.nameFr}</a> <span class="text-moss num">{p.age}+</span></li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="wrap mt-16">
+    <h2 class="text-4xl">{copy.shopsTitle}</h2>
+    <ul class="mt-4 flex flex-wrap gap-2">
+      {shops.filter((sh) => products.some((p) => p.offers.some((o) => o.shop.slug === sh.slug))).map((sh) => (
+        <li><a href={r.shop(lang, sh.slug)} class="chip text-sm px-3 py-1.5 no-underline hover:bg-leaf hover:text-paper">{sh.name}</a></li>
+      ))}
+    </ul>
+    {coupons.length > 0 && <a class="inline-block mt-4 text-sm font-semibold" href={r.coupons(lang)}>{copy.couponsLink}</a>}
+  </section>
+</Base>

@@ -29,16 +29,12 @@ export function slugify(s: string): string {
 }
 
 /**
- * Clé canonique (PLAN §5) : nom sans grades (AAA+, AAAA...) ni mentions de lot,
- * pour rapprocher un même produit vendu par plusieurs shops.
- * Le matching flou viendra plus tard ; ici on reste conservateur.
+ * Clé canonique (PLAN §5) : le nom normalisé, grade compris.
+ * Un grade (AAA, AAAA+...) ou un « smalls only » est un produit différent, avec son propre prix :
+ * on ne les fusionne pas. Le rapprochement entre shops (matching flou) viendra plus tard.
  */
 export function canonicalKey(name: string): string {
-  const cleaned = decodeEntities(name)
-    .replace(/\((?:\s*a{2,5}\+?\s*|[^)]*grade[^)]*)\)/gi, " ")   // (AAAA+), (grade AAA)
-    .replace(/\b(?:a{3,5}\+?)\b/gi, " ")                          // AAA, AAAA+ hors parenthèses
-    .replace(/\b(?:smalls only|popcorn|limited edition|new)\b/gi, " ");
-  return slugify(cleaned) || `p-${fnv1a(name)}`;
+  return slugify(decodeEntities(name)) || `p-${fnv1a(name)}`;
 }
 
 // Hors périmètre : le catalogue ne couvre que le cannabis, le CBD, les graines et les accessoires.
@@ -48,6 +44,8 @@ const EXCLUDE = /psilocyb|magic[\s-]*mushroom|\bshrooms?\b|mushroom|amanita|\bdm
 export function isExcluded(name: string, categorySlugs: string[], description = ""): boolean {
   return EXCLUDE.test(name) || categorySlugs.some((c) => EXCLUDE.test(c.replace(/-/g, " "))) || EXCLUDE.test(description.slice(0, 400));
 }
+
+const ACCESSORY_NAME = /boveda|humidity pack|integra|grinder|rolling papers?|\bbong\b|\bpipe\b|lighter|\btorch\b|rolling tray|\bstash\b|smell proof|battery|charger/;
 
 export type Category = "flower" | "edible" | "concentrate" | "vape" | "cbd" | "seed" | "accessory" | "other";
 
@@ -64,15 +62,30 @@ const RULES: Array<[Category, RegExp]> = [
 export function categorize(name: string, categorySlugs: string[], shopCategory: string): Category {
   if (shopCategory === "CBD") return "cbd";
   if (shopCategory === "Graines") return "seed";
-  const hay = (categorySlugs.join(" ") + " " + name).toLowerCase().replace(/-/g, " ");
+  const cats = categorySlugs.join(" ").toLowerCase().replace(/-/g, " ");
+  const nm = name.toLowerCase();
+  const hay = cats + " " + nm;
   // Graines : seulement les vraies graines (pas l'« huile de graines de chanvre »)
   if (/\b(feminized|feminised|autoflower(ing)?|seeds|seed bank)\b/.test(hay) && !/seed oil|hemp seed/.test(hay)) return "seed";
-  for (const [cat, re] of RULES) if (re.test(hay)) return cat;
+  // Accessoires évidents d'après le nom, quelle que soit la catégorie du shop
+  if (ACCESSORY_NAME.test(nm)) return "accessory";
+  // Les catégories du shop d'abord : le nom d'une variété (« Candyland », « Wedding Cake ») tromperait les règles
+  for (const [cat, re] of RULES) if (re.test(cats)) return cat;
+  for (const [cat, re] of RULES) if (re.test(nm)) return cat;
   return "other";
 }
 
 export function strainType(categorySlugs: string[], text: string): "indica" | "sativa" | "hybrid" | null {
-  const hay = (categorySlugs.join(" ") + " " + text).toLowerCase();
+  // 1) Catégories du shop d'abord (les plus fiables)
+  const cats = categorySlugs.join(" ").toLowerCase();
+  const ci = /\bindica\b/.test(cats), cs = /\bsativa\b/.test(cats), ch = /\bhybrid\b/.test(cats);
+  if (ci && !cs && !ch) return "indica";
+  if (cs && !ci && !ch) return "sativa";
+  if (ch && !ci && !cs) return "hybrid";
+  // 2) Texte : « indica dominant » / « sativa dominant » priment sur « hybrid »
+  const hay = text.toLowerCase();
+  if (/indica[\s-]*(dominant|leaning|heavy)/.test(hay)) return "indica";
+  if (/sativa[\s-]*(dominant|leaning|heavy)/.test(hay)) return "sativa";
   if (/\bhybrid\b/.test(hay)) return "hybrid";
   const i = /\bindica\b/.test(hay), s = /\bsativa\b/.test(hay);
   if (i && s) return "hybrid";

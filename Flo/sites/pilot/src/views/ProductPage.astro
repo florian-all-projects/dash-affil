@@ -1,0 +1,76 @@
+---
+import Base from "../layouts/Base.astro";
+import ProductRow from "../components/ProductRow.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
+import { productBlurb, productsByCategory, exportedAt, type Product } from "../lib/catalog";
+import { SHORT_NAME } from "../data/shops-content";
+interface Props { lang: Lang; p: Product }
+const { lang, p } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const catLabel = CATEGORY_SLUGS[p.category]?.label[lang] ?? "";
+const price = (c: number) => fmtPrice(c, lang);
+const blurb = productBlurb(p, lang, price);
+const related = productsByCategory(p.category).filter((x) => x.id !== p.id && x.strainType === p.strainType).slice(0, 6);
+const img = p.image ?? `/img/cat/${p.category}.webp`;
+const title = lang === "en"
+  ? `${p.name}: price from ${price(p.from)}, compared across ${p.shopCount > 1 ? `${p.shopCount} shops` : "Canadian shops"}`
+  : `${p.name} : prix dès ${price(p.from)}, comparé ${p.shopCount > 1 ? `dans ${p.shopCount} boutiques` : "en ligne au Canada"}`;
+const site = Astro.site!.toString().replace(/\/$/, "");
+const jsonld = [
+  {
+    "@context": "https://schema.org", "@type": "Product", name: p.name, category: catLabel, image: site + img,
+    offers: {
+      "@type": "AggregateOffer", priceCurrency: "CAD", lowPrice: (p.from / 100).toFixed(2),
+      highPrice: (p.offers[p.offers.length - 1].price / 100).toFixed(2), offerCount: p.offers.length,
+    },
+  },
+  {
+    "@context": "https://schema.org", "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: s.nav.menu, item: site + r.menu(lang) },
+      { "@type": "ListItem", position: 2, name: catLabel, item: site + r.category(lang, p.category) },
+      { "@type": "ListItem", position: 3, name: p.name, item: site + r.product(lang, p.slug) },
+    ],
+  },
+];
+---
+<Base lang={lang} title={title} description={blurb[0]} path={r.product(lang, p.slug)} alt={r.product(other, p.slug)} jsonld={jsonld}>
+  <div class="wrap pt-8">
+    <nav aria-label="Breadcrumb" class="text-sm text-moss"><a href={r.menu(lang)}>{s.nav.menu}</a> / <a href={r.category(lang, p.category)}>{catLabel}</a></nav>
+    <div class="mt-4 grid gap-8 md:grid-cols-[minmax(0,22rem)_1fr]">
+      <img src={img} alt={p.name} width="704" height="704" class="w-full aspect-square object-cover rounded-lg bg-lichen" loading="eager" />
+      <div>
+        <h1 class="text-4xl md:text-5xl">{p.name}</h1>
+        <p class="mt-4 num"><span class="text-sm text-moss">{s.from}</span> <span class="display text-5xl text-copper">{price(p.from)}</span>
+          {p.offers[0].compareAt && p.offers[0].compareAt > p.from && <s class="ml-2 text-moss">{price(p.offers[0].compareAt)}</s>}</p>
+        <a class="btn-buy mt-5 text-lg" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.buyAt(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name)}</a>
+        <div class="prose-bb mt-6">{blurb.map((b) => <p>{b}</p>)}</div>
+        <p class="mt-4 text-xs text-moss">{s.updated(fmtDate(exportedAt, lang))}. {s.disclosure}</p>
+      </div>
+    </div>
+
+    <section class="mt-12" aria-labelledby="offers">
+      <h2 id="offers" class="text-3xl">{s.compare}</h2>
+      <table class="mt-3 w-full text-left num">
+        <thead class="text-sm text-moss"><tr><th class="font-normal py-2">{lang === "en" ? "Shop" : "Boutique"}</th><th class="font-normal py-2">{lang === "en" ? "Price" : "Prix"}</th><th class="py-2"><span class="sr-only">{s.seeOffer}</span></th></tr></thead>
+        <tbody>
+          {p.offers.map((o, i) => (
+            <tr class="border-t border-lichen">
+              <td class="py-3"><a href={r.shop(lang, o.shop.slug)} class="font-semibold">{o.shop.name}</a>{i === 0 && p.shopCount > 1 && <span class="chip ml-2">{lang === "en" ? "Lowest price" : "Prix le plus bas"}</span>}</td>
+              <td class="py-3 display text-2xl text-copper">{price(o.price)}</td>
+              <td class="py-3 text-right"><a class="btn-buy text-sm" href={o.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.seeOffer}</a></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    {related.length > 0 && (
+      <section class="mt-12">
+        <h2 class="text-3xl">{lang === "en" ? `More ${p.category === "cbd" ? catLabel : catLabel.toLowerCase()} to compare` : `D'autres produits à comparer (${p.category === "cbd" ? catLabel : catLabel.toLowerCase()})`}</h2>
+        <ul class="mt-3">{related.map((x) => <ProductRow p={x} lang={lang} />)}</ul>
+      </section>
+    )}
+  </div>
+</Base>

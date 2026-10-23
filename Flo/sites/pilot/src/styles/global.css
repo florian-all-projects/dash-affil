@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/*
+  Budboard : direction « tableau de prix de dispensaire ».
+  Palette dérivée du thème 21st.dev « Forest Copper » (serafimcloud), resserrée :
+  épinette (encre), feuille (action), cuivre (prix), brume de sauge (fond), lichen (traits).
+  Une seule police, Archivo, dont l'axe de largeur sert à la fois aux titres (condensé) et au texte.
+*/
+@theme {
+  --color-spruce: #1f2e24;
+  --color-spruce-deep: #16231b;
+  --color-leaf: #2f6e47;
+  --color-leaf-bright: #45a167;
+  --color-copper: #a17045;
+  --color-copper-light: #d9a77a;
+  --color-mist: #f0f4f2;
+  --color-lichen: #d5ddd8;
+  --color-moss: #4c6756;
+  --color-paper: #ffffff;
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --radius-chip: 0.375rem;
+}
+
+@layer base {
+  html { color-scheme: light; }
+  body {
+    background: var(--color-mist);
+    color: var(--color-spruce);
+    font-family: var(--font-sans);
+    font-variation-settings: "wdth" 100;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .display {
+    font-variation-settings: "wdth" 72;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
+  .num { font-variant-numeric: tabular-nums; }
+  a { text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--color-copper); outline-offset: 2px; border-radius: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+}
+
+@layer components {
+  .wrap { width: min(72rem, 100% - 2rem); margin-inline: auto; }
+  .prose-bb { max-width: 68ch; line-height: 1.65; }
+  .prose-bb p + p { margin-top: 0.9em; }
+  .btn-buy {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    background: var(--color-leaf); color: #fff; font-weight: 700;
+    padding: 0.55rem 0.95rem; border-radius: var(--radius-chip);
+  }
+  .btn-buy:hover { background: var(--color-spruce); }
+  .chip {
+    display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.45rem;
+    border-radius: var(--radius-chip); background: var(--color-lichen); color: var(--color-spruce);
+  }
+  .chip-indica { background: #dfe4f3; color: #2d3a6b; }
+  .chip-sativa { background: #f3ead9; color: #6b4a1d; }
+  .chip-hybrid { background: #dcefe3; color: #1e5636; }
+  /* Rangée de menu : la brique de base des listes de produits */
+  .menu-row { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 1rem; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid var(--color-lichen); }
+  @media (min-width: 48rem) { .menu-row { grid-template-columns: minmax(0, 1fr) 9rem 7rem 8.5rem; } }
+}

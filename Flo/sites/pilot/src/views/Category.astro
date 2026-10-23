@@ -1,0 +1,52 @@
+---
+import Base from "../layouts/Base.astro";
+import ProductRow from "../components/ProductRow.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
+import { productsByCategory, categoryStats, exportedAt, type Product } from "../lib/catalog";
+interface Props { lang: Lang; cat: string; page: number; items: Product[]; pages: number }
+const { lang, cat, page, items, pages } = Astro.props;
+const s = t[lang];
+const label = CATEGORY_SLUGS[cat].label[lang];
+const st = categoryStats(cat);
+const total = productsByCategory(cat).length;
+const lower = cat === "cbd" ? label : label.toLowerCase();
+const other: Lang = lang === "en" ? "fr" : "en";
+const title = lang === "en"
+  ? `${label} delivered in Canada: ${total} products compared${page > 1 ? `, page ${page}` : ""}`
+  : `${label} : ${total} produits livrés au Canada, prix comparés${page > 1 ? `, page ${page}` : ""}`;
+const lede = st
+  ? (lang === "en"
+      ? `${total} ${lower} products from ${st.shops} online ${st.shops > 1 ? "shops" : "shop"}, sorted by name. Prices start at ${fmtPrice(st.from, lang)} (${st.cheapest.name}).`
+      : `${total} produits (${lower}) chez ${st.shops} ${st.shops > 1 ? "boutiques" : "boutique"} en ligne, triés par nom. Les prix commencent à ${fmtPrice(st.from, lang)} (${st.cheapest.name}).`)
+  : s.noResults;
+const crumbs = [
+  { name: "Budboard", item: r.home(lang) },
+  { name: s.nav.menu, item: r.menu(lang) },
+  { name: label, item: r.category(lang, cat) },
+];
+const site = Astro.site!.toString().replace(/\/$/, "");
+const jsonld = [{ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.name, item: site + c.item })) }];
+---
+<Base lang={lang} title={title} description={lede} path={r.category(lang, cat, page)} alt={r.category(other, cat, page)} jsonld={jsonld}>
+  <div class="wrap pt-8">
+    <nav aria-label="Breadcrumb" class="text-sm text-moss"><a href={r.menu(lang)}>{s.nav.menu}</a> / {label}</nav>
+    <h1 class="mt-3 text-5xl md:text-6xl">{label}</h1>
+    <p class="mt-3 max-w-2xl text-moss">{lede}</p>
+    <p class="mt-1 text-xs text-moss">{s.updated(fmtDate(exportedAt, lang))}. {s.disclosure}</p>
+    <ul class="mt-4 flex flex-wrap gap-2 text-sm">
+      {CATEGORY_ORDER.filter((c) => c !== cat && categoryStats(c)).map((c) => (
+        <li><a class="chip px-3 py-1 no-underline hover:bg-leaf hover:text-paper" href={r.category(lang, c)}>{CATEGORY_SLUGS[c].label[lang]}</a></li>
+      ))}
+    </ul>
+    <ul class="mt-6">{items.map((p) => <ProductRow p={p} lang={lang} />)}</ul>
+    {pages > 1 && (
+      <nav class="mt-8 flex flex-wrap gap-2" aria-label="Pagination">
+        {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
+          n === page
+            ? <span aria-current="page" class="chip bg-spruce text-paper px-3 py-1.5 num">{n}</span>
+            : <a class="chip px-3 py-1.5 num no-underline hover:bg-leaf hover:text-paper" href={r.category(lang, cat, n)}>{n}</a>
+        ))}
+      </nav>
+    )}
+  </div>
+</Base>

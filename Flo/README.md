@@ -16,21 +16,29 @@ Pas de VPS. Compte Cloudflare de Florian (celui relié à Claude, qui héberge a
 | Brique | Cloudflare | Remplace (PLAN.md) |
 |---|---|---|
 | Base centrale | **D1 `cana-catalog`** (id `b1792254-2898-4c6b-8175-4a7ad127d183`, région ENAM) | PostgreSQL |
-| Scraper + cron hebdo | **Worker `cana-scraper`** (Cron Trigger lundi 06h17 UTC) | Python + cron serveur |
-| Images produits | fichiers statiques du site (R2 non activé sur le compte) | stockage serveur |
-| Site pilote | Worker + Static Assets (Astro), d'abord sur `*.workers.dev` en noindex | Nginx |
+| Scraper | **Worker `cana-scraper`**, **plan gratuit** : cron chaque minute, 1 page (40 produits) d'1 shop par exécution, cycle complet tous les 7 jours (`scraper/src/stepper.ts`, table `scrape_state`). Pas d'URL publique. | Python + cron serveur |
+| Images | fichiers statiques du site (`sites/pilot/public/img/`, R2 non activé sur le compte) | stockage serveur |
+| Site pilote | **Cloudflare Pages classique, projet `budboard-ca`** → https://budboard-ca.pages.dev (noindex) | Nginx |
 
-- **Plan Workers Paid (5 $/mois) requis en production** : le plan gratuit limite à 10 ms de CPU et 50 requêtes sortantes par exécution.
-- Déploiement : `npx wrangler deploy` avec `CLOUDFLARE_API_TOKEN` dans l'environnement (jamais commité).
+- **Plan gratuit choisi par Florian (23/10)** : pas de Workers Paid. D'où le scraper « une page par minute ». Si un jour Workers Paid : `MODE=full`, cron hebdo, `limits.cpu_ms`.
+- Clés (token Cloudflare `cana-deploy`, OpenAI, 21st.dev) : **dans `secrets.enc`** uniquement. Pour travailler : les exporter en variables d'environnement (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `OPENAI_API_KEY`, `TWENTYFIRST_API_KEY`).
+- ⚠️ **Piège Wrangler (constaté le 23/10)** : `wrangler pages project create` convertit maintenant le projet en Worker (ajoute `@astrojs/cloudflare`, un `wrangler.jsonc`, et publie sur `<projet>.floriancaux.workers.dev`, qui affiche le nom de Florian). Ne pas l'utiliser : le projet Pages existe déjà (créé par l'API), déployer avec `npm run deploy` (`wrangler pages deploy dist --project-name budboard-ca --branch main`).
 
 ## Ce qui existe (23/10/2026)
 | Dossier | Contenu | État |
 |---|---|---|
 | `db/schema.sql` | Schéma D1 : shops, products, product_offers, price_history, product_images, sites, content, cities, provinces, physical_shops, coupons, strains, scrape_runs | **appliqué** sur D1 |
 | `db/seed.sql` | 11 shops actifs (plateforme détectée, deep-link affilié), 3 coupons, 13 provinces (âge légal), site `pilot` | **appliqué** sur D1 |
-| `scraper/` | Worker TypeScript : collecte WooCommerce Store API, normalisation, dédup par clé canonique, détection des changements de prix (empreinte), historique des prix, journal des runs | **codé et testé** (7 tests), **pas encore déployé** (token API manquant) |
-| `generation/` | Contenu (faits / éditorial) et images | à faire |
-| `sites/pilot/` | Site pilote Astro | à faire |
+| `scraper/` | Worker TypeScript : collecte WooCommerce Store API, normalisation, catégories, exclusions, upsert D1, empreinte prix/stock, historique des prix, journal des runs | **déployé** (9 tests OK) |
+| `sites/pilot/` | Site pilote **Budboard**, Astro 5 statique, **EN + FR**, alimenté par D1 au build | **en ligne** (noindex) |
+
+### Site pilote Budboard (`sites/pilot/`)
+- **Marque** : Budboard (neutre ; « NorthBud » écarté car North Bud Farms existe). Concept : tableau de prix de dispensaire.
+- **Design** : palette dérivée du thème 21st.dev « Forest Copper » (épinette, feuille, cuivre, sauge), police Archivo (axe de largeur : titres condensés). Listes en « rangées de menu » plutôt qu'en cartes. Voir `src/styles/global.css`.
+- **Pages (EN / FR)** : accueil avec tableau des prix, menu + catégories paginées, fiche produit (tous les prix côte à côte, bouton principal = shop lifetime sinon le moins cher), 38 villes (`/weed-delivery/<ville>/`, `/fr/livraison-cannabis/<ville>/`), 13 provinces (légalité), boutiques, codes promo, méthode, guide d'achat. Contrôle d'âge (19+, 18 AB, 21 QC), mention d'affiliation, liens `rel="sponsored nofollow"`, hreflang, schema (Product, FAQPage, BreadcrumbList).
+- **Contenus** : intros des villes générées par OpenAI (`scripts/gen-city-intros.mjs` → `src/data/city-intros.json`, faits imposés, ~0,02 $) ; provinces, guide, méthode, boutiques rédigés à la main (`src/data/geo.ts`, `src/views/TextPage.astro`, `src/data/shops-content.ts`) ; fiches produits construites à partir des faits (`productBlurb`).
+- **Images** : test A/B le 23/10 sur 3 modèles GPT (1-mini, 1.5, 2) → **gpt-image-1.5 (medium)** retenu pour les visuels mis en avant, gpt-image-1-mini pour le volume. 8 visuels de catégories générés (`public/img/cat/`), `scripts/gen-images.py`.
+- **Mise à jour** : `npm run data` (export D1 → `src/data/generated/`, non versionné) puis `npm run build` puis `npm run deploy`.
 
 ### Plateformes des shops actifs (détectées le 23/10/2026 dans un vrai navigateur)
 - **WooCommerce, Store API publique** (`/wp-json/wc/store/v1/products`) : BMWO (150 produits), Get Kush (548), Low Price Bud (1 263), The High Club (366), Chronic Farms (525), CBD Magic (174), CBD2HEAL (39), CBD2GO (144). Environ **3 200 produits**.
@@ -49,16 +57,16 @@ npx tsc --noEmit                                  # vérification des types
 npx wrangler deploy --dry-run --outdir /tmp/dist  # compilation du Worker sans déployer
 ```
 
-### Routes du Worker (une fois déployé)
-- `GET /health` : test simple.
-- `GET /run?shop=<slug>` avec `Authorization: Bearer <RUN_TOKEN>` : passage manuel d'un shop.
-- `GET /status` (même auth) : 30 derniers runs.
+### Suivre / déclencher le scraper
+- Pas d'URL publique (`workers_dev: false`). État du cycle : requête D1 sur `scrape_state` et `scrape_runs` (connecteur Cloudflare ou `wrangler d1 execute cana-catalog --remote`).
+- Lancer une tranche à la main : `npx wrangler dev --remote --test-scheduled` puis `curl "http://127.0.0.1:8787/__scheduled?cron=*+*+*+*+*"` (⚠️ peut doubler une page si le cron tourne en même temps : sans gravité).
+- Vider le catalogue pour repartir de zéro : `DELETE FROM price_history; DELETE FROM product_offers; DELETE FROM products; DELETE FROM scrape_state; DELETE FROM scrape_runs;`.
 
 ## Paramètres actés (23/10/2026)
 - Budget IA : **50 €/mois** (texte + images).
 - Images : **GPT Image** préféré, **1 image par produit** au départ, test A/B sur ~10 produits avant génération en masse. Avec ~3 200 produits à ~0,034 $ l'image (qualité medium), le catalogue complet coûte ~110 $ : à étaler sur plusieurs mois ou à réserver d'abord aux produits mis en avant.
-- Langue du pilote : **EN d'abord** recommandé (Semrush : le FR québécois pèse très peu), voir `progress.md`.
-- NDD pilote : recherche via Semrush (accès Ranker Fox) ; en attendant, sous-domaine `workers.dev`.
+- Langues : **EN + FR dès le départ** (demande de Florian le 23/10), EN à la racine, FR sous `/fr/`.
+- NDD pilote : recherche via Semrush (accès Ranker Fox) ; en attendant, `budboard-ca.pages.dev` en noindex.
 
 ## Règles
 - **Aucun secret en clair** dans ce dossier (clés API, mdp, tokens) : secrets Cloudflare (`wrangler secret put`) ou `secrets.enc`.
