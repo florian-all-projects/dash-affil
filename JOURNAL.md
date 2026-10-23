@@ -1,5 +1,17 @@
 # Journal du projet (ajouter en haut)
 
+## 23/10/2026 (19h01) — Claude (session Florian) [Flo] Catalogue complet, nettoyage, images produits, site redéployé
+- **Cycle de collecte terminé** (15h21 → 16h44 UTC, 8 shops WooCommerce, 0 échec) : 2 865 produits actifs, 2 744 offres en stock. Low Price Bud passé sans challenge (32 pages).
+- **Hors périmètre trouvé dans les catalogues et exclu** (26 produits, statut `excluded` dans D1) : **cigarettes et cigares** (The High Club), **médicaments sur ordonnance** (Viagra, Cialis, « Superman », sildénafil/tadalafil mêlés à du CBD), cartes cadeaux et articles offerts. Règle `OUT_OF_SCOPE` dans `scraper/src/normalize.ts` (nom + catégories du shop, jamais la description : « tobacco-free » ne doit pas exclure une feuille à rouler). Réappliquée au catalogue existant avec `npx tsx scripts/reapply-rules.ts --apply` (sans `--apply` = aperçu).
+- **Catégories corrigées** : teintures et « Phoenix Tears » THC → concentrés ; variétés notées AAA rangées par The High Club dans une catégorie « CBD » → fleurs ; outil à dab → accessoire.
+- **Fausses remises corrigées** : sur un produit variable, la Store API donne le prix mini (1 g) mais le prix normal d'une autre variante (28 g) → remises fictives de -85 % en tête de l'accueil. Le scraper ne retient plus de prix barré quand `price_range` existe ; en attendant la recollecte, prix barrés effacés pour les produits à plusieurs formats (253 offres) et **nouveau cycle forcé** (`cycle_started_at` antidaté) pour avoir les valeurs exactes.
+- **Images produits** : 35 images gpt-image-1.5 (medium) pour les remises de l'accueil et une sélection par catégorie (`scripts/featured-images.mjs`, prompts sans nom de marque, ~1,5 $). Mention « Image d'illustration » sur les fiches ; vignettes sur les remises de l'accueil (visuel de catégorie si pas d'image propre).
+- **Bouton d'achat** : quand le shop mis en avant (affiliation à vie) n'est pas le moins cher, le bouton affiche son prix (« Acheter chez High Club, 25 $ ») pour ne pas laisser croire au prix « dès ».
+- **Sitemap bilingue** `/sitemap.xml` (5 518 URL, hreflang), non déclaré dans robots.txt tant que le site est en noindex.
+- **Site redéployé** sur https://budboard-ca.pages.dev (5 519 pages EN + FR). Vérifié : pages clés en 200, produits exclus en 404, en-tête noindex présent.
+- **Sécurité** : un mot de passe en clair restait dans la plus ancienne entrée de ce journal (The High Club, 15/06) ; retiré en l'archivant. ⚠️ Il reste lisible dans l'historique git depuis la purge du 23/10 (décision de Florian : pas de rotation des mdp).
+- **Limite connue** : la comparaison de prix se fait sur le plus petit format de chaque shop (1 g ici, 3,5 g là) ; un prix au gramme est à ajouter avant l'ouverture à l'indexation.
+
 ## 23/10/2026 (17h24) — Claude (session Florian) [Flo] Scraper en production + site Budboard en ligne (EN/FR)
 - **Clés** : token Cloudflare `cana-deploy` créé dans le dashboard de Florian (D1, Pages, Workers Scripts en écriture, ce compte seulement) ; clé OpenAI et clé 21st.dev fournies par Florian. Les trois sont **dans `secrets.enc`** (re-chiffré, round-trip vérifié).
 - **Florian ne prend pas Workers Paid** → scraper réécrit en mode « une page par minute » (`stepper.ts`, table `scrape_state`), déployé, cron `* * * * *`, sans URL publique. Vérifié en conditions réelles (Store API joignable depuis Cloudflare).
@@ -108,8 +120,3 @@
 ## 15/06/2026 (13h) — Claude (session Florian)
 - CBD2GO : mot de passe réinitialisé + connexion à l'espace affilié OK → LIEN AFFILIÉ RÉCUPÉRÉ : https://cbd2go.co/ref/10651/ (ID affilié 10651). Identifiants : michellelanoy / [mdp retiré, voir secrets.enc] (ajoutés à secrets.enc). Statut passé à 🟢 ACTIF. Avec Get Kush, BMWO, Ganja West, Low Price Bud : 5 liens affiliés actifs
 - data.csv + index.html (payload patché) + secrets.enc mis à jour et poussés → GitHub Pages redéploie dash.secoursvert.net
-
-## 15/06/2026 (11h) — Claude (session Florian)
-- The High Club : INSCRIT au programme Ambassador (thehighclub.biz/ambassador-program/) — compte créé, statut « en attente d'approbation ». Conditions : 3% à vie, cookie 7 jours, paiement EMT (Interac). Identifiants ajoutés à secrets.enc (Mlanoy#THC-2026!w8). Lien affilié à récupérer après approbation
-- CBD2GO : candidature affiliée ACCEPTÉE (email 12/06) — espace affilié cbd2go.co/affiliate-area/. TODO : récupérer le lien affilié + définir le mot de passe
-- data.csv + index.html (dashboard chiffré, patch du payload) + secrets.enc mis à jour et poussés sur le repo → GitHub Pages redéploie dash.secoursvert.net

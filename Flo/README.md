@@ -39,6 +39,7 @@ Pas de VPS. Compte Cloudflare de Florian (celui relié à Claude, qui héberge a
 - **Contenus** : intros des villes générées par OpenAI (`scripts/gen-city-intros.mjs` → `src/data/city-intros.json`, faits imposés, ~0,02 $) ; provinces, guide, méthode, boutiques rédigés à la main (`src/data/geo.ts`, `src/views/TextPage.astro`, `src/data/shops-content.ts`) ; fiches produits construites à partir des faits (`productBlurb`).
 - **Images** : test A/B le 23/10 sur 3 modèles GPT (1-mini, 1.5, 2) → **gpt-image-1.5 (medium)** retenu pour les visuels mis en avant, gpt-image-1-mini pour le volume. 8 visuels de catégories générés (`public/img/cat/`), `scripts/gen-images.py`.
   - **Produits mis en avant** : `node scripts/featured-images.mjs [max=30] [--dry]` (après `npm run data`) choisit les plus fortes remises puis, par catégorie, les produits des shops lifetime, au plus 2 par type de visuel ; génère `public/img/p/<slug>.webp` et enregistre la ligne dans `product_images` (D1). Le prompt décrit la forme du produit, **jamais son nom** (marques). Les fiches affichent « Image d'illustration ». Sans image propre, la fiche reprend le visuel de sa catégorie. `--dry` liste les choix et les prompts sans rien générer.
+- **Prix** : le prix affiché est celui du plus petit format. Prix barré retenu seulement pour un produit à prix unique (sur un produit variable, la Store API mélange les variantes). Bouton principal = shop en affiliation à vie ; s'il n'est pas le moins cher, son prix est écrit sur le bouton.
 - **Sitemap** : `/sitemap.xml` (EN + FR, annotations hreflang) généré au build. **Pas encore déclaré dans robots.txt** : à ajouter quand le NDD sera branché et le noindex levé.
 - **Mise à jour** : `npm run data` (export D1 → `src/data/generated/`, non versionné) puis `npm run build` puis `npx wrangler pages deploy dist --project-name budboard-ca --branch main --commit-dirty=true` (variables `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` dans l'environnement, valeurs dans `secrets.enc`).
 
@@ -50,7 +51,8 @@ Pas de VPS. Compte Cloudflare de Florian (celui relié à Claude, qui héberge a
 
 ### Règle de périmètre
 Le catalogue couvre **cannabis, CBD, graines et accessoires uniquement**. Chronic Farms vend aussi des produits à la psilocybine : le scraper **exclut** tout produit psilocybine / champignons / autres substances (`isExcluded` dans `scraper/src/normalize.ts`).
-Le 23/10/2026, Florian a demandé d'inclure ces produits : Claude ne l'a pas fait (vente de psilocybine illégale au Canada hors exemption de Santé Canada). L'exclusion reste en place. Les champignons dits fonctionnels sans psilocybine (lion's mane, reishi, chaga) peuvent être ajoutés en catégorie bien-être s'ils sont vendus par les shops.
+Le 23/10/2026, Florian a demandé d'inclure ces produits : Claude ne l'a pas fait (vente de psilocybine illégale au Canada hors exemption de Santé Canada). L'exclusion reste en place.
+Sont aussi exclus (constaté le 23/10/2026 dans les catalogues) : **tabac** (cigarettes, cigares), **médicaments sur ordonnance** (sildénafil, tadalafil, Viagra, Cialis, y compris mélangés à du CBD), cartes cadeaux et articles offerts (`OUT_OF_SCOPE`). Après un changement de règle, `cd scraper && npx tsx scripts/reapply-rules.ts` montre l'effet sur le catalogue en base, `--apply` l'applique (produits exclus → statut `excluded`). Les champignons dits fonctionnels sans psilocybine (lion's mane, reishi, chaga) peuvent être ajoutés en catégorie bien-être s'ils sont vendus par les shops.
 
 ### Lancer les tests du scraper
 ```bash

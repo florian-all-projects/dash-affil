@@ -18,7 +18,7 @@ Surveillance emails : tâche planifiée **1×/jour à 9h** (⚠️ plus rien jou
 - **Organisation du repo** : le travail Phase 2 de Florian vit dans **`Flo/`** ; l'associé crée son propre dossier pour son test. Les fichiers racine (CLAUDE.md, JOURNAL.md, data.csv, PLAN.md, .claude/context) restent communs.
 - Page plan publiée : http://dash.secoursvert.net/plan.html
 
-- **Infra (23/10)** : D1 `cana-catalog` + Worker `cana-scraper` (plan gratuit, 1 page/minute) **en production** ; site pilote **Budboard** EN/FR en ligne sur https://budboard-ca.pages.dev (noindex). Voir `Flo/README.md`.
+- **Infra (23/10)** : D1 `cana-catalog` + Worker `cana-scraper` (plan gratuit, 1 page/minute) **en production** ; site pilote **Budboard** EN/FR en ligne sur https://budboard-ca.pages.dev (noindex). Voir `Flo/README.md`. Catalogue au 23/10 : 8 shops WooCommerce collectés, ~2 750 produits en stock (tabac, médicaments et cartes cadeaux exclus), 35 images produits. Restent hors collecte : Ganja West (challenge Cloudflare), QCS et Toronto Seeds (AbanteCart, pas d'API). À faire avant indexation : prix au gramme, NDD.
 
 ## En attente de Florian (bloquant V1)
 1 NDD pilote (le site tourne en attendant sur budboard-ca.pages.dev, noindex) ·  données shops physiques (non bloquant pour le pilote : pages villes d'abord sur le top 30).

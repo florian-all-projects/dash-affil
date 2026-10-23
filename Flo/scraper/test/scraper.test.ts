@@ -62,6 +62,14 @@ test("exclusions hors périmètre (psilocybine)", () => {
   assert.equal(isExcluded("Envision Endurance – Microdose Capsules 4000MG Psilocybin", []), true);
   assert.equal(isExcluded("Golden Teacher", ["magic-mushrooms"]), true);
   assert.equal(isExcluded("Purple Rockstar", ["cannabis", "indica"]), false);
+  // Tabac, médicaments sur ordonnance, cartes cadeaux : hors périmètre
+  for (const n of ["Canadian Lights (King Size)", "Playfare’s Menthol (King Size)", "Backwoods Cigars (Pack of 5)", "Viagra (100mg per tablet)",
+    "Superman (100mg per tablet)", "ROKKIT BLUE – Honey – 25 mg CBD + 50 mg Sildenafil", "Hempire – CBD Cialis", "Virtual Gift Card", "3 Free Joints", "Free Gift"])
+    assert.equal(isExcluded(n, []), true, n);
+  assert.equal(isExcluded("Anything", ["native-cigarettes"]), true);
+  // Faux positifs à éviter
+  for (const n of ["King Palm Goji Wraps – Honey", "RAW Organic King Size Slim", "Tobacco-Free Hemp Wraps", "Canadian Full Spectrum CBD Oil 1000mg", "Ounce Deal + Free Joints Bundle"])
+    assert.equal(isExcluded(n, [], "Smooth notes of tobacco and earth."), false, n);
   assert.equal(mapWooProduct(shroom, "MOM"), null);
 });
 
@@ -70,6 +78,10 @@ test("catégories", () => {
   assert.equal(categorize("300mg CBD Cooling Stick", ["cbd", "cbd-topicals"], "MOM"), "cbd");
   assert.equal(categorize("Watermelon Gummies 500mg", ["edibles"], "MOM"), "edible");
   assert.equal(categorize("Anything", [], "Graines"), "seed");
+  assert.equal(categorize("Forever Phoenix 600mg THC Phoenix Tears – Original Formulation", [], "MOM"), "concentrate");
+  assert.equal(categorize("Notorious – THC Tincture – 30ml (500MG/1000MG/2000MG)", [], "MOM"), "concentrate");
+  assert.equal(categorize("Cartoon Dab Tool", [], "MOM"), "accessory");
+  assert.equal(categorize("Pear Bourbon (AAAA+)", ["high-cbd", "indica"], "MOM"), "flower");
   assert.equal(categorize("THC Hemp Seed Oil Capsules", ["edibles"], "MOM"), "edible");
   assert.equal(categorize("Gelato Feminized Seeds", ["seeds"], "MOM"), "seed");
   assert.equal(categorize("Candyland (AAAA+)", ["flower", "aaaa"], "MOM"), "flower");
@@ -87,6 +99,10 @@ test("mapping d'un vrai produit WooCommerce", () => {
   const c = mapWooProduct(coolingStick, "MOM")!;
   assert.equal(c.priceCents, 6000);
   assert.equal(c.compareAtCents, 8000);
+  // Produit variable (1 g à 9 $, prix normal affiché = celui de 28 g) : pas de fausse remise
+  const v = mapWooProduct({ ...purpleRockstar, prices: { ...purpleRockstar.prices, price: "6000", regular_price: "6000", price_range: { min_amount: "900", max_amount: "6000" } } }, "MOM")!;
+  assert.equal(v.priceCents, 900);
+  assert.equal(v.compareAtCents, null);
 });
 
 test("liens affiliés (deep-link)", () => {

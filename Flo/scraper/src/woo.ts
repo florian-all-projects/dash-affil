@@ -77,7 +77,9 @@ export function mapWooProduct(p: WooProduct, shopCategory: string): ScrapedOffer
     strainType: strainType(cats, desc),
     productUrl: p.permalink,
     priceCents: price,
-    compareAtCents: regular !== null && price !== null && regular > price ? regular : null,
+    // Prix barré : seulement pour un prix unique. Sur un produit variable, regular_price ne correspond pas forcément
+    // à la variante la moins chère (ex. 1 g à 9 $ comparé au prix normal de 28 g) : on ignorerait des remises fictives de -85 %.
+    compareAtCents: !pr.price_range && regular !== null && price !== null && regular > price ? regular : null,
     currency: pr.currency_code || "CAD",
     inStock: p.is_in_stock !== false,
     imageUrl: p.images?.[0]?.src ?? null,

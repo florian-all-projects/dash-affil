@@ -47,7 +47,7 @@ const jsonld = [
         <h1 class="text-4xl md:text-5xl">{p.name}</h1>
         <p class="mt-4 num"><span class="text-sm text-moss">{s.from}</span> <span class="display text-5xl text-copper">{price(p.from)}</span>
           {p.offers[0].compareAt && p.offers[0].compareAt > p.from && <s class="ml-2 text-moss">{price(p.offers[0].compareAt)}</s>}</p>
-        <a class="btn-buy mt-5 text-lg" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.buyAt(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name)}</a>
+        <a class="btn-buy mt-5 text-lg" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{p.primary.price > p.from ? s.buyAtPrice(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name, price(p.primary.price)) : s.buyAt(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name)}</a>
         <div class="prose-bb mt-6">{blurb.map((b) => <p>{b}</p>)}</div>
         <p class="mt-4 text-xs text-moss">{s.updated(fmtDate(exportedAt, lang))}. {s.disclosure}</p>
       </div>

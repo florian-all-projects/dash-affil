@@ -9,7 +9,7 @@ const typeLabel = p.strainType ? (lang === "fr" && p.strainType === "hybrid" ? "
 ---
 <li class="menu-row">
   <div class="min-w-0 flex items-center gap-3">
-  {thumb && p.image && <img src={p.image} alt="" width="56" height="56" loading="lazy" class="size-14 shrink-0 rounded-md object-cover bg-lichen" />}
+  {thumb && <img src={p.image ?? `/img/cat/${p.category}.webp`} alt="" width="56" height="56" loading="lazy" class="size-14 shrink-0 rounded-md object-cover bg-lichen" />}
   <div class="min-w-0">
     <a href={r.product(lang, p.slug)} class="font-semibold text-spruce hover:text-leaf">{p.name}</a>
     <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-moss">
@@ -26,6 +26,6 @@ const typeLabel = p.strainType ? (lang === "fr" && p.strainType === "hybrid" ? "
   </div>
   <div class="hidden md:block text-sm text-moss">{s.shopsCount(p.shopCount)}</div>
   <div class="col-span-2 md:col-span-1 md:text-right">
-    <a class="btn-buy text-sm w-full md:w-auto" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.buyAt(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name)}</a>
+    <a class="btn-buy text-sm w-full md:w-auto" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{p.primary.price > p.from ? s.buyAtPrice(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name, fmtPrice(p.primary.price, lang)) : s.buyAt(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name)}</a>
   </div>
 </li>

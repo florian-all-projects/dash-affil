@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS products (
   weight          TEXT,                          -- format / poids normalisé
   strain_id       INTEGER REFERENCES strains(id),
   content_hash    TEXT,                          -- hash des faits ; change => régénération du contenu
-  status          TEXT NOT NULL DEFAULT 'active',-- active | gone
+  status          TEXT NOT NULL DEFAULT 'active',-- active | gone | excluded (hors périmètre, voir normalize.ts)
   first_seen      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
   last_seen       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );

@@ -41,11 +41,25 @@ export function canonicalKey(name: string): string {
 // Les autres substances (psilocybine, etc.) vendues par certains shops sont exclues.
 const EXCLUDE = /psilocyb|magic[\s-]*mushroom|\bshrooms?\b|mushroom|amanita|\bdmt\b|\blsd\b|\bmdma\b|ketamine|ayahuasca|mescaline|\bkratom\b|\bpsychedelic/i;
 
+// Hors périmètre aussi (constaté le 23/10/2026) : tabac (cigarettes, cigares), médicaments sur ordonnance
+// (sildénafil, tadalafil… y compris mélangés à du CBD), cartes cadeaux et articles offerts.
+// Testé sur le nom et les catégories du shop seulement : une description « sans tabac » ne doit pas exclure un produit.
+const OUT_OF_SCOPE = new RegExp(
+  [
+    "cigarett", "tobacco(?![\\s-]*free)", "nicotine(?![\\s-]*free)", "\\bcigars?\\b", "backwoods", "playfare", "canadian (classics|lights?|full(?! spectrum)|menthol)", "rolled gold", "nexus light",
+    "viagra", "cialis", "sildenafil", "tadalafil", "vardenafil", "kamagra", "levitra", "\\bper tablet\\b", "erectile", "male enhancement",
+    "gift card", "^(\\d+ )?free (gifts?|joints?)$", "^gift name$",
+  ].join("|"),
+  "i",
+);
+
 export function isExcluded(name: string, categorySlugs: string[], description = ""): boolean {
-  return EXCLUDE.test(name) || categorySlugs.some((c) => EXCLUDE.test(c.replace(/-/g, " "))) || EXCLUDE.test(description.slice(0, 400));
+  const slugs = categorySlugs.map((c) => c.replace(/-/g, " "));
+  return EXCLUDE.test(name) || slugs.some((c) => EXCLUDE.test(c)) || EXCLUDE.test(description.slice(0, 400))
+    || OUT_OF_SCOPE.test(name) || slugs.some((c) => OUT_OF_SCOPE.test(c));
 }
 
-const ACCESSORY_NAME = /boveda|humidity pack|integra|grinder|rolling papers?|\bbong\b|\bpipe\b|lighter|\btorch\b|rolling tray|\bstash\b|smell proof|battery|charger/;
+const ACCESSORY_NAME = /boveda|humidity pack|integra|grinder|rolling papers?|\bbong\b|\bpipe\b|lighter|\btorch\b|rolling tray|\bstash\b|smell proof|battery|charger|dab tool|dab rig/;
 
 export type Category = "flower" | "edible" | "concentrate" | "vape" | "cbd" | "seed" | "accessory" | "other";
 
@@ -70,8 +84,16 @@ export function categorize(name: string, categorySlugs: string[], shopCategory: 
   // Accessoires évidents d'après le nom, quelle que soit la catégorie du shop
   if (ACCESSORY_NAME.test(nm)) return "accessory";
   // Les catégories du shop d'abord : le nom d'une variété (« Candyland », « Wedding Cake ») tromperait les règles
-  for (const [cat, re] of RULES) if (re.test(cats)) return cat;
+  for (const [cat, re] of RULES) if (re.test(cats)) {
+    // Une variété notée AAA rangée par le shop dans une catégorie « CBD » (ex. « high CBD strains ») reste une fleur
+    if (cat === "cbd" && /\ba{3,}\b/.test(nm)) return "flower";
+    return cat;
+  }
   for (const [cat, re] of RULES) if (re.test(nm)) return cat;
+  // Huiles et teintures (dont « Phoenix Tears », RSO) : concentré, sauf CBD seul
+  const cbdOnly = /\bcbd\b/.test(nm) && !/\bthc\b/.test(nm);
+  if (/tincture|phoenix tears|syringe|\boil\b/.test(nm)) return cbdOnly ? "cbd" : "concentrate";
+  if (/\brub\b|cream|balm|salve|lotion|topical|bath ?bomb|bath salts?/.test(nm) && cbdOnly) return "cbd";
   return "other";
 }
 

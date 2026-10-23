@@ -32,15 +32,15 @@ const list = products.filter((p) => agg.has(p.id)).map((p) => ({ ...p, ...agg.ge
 
 const chosen = new Map();
 const perPrompt = new Map();
-const add = (p) => {
+const add = (p, isDeal = false) => {
   if (chosen.size >= MAX || chosen.has(p.id)) return;
   const k = describe(p);
-  if ((perPrompt.get(k) ?? 0) >= 2) return; // évite 4 visuels identiques (ex. 4 bombes de bain)
+  if (!isDeal && (perPrompt.get(k) ?? 0) >= 2) return; // évite 4 visuels identiques (ex. 4 bombes de bain) ; les remises de l'accueil passent toujours
   perPrompt.set(k, (perPrompt.get(k) ?? 0) + 1);
   chosen.set(p.id, p);
 };
 // 1. Les remises de la page d'accueil (même règle que deals() dans catalog.ts)
-list.filter((p) => p.discount >= 10).sort((a, b) => b.discount - a.discount).slice(0, 8).forEach(add);
+list.filter((p) => p.discount >= 10).sort((a, b) => b.discount - a.discount).slice(0, 8).forEach((p) => add(p, true));
 // 2. Par catégorie, les produits vendus par le plus de shops, puis les moins chers
 const CATS = ["flower", "edible", "concentrate", "vape", "cbd", "seed", "accessory"];
 // Shops « à vie » d'abord (commission récurrente), puis le nombre de shops, puis le prix
@@ -72,10 +72,13 @@ function describe(p) {
       if (has(/cookie|biscuit/)) return "A stack of three homemade cookies.";
       if (has(/brownie/)) return "Two square fudge brownies.";
       if (has(/capsule|pill|tablet/)) return "A few amber softgel capsules.";
+      if (has(/caramel|cara-?melt|toffee/)) return "A few soft square caramels, some wrapped in plain wax paper.";
       if (has(/candy|lollipop|hard/)) return "A handful of translucent hard candies.";
       return "An assortment of small homemade sweets.";
     case "concentrate":
-      if (has(/tincture|drops/)) return "A plain unlabelled amber glass dropper bottle of golden oil, dropper resting beside it.";
+      if (has(/build your own|mix and match|mix & match|sampler/)) return "An assortment of cannabis concentrates side by side: amber shatter shards, a dab of golden wax and a small dark block of hash.";
+      if (has(/caviar|moon ?rock/)) return "Two dense cannabis buds coated in golden oil and rolled in pale kief.";
+      if (has(/tincture|drops|phoenix tears/)) return "A plain unlabelled amber glass dropper bottle of golden oil, dropper resting beside it.";
       if (has(/shatter/)) return "A thin glassy amber sheet of cannabis shatter, broken into shards.";
       if (has(/rosin|resin|badder|budder|wax/)) return "A small dab of golden creamy cannabis wax on a square of parchment.";
       if (has(/hash|kief/)) return "A few small blocks of dark brown hashish.";
@@ -98,6 +101,7 @@ function describe(p) {
       return "A small ceramic dish holding a dozen tiger-striped cannabis seeds, a few seeds scattered.";
     case "accessory":
       if (has(/grinder/)) return "A plain metal herb grinder, lid open.";
+      if (has(/filter|\btips\b/)) return "A small pile of rolled unbleached paper filter tips.";
       if (has(/wrap/)) return "A few plain rolled hemp wrap leaves, one partly unrolled.";
       if (has(/paper|rolling|cone|raw |king size|slim|1 1\/4/)) return "A few plain unbleached rolling papers and pre-rolled empty cones.";
       if (has(/boveda|humid/)) return "A small plain white humidity pack beside a glass storage jar.";
