@@ -18,7 +18,7 @@ Monétiser du trafic SEO autour des shops de cannabis/CBD/graines/accessoires ca
 - ⚠️ **Historique git réécrit le 23/10/2026** (purge des mots de passe en clair) : tout clone local antérieur est obsolète → **re-cloner** au lieu de `git pull`, et ne jamais re-pousser un ancien clone (ça republierait les secrets).
 
 Identité utilisée :
-- **Nom** : Michelle Lanoy · **Email** : michelle.lanoy.pro@gmail.com (boîte ouverte dans Chrome « Flo portable », compte u/5)
+- **Nom** : Michelle Lanoy · **Email** : michelle.lanoy.pro@gmail.com (boîte ouverte dans Chrome « Flo portable », compte u/5, et depuis le 23/10/2026 dans un Chrome dédié du PC fixe, compte u/0)
 - Username standard : `michellelanoy` · Site déclaré : https://site-en-construction.com (placeholder)
 - Pitch type : "SEO content and reviews about Canadian online cannabis and CBD shops (website currently in development)"
 

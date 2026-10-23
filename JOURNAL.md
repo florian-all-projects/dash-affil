@@ -1,5 +1,14 @@
 # Journal du projet (ajouter en haut)
 
+## 23/10/2026 (16h17) — Claude (session Florian) [Flo] Rattrapage Phase 1 (boîte de Michelle)
+- La tâche planifiée de surveillance n'a plus rien journalisé depuis le 20/07 → rattrapage manuel. Recherche Gmail `in:anywhere after:2026/07/19 -from:linkedin.com` (inbox + spam) : **5 conversations seulement, aucune nouvelle approbation**.
+  - Green Affiliates : relance automatique « You've Been Gone For A While! » (19/10) → le compte est approuvé depuis le 20/07 mais **le lien affilié n'a jamais été généré** (connexion humaine requise).
+  - CBD2GO (spam) : coupons publics **FALL25** (-25 %, 24/09) et **THANKS35** (-35 % + livraison offerte, 09/10, Thanksgiving canadien, probablement expiré) → à reprendre pour le pilier coupons (codes publics, pas des codes affiliés).
+  - Google : alerte de connexion du 23/10 = connexion de Florian sur le PC fixe (normal).
+  - **Toujours aucune réponse** de BC Bud Supply, Kush Station, Grasscity, Green Avenger, True North (lien à générer), WTF Cannabis.
+- Aucun changement de statut → data.csv inchangé.
+- **Accès à la boîte** : désormais aussi ouverte dans un **Chrome du PC fixe de Florian** (profil dédié, extension Claude, compte Gmail `u/0`). Le profil principal de Chrome a atteint la limite de comptes Google, d'où ce profil séparé.
+
 ## 23/10/2026 (15h32) — Claude (session Florian) [Flo] Nouveau mot de passe du dashboard
 - **Mot de passe du dashboard changé** (l'ancien avait été public). Le nouveau a été donné à Florian en direct : **le demander à Florian**, il n'est écrit nulle part dans le repo.
 - **Comment** : déchiffrement de `secrets.enc` et du payload `const P` de `index.html` avec l'ancien mdp (fourni par Florian), puis re-chiffrement avec le nouveau mdp, **nouveau salt + nouveau nonce**, 310000 itérations (la page lit `P.salt`, un salt neuf est donc compatible). Round-trip vérifié sur les deux fichiers (contenu identique, ancien mdp refusé).

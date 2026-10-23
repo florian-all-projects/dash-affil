@@ -5,7 +5,7 @@
 📨 BC Bud Supply : plan promo envoyé, attend approbation.
 ⏳ En attente : Grasscity (8%), Kush Station, Chronic Farms, Green Affiliates, True North, Green Avenger.
 ✅ Inscrits sans lien : Herbies, Speed Greens, WTF Cannabis, Cannaffex, Plant of Life.
-Surveillance emails : tâche planifiée **1×/jour à 9h**.
+Surveillance emails : tâche planifiée **1×/jour à 9h** (⚠️ plus rien journalisé entre le 20/07 et le 23/10 : vérifier qu'elle tourne). Rattrapage du 23/10 : aucune nouvelle approbation.
 
 ## Phase 2 — Réseau de sites marchands (LANCÉE le 23/10/2026 par Florian)
 - Plan complet validé : voir `PLAN.md`. 4 piliers (produits / annuaire local / coupons / axes additionnels).
