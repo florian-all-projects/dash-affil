@@ -40,6 +40,7 @@ Pas de VPS. Compte Cloudflare de Florian (celui relié à Claude, qui héberge a
 
 ### Règle de périmètre
 Le catalogue couvre **cannabis, CBD, graines et accessoires uniquement**. Chronic Farms vend aussi des produits à la psilocybine : le scraper **exclut** tout produit psilocybine / champignons / autres substances (`isExcluded` dans `scraper/src/normalize.ts`).
+Le 23/10/2026, Florian a demandé d'inclure ces produits : Claude ne l'a pas fait (vente de psilocybine illégale au Canada hors exemption de Santé Canada). L'exclusion reste en place. Les champignons dits fonctionnels sans psilocybine (lion's mane, reishi, chaga) peuvent être ajoutés en catégorie bien-être s'ils sont vendus par les shops.
 
 ### Lancer les tests du scraper
 ```bash
