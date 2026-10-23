@@ -11,14 +11,14 @@ L'associé de Florian mène son propre test en parallèle sur ce même repo : **
 - `index.html`, `secrets.enc`, `plan.html` : dashboard Phase 1 (en ligne via GitHub Pages).
 - Toute entrée de `JOURNAL.md` liée à ce dossier commence par **`[Flo]`** dans son titre.
 
-## Structure prévue (créée au fil du V1)
+## Structure prévue du code (dans le repo privé, créée au fil du V1)
 | Dossier | Contenu |
 |---|---|
-| `Flo/db/` | Schéma PostgreSQL (tables shops, products, product_offers, coupons, cities...) et migrations |
-| `Flo/scraper/` | Scraper Python en cascade (Shopify, WooCommerce Store API, JSON-LD, CSS) + dédup + détection de changements |
-| `Flo/generation/` | Génération du contenu (faits / éditorial) et des images |
-| `Flo/sites/<ndd>/` | Site pilote Astro |
-| `Flo/ops/` | Orchestration (cron hebdo), rapports de run |
+| `db/` | Schéma PostgreSQL (tables shops, products, product_offers, coupons, cities...) et migrations |
+| `scraper/` | Scraper Python en cascade (Shopify, WooCommerce Store API, JSON-LD, CSS) + dédup + détection de changements |
+| `generation/` | Génération du contenu (faits / éditorial) et des images |
+| `sites/<ndd>/` | Site pilote Astro |
+| `ops/` | Orchestration (cron hebdo), rapports de run |
 
 ## Paramètres actés (23/10/2026)
 - Budget IA : **50 €/mois** (texte + images).
