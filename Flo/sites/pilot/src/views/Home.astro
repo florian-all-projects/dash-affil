@@ -83,7 +83,7 @@ const jsonld = [{ "@context": "https://schema.org", "@type": "WebSite", name: "B
     <section class="wrap mt-14">
       <h2 class="text-4xl">{copy.dealsTitle}</h2>
       <p class="mt-2 text-moss text-sm">{copy.dealsNote}</p>
-      <ul class="mt-4">{topDeals.map((p) => <ProductRow p={p} lang={lang} showCategory />)}</ul>
+      <ul class="mt-4">{topDeals.map((p) => <ProductRow p={p} lang={lang} showCategory thumb />)}</ul>
     </section>
   )}
 

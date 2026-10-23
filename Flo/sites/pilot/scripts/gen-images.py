@@ -5,7 +5,7 @@ Usage :
 jobs.json : [{"out": "public/img/cat/flower.webp", "prompt": "...", "model": "gpt-image-1.5", "quality": "medium"}]
 Clé : OPENAI_API_KEY dans l'environnement (jamais commitée). Les images déjà présentes ne sont pas régénérées.
 """
-import base64, io, json, os, sys, urllib.request
+import base64, io, json, os, sys, urllib.error, urllib.request
 from PIL import Image
 
 KEY = os.environ["OPENAI_API_KEY"]
@@ -39,10 +39,18 @@ def generate(job):
     img.save(out, "WEBP", quality=82, method=6)
     return f"ok {os.path.getsize(out)//1024} Ko, usage={data.get('usage')}"
 
+def run(j):
+    try:
+        return j["out"], generate(j)
+    except urllib.error.HTTPError as e:
+        return j["out"], f"ERREUR {e.code} {e.read().decode()[:300]}"
+    except Exception as e:  # réseau, délai dépassé…
+        return j["out"], f"ERREUR {e}"
+
 if __name__ == "__main__":
+    from concurrent.futures import ThreadPoolExecutor
     jobs = json.load(open(sys.argv[1]))
-    for j in jobs:
-        try:
-            print(j["out"], generate(j), flush=True)
-        except urllib.error.HTTPError as e:
-            print(j["out"], "ERREUR", e.code, e.read().decode()[:300], flush=True)
+    # 4 requêtes en parallèle : reste sous les limites de débit OpenAI d'un compte standard
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for out, msg in pool.map(run, jobs):
+            print(out, msg, flush=True)

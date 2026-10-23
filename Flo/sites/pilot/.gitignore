@@ -3,3 +3,4 @@ dist/
 .astro/
 .wrangler/
 src/data/generated/
+.featured-jobs.json

@@ -2,12 +2,14 @@
 import { t, r, fmtPrice, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
 import type { Product } from "../lib/catalog";
 import { SHORT_NAME } from "../data/shops-content";
-interface Props { p: Product; lang: Lang; showCategory?: boolean }
-const { p, lang, showCategory = false } = Astro.props;
+interface Props { p: Product; lang: Lang; showCategory?: boolean; thumb?: boolean }
+const { p, lang, showCategory = false, thumb = false } = Astro.props;
 const s = t[lang];
 const typeLabel = p.strainType ? (lang === "fr" && p.strainType === "hybrid" ? "hybride" : p.strainType) : null;
 ---
 <li class="menu-row">
+  <div class="min-w-0 flex items-center gap-3">
+  {thumb && p.image && <img src={p.image} alt="" width="56" height="56" loading="lazy" class="size-14 shrink-0 rounded-md object-cover bg-lichen" />}
   <div class="min-w-0">
     <a href={r.product(lang, p.slug)} class="font-semibold text-spruce hover:text-leaf">{p.name}</a>
     <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-moss">
@@ -15,6 +17,7 @@ const typeLabel = p.strainType ? (lang === "fr" && p.strainType === "hybrid" ? "
       {showCategory && <span class="chip">{CATEGORY_SLUGS[p.category]?.label[lang]}</span>}
       {p.weights.length > 0 && <span class="truncate">{p.weights.slice(0, 5).join(", ")}</span>}
     </div>
+  </div>
   </div>
   <div class="text-right md:text-left num">
     <span class="text-xs text-moss">{s.from}</span>

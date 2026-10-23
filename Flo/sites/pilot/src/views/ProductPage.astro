@@ -39,7 +39,10 @@ const jsonld = [
   <div class="wrap pt-8">
     <nav aria-label="Breadcrumb" class="text-sm text-moss"><a href={r.menu(lang)}>{s.nav.menu}</a> / <a href={r.category(lang, p.category)}>{catLabel}</a></nav>
     <div class="mt-4 grid gap-8 md:grid-cols-[minmax(0,22rem)_1fr]">
-      <img src={img} alt={p.name} width="704" height="704" class="w-full aspect-square object-cover rounded-lg bg-lichen" loading="eager" />
+      <figure>
+        <img src={img} alt={p.name} width="704" height="704" class="w-full aspect-square object-cover rounded-lg bg-lichen" loading="eager" />
+        <figcaption class="mt-2 text-xs text-moss">{s.imgNote}</figcaption>
+      </figure>
       <div>
         <h1 class="text-4xl md:text-5xl">{p.name}</h1>
         <p class="mt-4 num"><span class="text-sm text-moss">{s.from}</span> <span class="display text-5xl text-copper">{price(p.from)}</span>
