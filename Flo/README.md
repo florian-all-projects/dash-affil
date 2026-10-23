@@ -1,6 +1,6 @@
 # Flo/ : espace de travail Phase 2 de Florian
 
-> ⚠️ Décision du 23/10/2026 : le **code** Phase 2 vit dans un **repo GitHub privé** (à créer par Florian) car ce repo est public. Ici : uniquement la doc et le suivi.
+> Décision du 23/10/2026 (révisée) : **le code Phase 2 vit ici, dans `Flo/`**, plutôt que dans un repo privé séparé. Comme ce repo est **public** : **aucun nom de domaine du réseau, aucune clé API, aucun token** n'est commité. Ils restent dans la config Cloudflare (variables et secrets) ou dans `secrets.enc`.
 
 Ce dossier contient le travail de **Florian** (et de son Claude) sur la **Phase 2** : le réseau de sites marchands décrit dans `PLAN.md`, en commençant par le **V1 (1 site pilote)** défini dans `.claude/context/v1.md`.
 
@@ -11,7 +11,7 @@ L'associé de Florian mène son propre test en parallèle sur ce même repo : **
 - `index.html`, `secrets.enc`, `plan.html` : dashboard Phase 1 (en ligne via GitHub Pages).
 - Toute entrée de `JOURNAL.md` liée à ce dossier commence par **`[Flo]`** dans son titre.
 
-## Structure prévue du code (dans le repo privé, créée au fil du V1)
+## Structure prévue du code (dans `Flo/`, créée au fil du V1)
 | Dossier | Contenu |
 |---|---|
 | `db/` | Schéma PostgreSQL (tables shops, products, product_offers, coupons, cities...) et migrations |
