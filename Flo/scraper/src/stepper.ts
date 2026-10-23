@@ -123,6 +123,8 @@ export async function step(env: StepEnv): Promise<StepResult> {
       await db.prepare("UPDATE scrape_state SET status='failed', attempts=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE shop_id=?").bind(attempts, job.id).run();
     } else {
       await db.prepare("UPDATE scrape_state SET attempts=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE shop_id=?").bind(attempts, job.id).run();
+      // Garde la trace de l'erreur même si on réessaie
+      await db.prepare("UPDATE scrape_runs SET error=? WHERE id=?").bind(`essai ${attempts} page ${page} : ${msg}`.slice(0, 500), runId).run();
     }
     return { action: "error", shop: job.slug, page, error: msg, gaveUp };
   }
