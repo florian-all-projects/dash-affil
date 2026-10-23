@@ -1,5 +1,12 @@
 # Journal du projet (ajouter en haut)
 
+## 23/10/2026 (15h32) — Claude (session Florian) [Flo] Nouveau mot de passe du dashboard
+- **Mot de passe du dashboard changé** (l'ancien avait été public). Le nouveau a été donné à Florian en direct : **le demander à Florian**, il n'est écrit nulle part dans le repo.
+- **Comment** : déchiffrement de `secrets.enc` et du payload `const P` de `index.html` avec l'ancien mdp (fourni par Florian), puis re-chiffrement avec le nouveau mdp, **nouveau salt + nouveau nonce**, 310000 itérations (la page lit `P.salt`, un salt neuf est donc compatible). Round-trip vérifié sur les deux fichiers (contenu identique, ancien mdp refusé).
+- L'ancien mdp du dashboard était aussi écrit **dans** `secrets.enc` et dans le tableau du dashboard : remplacé par « à demander à Florian ». Ne plus jamais stocker le mdp du dashboard dans un fichier chiffré avec lui-même.
+- Effet côté navigateur : « Rester connecté » garde l'ancien mdp dans le localStorage → l'écran de mot de passe réapparaît une fois, saisir le nouveau.
+- **Reste à faire (Florian)** : changer les mots de passe de tous les comptes de `secrets.enc` (ils ont été déchiffrables publiquement). Les anciens suivaient un schéma prévisible : utiliser des mdp aléatoires (gestionnaire de mots de passe).
+
 ## 23/10/2026 (15h05) — Claude (session Florian) [Flo] Lancement Phase 2 + sécurisation
 - **Phase 2 lancée par Florian.** Décisions : V1 sur 1 site pilote ; budget IA 50 €/mois ; images GPT Image (préférence Florian, test A/B prévu) ; NDD pilote cherché via Semrush (Ranker Fox) ; risque juridique (promotion de MOM non licenciés, Cannabis Act + art. L3421-4 CSP) signalé et **accepté par Florian**. Détail dans `.claude/context/progress.md` et `audience.md`.
 - **Nouveau dossier `Flo/`** (voir `Flo/README.md`) : tout le travail Phase 2 de Florian y vit. L'associé, qui lance aussi un test, travaille dans **son propre dossier**. Les fichiers racine restent communs. Entrées JOURNAL liées à Flo/ préfixées `[Flo]`.
