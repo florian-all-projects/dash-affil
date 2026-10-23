@@ -18,8 +18,10 @@ Surveillance emails : tâche planifiée **1×/jour à 9h** (⚠️ plus rien jou
 - **Organisation du repo** : le travail Phase 2 de Florian vit dans **`Flo/`** ; l'associé crée son propre dossier pour son test. Les fichiers racine (CLAUDE.md, JOURNAL.md, data.csv, PLAN.md, .claude/context) restent communs.
 - Page plan publiée : http://dash.secoursvert.net/plan.html
 
+- **Infra (23/10)** : D1 `cana-catalog` créée et remplie (schéma + 11 shops) ; Worker scraper codé et testé dans `Flo/scraper/`, en attente de déploiement. Voir `Flo/README.md`.
+
 ## En attente de Florian (bloquant V1)
-1 NDD pilote + angle (pas de NDD pour l'instant : démarrage possible sur sous-domaine workers.dev) · clé API OpenAI (images) · hébergement : pas de VPS, piste Cloudflare (Workers Paid 5 $/mois) à valider · données shops physiques (non bloquant pour le pilote : pages villes d'abord sur le top 30).
+1 NDD pilote + angle (pas de NDD pour l'instant : démarrage possible sur sous-domaine workers.dev) · clé API OpenAI (images) · hébergement : **Cloudflare validé** (compte relié à Claude) → manque un **token API** pour déployer + activer **Workers Paid (5 $/mois)** · données shops physiques (non bloquant pour le pilote : pages villes d'abord sur le top 30).
 
 ## Prochaines actions
 1. Récupérer lien/coupon BC Bud Supply.

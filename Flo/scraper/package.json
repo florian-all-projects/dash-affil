@@ -1,0 +1,17 @@
+{
+  "name": "cana-scraper",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-sqlite --import tsx --test test/*.test.ts",
+    "deploy": "wrangler deploy",
+    "schema": "wrangler d1 execute cana-catalog --remote --file=../db/schema.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261019.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "wrangler": "4.151.3"
+  }
+}

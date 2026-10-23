@@ -97,7 +97,7 @@ print(AESGCM(key).decrypt(b(d['nonce']), b(d['ct']), None).decode())
 2. Surveiller les approbations : Grasscity (8%), Kush Station, Chronic Farms, Green Affiliates, True North, Green Avenger.
 3. Configurer le moyen de paiement Low Price Bud (onglet Payments) pour encaisser.
 4. ⚠️ **SÉCURITÉ (partiellement résolu le 23/10/2026)** : mots de passe en clair retirés de JOURNAL.md et historique git purgé. Nouveau mdp dashboard + re-chiffrement de index.html et secrets.enc faits le 23/10 (mdp : demander à Florian). **Décision de Florian (23/10) : pas de rotation des mdp des comptes shops** (risque accepté ; surveiller les infos de paiement des espaces affiliés). **Ne plus jamais écrire de secret en clair.**
-5. Phase 2 — V1 en cours dans `Flo/` : voir **PLAN.md**, `.claude/context/v1.md` et `.claude/context/progress.md`. Budget IA 50 €/mois ; images GPT Image (test A/B à faire) ; NDD pilote en recherche via Semrush.
+5. Phase 2 — V1 en cours dans `Flo/` (hébergement Cloudflare : D1 `cana-catalog` + Worker scraper, voir `Flo/README.md`) : voir **PLAN.md**, `.claude/context/v1.md` et `.claude/context/progress.md`. Budget IA 50 €/mois ; images GPT Image (test A/B à faire) ; NDD pilote en recherche via Semrush.
 
 ## Protocole de documentation partagée (OBLIGATOIRE pour TOUT Claude)
 Deux personnes mènent ce projet, chacune avec son Claude sans historique partagé. **Le repo git est la seule mémoire commune.** Donc, pour que l'autre soit toujours au courant des modifs, process et techniques :

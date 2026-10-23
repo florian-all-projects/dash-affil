@@ -1,0 +1,18 @@
+// Worker « cana-scraper » (Phase 2 Cana canada) : collecte hebdo des catalogues -> D1.
+// Déploiement : npx wrangler deploy (nécessite CLOUDFLARE_API_TOKEN dans l'environnement, jamais commité).
+// Secret à poser une fois : npx wrangler secret put RUN_TOKEN
+{
+  "name": "cana-scraper",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "d1_databases": [
+    { "binding": "DB", "database_name": "cana-catalog", "database_id": "b1792254-2898-4c6b-8175-4a7ad127d183" }
+  ],
+  // Lundi 06h17 UTC, une fois par semaine (PLAN §13).
+  "triggers": { "crons": ["17 6 * * 1"] },
+  "vars": { "PAGE_DELAY_MS": "1500" },
+  "observability": { "enabled": true }
+  // Plan Workers Paid requis en production (CPU 15 min par cron >= 1 h, 10 000 sous-requêtes).
+  // Une fois le plan actif, ajouter : "limits": { "cpu_ms": 300000 }
+}
