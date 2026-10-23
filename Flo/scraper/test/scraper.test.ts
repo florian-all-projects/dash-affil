@@ -69,6 +69,8 @@ test("catégories", () => {
   assert.equal(categorize("300mg CBD Cooling Stick", ["cbd", "cbd-topicals"], "MOM"), "cbd");
   assert.equal(categorize("Watermelon Gummies 500mg", ["edibles"], "MOM"), "edible");
   assert.equal(categorize("Anything", [], "Graines"), "seed");
+  assert.equal(categorize("THC Hemp Seed Oil Capsules", ["edibles"], "MOM"), "edible");
+  assert.equal(categorize("Gelato Feminized Seeds", ["seeds"], "MOM"), "seed");
 });
 
 test("mapping d'un vrai produit WooCommerce", () => {
@@ -152,4 +154,50 @@ test("page anti-bot Cloudflare détectée et journalisée", async () => {
   const r = await scrapeShop(env, shop);
   assert.equal(r.status, "error");
   assert.match(r.error!, /anti-bot/);
+});
+
+// --- Mode « une page par exécution » (plan gratuit) ---
+import { step } from "../src/stepper";
+
+test("mode step : cycle complet page par page, puis repos jusqu'au cycle suivant", async () => {
+  const d1 = fakeD1();
+  // Un seul shop WooCommerce actif pour le test
+  d1.raw.exec("UPDATE shops SET status='paused' WHERE slug != 'bmwo'");
+  const env = { DB: d1 as unknown as D1Database, PER_PAGE: "2" };
+  stubFetch([[purpleRockstar, shroom], [coolingStick]]);
+
+  const actions: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const r = await step(env);
+    actions.push(r.action === "page" ? `page${r.page}${r.done ? "-fin" : ""}` : r.action);
+    if (r.action === "idle") break;
+  }
+  assert.deepEqual(actions, ["cycle_started", "page1", "page2-fin", "idle"]);
+  const run = d1.raw.prepare("SELECT status, pages_fetched, offers_seen, offers_new FROM scrape_runs").get() as any;
+  assert.deepEqual([run.status, run.pages_fetched, run.offers_seen, run.offers_new], ["ok", 2, 2, 2]);
+  const st = d1.raw.prepare("SELECT status FROM scrape_state").get() as any;
+  assert.equal(st.status, "done");
+});
+
+test("mode step : un shop bloqué est abandonné après 3 essais sans bloquer les autres", async () => {
+  const d1 = fakeD1();
+  d1.raw.exec("UPDATE shops SET status='paused' WHERE slug NOT IN ('lowpricebud','cbd2heal')");
+  const env = { DB: d1 as unknown as D1Database, PER_PAGE: "40" };
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    if (String(input).includes("lowpricebud")) {
+      return new Response("<title>Just a moment...</title>", { status: 403, headers: { "content-type": "text/html" } });
+    }
+    return new Response(JSON.stringify([coolingStick]), { status: 200, headers: { "content-type": "application/json", "x-wp-totalpages": "1" } });
+  }) as typeof fetch;
+  const seen: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const r = await step(env);
+    if (r.action === "idle") break;
+    if (r.action === "error") seen.push(`${r.shop}:err${r.gaveUp ? "-abandon" : ""}`);
+    if (r.action === "page") seen.push(`${r.shop}:ok`);
+  }
+  // CBD2HEAL (priorité 85) passe avant Low Price Bud (50)
+  assert.deepEqual(seen, ["cbd2heal:ok", "lowpricebud:err", "lowpricebud:err", "lowpricebud:err-abandon"]);
+  const failed = d1.raw.prepare("SELECT st.status FROM scrape_state st JOIN shops s ON s.id=st.shop_id WHERE s.slug='lowpricebud'").get() as any;
+  assert.equal(failed.status, "failed");
 });

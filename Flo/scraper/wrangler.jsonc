@@ -1,18 +1,20 @@
-// Worker « cana-scraper » (Phase 2 Cana canada) : collecte hebdo des catalogues -> D1.
-// Déploiement : npx wrangler deploy (nécessite CLOUDFLARE_API_TOKEN dans l'environnement, jamais commité).
-// Secret à poser une fois : npx wrangler secret put RUN_TOKEN
+// Worker « cana-scraper » (Phase 2 Cana canada) : collecte des catalogues -> D1.
+// Déploiement : npx wrangler deploy, avec CLOUDFLARE_API_TOKEN et CLOUDFLARE_ACCOUNT_ID dans l'environnement
+// (jamais commités ; voir secrets.enc).
 {
   "name": "cana-scraper",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
-  "workers_dev": true,
+  // Pas d'URL publique *.workers.dev : elle afficherait le sous-domaine du compte (nom de Florian).
+  // Le Worker ne tourne que par Cron Trigger.
+  "workers_dev": false,
+  "preview_urls": false,
   "d1_databases": [
     { "binding": "DB", "database_name": "cana-catalog", "database_id": "b1792254-2898-4c6b-8175-4a7ad127d183" }
   ],
-  // Lundi 06h17 UTC, une fois par semaine (PLAN §13).
-  "triggers": { "crons": ["17 6 * * 1"] },
-  "vars": { "PAGE_DELAY_MS": "1500" },
+  // Plan gratuit : une tranche (1 page d'un shop) par minute ; au repos entre deux cycles (CYCLE_DAYS).
+  // Plan Workers Paid : passer MODE à "full", cron "17 6 * * 1" et ajouter "limits": { "cpu_ms": 300000 }.
+  "triggers": { "crons": ["* * * * *"] },
+  "vars": { "MODE": "step", "PER_PAGE": "40", "CYCLE_DAYS": "7", "MAX_ATTEMPTS": "3", "PAGE_DELAY_MS": "1500" },
   "observability": { "enabled": true }
-  // Plan Workers Paid requis en production (CPU 15 min par cron >= 1 h, 10 000 sous-requêtes).
-  // Une fois le plan actif, ajouter : "limits": { "cpu_ms": 300000 }
 }

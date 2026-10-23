@@ -43,13 +43,37 @@ export async function finishRun(db: D1Database, runId: number, status: string, s
     .run();
 }
 
-/** Empreintes connues des offres d'un shop, pour ne retraiter que ce qui a changé (PLAN §4). */
-export async function loadOfferHashes(db: D1Database, shopId: number): Promise<Map<string, string>> {
-  const { results } = await db
-    .prepare("SELECT source_id, offer_hash FROM product_offers WHERE shop_id = ?")
-    .bind(shopId)
-    .all<{ source_id: string; offer_hash: string | null }>();
+/**
+ * Empreintes connues des offres d'un shop, pour ne retraiter que ce qui a changé (PLAN §4).
+ * Avec `sourceIds`, ne charge que les offres de la page en cours (mode « une page par exécution »).
+ */
+export async function loadOfferHashes(db: D1Database, shopId: number, sourceIds?: string[]): Promise<Map<string, string>> {
+  if (sourceIds && sourceIds.length === 0) return new Map();
+  const stmt = sourceIds
+    ? db
+        .prepare(`SELECT source_id, offer_hash FROM product_offers WHERE shop_id = ? AND source_id IN (${sourceIds.map(() => "?").join(",")})`)
+        .bind(shopId, ...sourceIds)
+    : db.prepare("SELECT source_id, offer_hash FROM product_offers WHERE shop_id = ?").bind(shopId);
+  const { results } = await stmt.all<{ source_id: string; offer_hash: string | null }>();
   return new Map(results.map((r) => [r.source_id, r.offer_hash ?? ""]));
+}
+
+/** Ajoute les compteurs d'une page au run en cours. */
+export async function addToRun(db: D1Database, runId: number, s: RunStats) {
+  await db
+    .prepare(
+      `UPDATE scrape_runs SET pages_fetched = pages_fetched + ?, offers_seen = offers_seen + ?, offers_new = offers_new + ?,
+       prices_changed = prices_changed + ? WHERE id = ?`,
+    )
+    .bind(s.pages, s.seen, s.created, s.priceChanged, runId)
+    .run();
+}
+
+export async function closeRun(db: D1Database, runId: number, status: string, error: string | null) {
+  await db
+    .prepare("UPDATE scrape_runs SET finished_at = strftime('%Y-%m-%dT%H:%M:%SZ','now'), status = ?, error = ? WHERE id = ?")
+    .bind(status, error, runId)
+    .run();
 }
 
 /**
@@ -76,7 +100,9 @@ export async function saveOffers(
         .prepare(
           `INSERT INTO products (canonical_key, name, slug, category, strain_type, weight, status)
            VALUES (?, ?, ?, ?, ?, ?, 'active')
-           ON CONFLICT(canonical_key) DO UPDATE SET last_seen = strftime('%Y-%m-%dT%H:%M:%SZ','now'), status = 'active'`,
+           ON CONFLICT(canonical_key) DO UPDATE SET last_seen = strftime('%Y-%m-%dT%H:%M:%SZ','now'), status = 'active',
+             category = excluded.category, strain_type = coalesce(excluded.strain_type, products.strain_type),
+             weight = coalesce(excluded.weight, products.weight)`,
         )
         .bind(o.canonicalKey, o.name, o.canonicalKey, o.category, o.strainType, o.weights),
     );

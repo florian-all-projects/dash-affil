@@ -65,7 +65,7 @@ export function mapWooProduct(p: WooProduct, shopCategory: string): ScrapedOffer
   const regular = toCents(pr.regular_price, minor);
   const weights = (p.attributes ?? [])
     .filter((a) => /gram|gms|\bg\b|weight|size|oz|ounce|format|quantity/i.test(a.name))
-    .flatMap((a) => (a.terms ?? []).map((t) => t.name))
+    .flatMap((a) => (a.terms ?? []).map((t) => decodeEntities(t.name)))
     .join("|") || null;
 
   return {

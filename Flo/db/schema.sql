@@ -188,3 +188,15 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
   prices_changed  INTEGER DEFAULT 0,
   error           TEXT
 );
+
+-- Avancement du scraper en mode « une page par exécution » (plan gratuit, voir scraper/src/stepper.ts)
+CREATE TABLE IF NOT EXISTS scrape_state (
+  shop_id          INTEGER PRIMARY KEY REFERENCES shops(id) ON DELETE CASCADE,
+  status           TEXT NOT NULL DEFAULT 'pending',  -- pending | running | done | failed
+  next_page        INTEGER NOT NULL DEFAULT 1,
+  total_pages      INTEGER,
+  run_id           INTEGER,
+  attempts         INTEGER NOT NULL DEFAULT 0,
+  cycle_started_at TEXT NOT NULL,
+  updated_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);

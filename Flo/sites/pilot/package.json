@@ -1,0 +1,20 @@
+{
+  "name": "budboard-pilot",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "data": "node scripts/export-data.mjs",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "wrangler pages deploy dist --project-name budboard-ca --branch main"
+  },
+  "dependencies": {
+    "astro": "5.18.2",
+    "@tailwindcss/vite": "4.1.18",
+    "tailwindcss": "4.1.18"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.3"
+  }
+}

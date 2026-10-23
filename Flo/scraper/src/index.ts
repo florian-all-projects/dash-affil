@@ -1,15 +1,25 @@
-// Worker Cloudflare « cana-scraper » : collecte hebdomadaire des catalogues des shops affiliés vers D1.
-// - Cron (wrangler.jsonc) : un passage par semaine sur tous les shops actifs.
-// - GET /run?shop=<slug>  : passage manuel d'un shop (en-tête Authorization: Bearer <RUN_TOKEN>).
-// - GET /status           : derniers runs (même authentification).
+// Worker Cloudflare « cana-scraper » : collecte des catalogues des shops affiliés vers D1.
+// Deux modes (variable MODE) :
+// - "step" (défaut, plan gratuit) : le Cron Trigger appelle step() chaque minute, une page d'un shop à la fois
+//   (voir stepper.ts) ; un cycle complet est relancé tous les CYCLE_DAYS jours.
+// - "full" (plan Workers Paid) : un cron hebdo passe tous les shops d'un coup (scrapeShop).
+// Routes (en-tête Authorization: Bearer <RUN_TOKEN>) :
+// - GET /step             : exécute une tranche à la main.
+// - GET /run?shop=<slug>  : passage complet d'un shop (mode full, plan payant conseillé).
+// - GET /status           : derniers runs + état du cycle.
 
 import { finishRun, loadOfferHashes, markMissing, saveOffers, startRun, type RunStats, type ShopRow } from "./db";
 import { ChallengeError, fetchWooPage, mapWooProduct } from "./woo";
+import { step } from "./stepper";
 
 export interface Env {
   DB: D1Database;
   RUN_TOKEN: string;      // secret : wrangler secret put RUN_TOKEN
-  PAGE_DELAY_MS?: string; // politesse entre deux pages (défaut 1500 ms)
+  PAGE_DELAY_MS?: string; // politesse entre deux pages en mode full (défaut 1500 ms)
+  MODE?: string;          // "step" (défaut) | "full"
+  PER_PAGE?: string;
+  CYCLE_DAYS?: string;
+  MAX_ATTEMPTS?: string;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -71,6 +81,10 @@ function authorized(req: Request, env: Env): boolean {
 
 export default {
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    if ((env.MODE ?? "step") === "step") {
+      ctx.waitUntil(step(env).then((r) => { if (r.action !== "idle") console.log(JSON.stringify(r)); }));
+      return;
+    }
     ctx.waitUntil(
       (async () => {
         for (const shop of await activeShops(env)) {
@@ -86,6 +100,8 @@ export default {
     if (url.pathname === "/health") return new Response("ok");
     if (!authorized(req, env)) return new Response("unauthorized", { status: 401 });
 
+    if (url.pathname === "/step") return Response.json(await step(env));
+
     if (url.pathname === "/run") {
       const slug = url.searchParams.get("shop") || undefined;
       if (!slug) return Response.json({ error: "paramètre shop requis" }, { status: 400 });
@@ -100,7 +116,11 @@ export default {
                 r.prices_changed, r.error
          FROM scrape_runs r LEFT JOIN shops s ON s.id = r.shop_id ORDER BY r.id DESC LIMIT 30`,
       ).all();
-      return Response.json(results);
+      const state = await env.DB.prepare(
+        `SELECT s.slug, st.status, st.next_page, st.total_pages, st.attempts, st.cycle_started_at, st.updated_at
+         FROM scrape_state st JOIN shops s ON s.id = st.shop_id ORDER BY st.status, s.priority DESC`,
+      ).all();
+      return Response.json({ state: state.results, runs: results });
     }
     return new Response("not found", { status: 404 });
   },

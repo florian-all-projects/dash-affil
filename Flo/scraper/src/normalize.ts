@@ -52,7 +52,6 @@ export function isExcluded(name: string, categorySlugs: string[], description = 
 export type Category = "flower" | "edible" | "concentrate" | "vape" | "cbd" | "seed" | "accessory" | "other";
 
 const RULES: Array<[Category, RegExp]> = [
-  ["seed", /seed|feminized|autoflower/],
   ["vape", /vape|cart(ridge)?s?\b|disposable|\bpen\b/],
   ["edible", /edible|gumm|chocolate|candy|candies|beverage|drink|capsule|baked/],
   ["concentrate", /concentrate|shatter|\bhash\b|\bwax\b|rosin|resin|diamond|budder|kief|distillate|\brso\b|moon[\s-]?rock/],
@@ -66,6 +65,8 @@ export function categorize(name: string, categorySlugs: string[], shopCategory: 
   if (shopCategory === "CBD") return "cbd";
   if (shopCategory === "Graines") return "seed";
   const hay = (categorySlugs.join(" ") + " " + name).toLowerCase().replace(/-/g, " ");
+  // Graines : seulement les vraies graines (pas l'« huile de graines de chanvre »)
+  if (/\b(feminized|feminised|autoflower(ing)?|seeds|seed bank)\b/.test(hay) && !/seed oil|hemp seed/.test(hay)) return "seed";
   for (const [cat, re] of RULES) if (re.test(hay)) return cat;
   return "other";
 }
