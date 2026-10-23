@@ -1,5 +1,7 @@
 # Flo/ : espace de travail Phase 2 de Florian
 
+> ⚠️ Décision du 23/10/2026 : le **code** Phase 2 vit dans un **repo GitHub privé** (à créer par Florian) car ce repo est public. Ici : uniquement la doc et le suivi.
+
 Ce dossier contient le travail de **Florian** (et de son Claude) sur la **Phase 2** : le réseau de sites marchands décrit dans `PLAN.md`, en commençant par le **V1 (1 site pilote)** défini dans `.claude/context/v1.md`.
 
 L'associé de Florian mène son propre test en parallèle sur ce même repo : **il travaille dans son propre dossier**, pas dans `Flo/`. Ne pas modifier le dossier de l'autre sans le prévenir via `JOURNAL.md`.
@@ -20,7 +22,8 @@ L'associé de Florian mène son propre test en parallèle sur ce même repo : **
 
 ## Paramètres actés (23/10/2026)
 - Budget IA : **50 €/mois** (texte + images).
-- Images : **GPT Image** préféré, à confirmer par un test A/B sur ~10 produits avant génération en masse.
+- Images : **GPT Image** préféré, **1 image par produit** au départ, test A/B sur ~10 produits avant génération en masse.
+- Langue du pilote : **EN d'abord** recommandé (Semrush : le FR québécois pèse très peu), voir `progress.md`.
 - NDD pilote : recherche via Semrush (accès Ranker Fox).
 
 ## Règles
