@@ -1,5 +1,9 @@
 # Journal du projet (ajouter en haut)
 
+## 23/10/2026 (16h22) — Claude (session Florian) [Flo] Décisions : pas de rotation des mdp, piste Cloudflare
+- **Décision de Florian : les mots de passe des comptes affiliés ne seront PAS changés** malgré l'exposition passée. Risque résiduel accepté : quelqu'un ayant vu l'ancien repo pourrait se connecter et modifier les coordonnées de paiement. À chaque connexion à un espace affilié : jeter un œil aux infos de paiement.
+- **Pas de VPS ni de NDD pour l'instant.** Piste étudiée : tout héberger sur **Cloudflare** (Workers + Cron Triggers pour le scraper, D1 à la place de PostgreSQL, R2 pour les images, Workers Static Assets pour le site Astro, sous-domaine workers.dev en attendant le NDD). Limites vérifiées dans la doc Cloudflare (23/10) : le plan gratuit (10 ms CPU, 50 sous-requêtes, 20 000 fichiers par site) est trop juste pour le scraper → **Workers Paid (5 $/mois)** : 15 min CPU par cron horaire, 10 000 sous-requêtes, 100 000 fichiers par site. En attente de validation de Florian.
+
 ## 23/10/2026 (16h17) — Claude (session Florian) [Flo] Rattrapage Phase 1 (boîte de Michelle)
 - La tâche planifiée de surveillance n'a plus rien journalisé depuis le 20/07 → rattrapage manuel. Recherche Gmail `in:anywhere after:2026/07/19 -from:linkedin.com` (inbox + spam) : **5 conversations seulement, aucune nouvelle approbation**.
   - Green Affiliates : relance automatique « You've Been Gone For A While! » (19/10) → le compte est approuvé depuis le 20/07 mais **le lien affilié n'a jamais été généré** (connexion humaine requise).

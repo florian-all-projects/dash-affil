@@ -19,11 +19,11 @@ Surveillance emails : tâche planifiée **1×/jour à 9h** (⚠️ plus rien jou
 - Page plan publiée : http://dash.secoursvert.net/plan.html
 
 ## En attente de Florian (bloquant V1)
-1 NDD pilote + angle (recherche en cours) · clé API OpenAI (images) · accès serveur · données shops physiques (non bloquant pour le pilote : pages villes d'abord sur le top 30).
+1 NDD pilote + angle (pas de NDD pour l'instant : démarrage possible sur sous-domaine workers.dev) · clé API OpenAI (images) · hébergement : pas de VPS, piste Cloudflare (Workers Paid 5 $/mois) à valider · données shops physiques (non bloquant pour le pilote : pages villes d'abord sur le top 30).
 
 ## Prochaines actions
 1. Récupérer lien/coupon BC Bud Supply.
 2. Surveiller les approbations en attente.
 3. Configurer payout Low Price Bud.
 4. Phase 2 V1 : schéma PostgreSQL + scraper (dans `Flo/`), puis génération, site pilote Astro (voir `v1.md`).
-5. Sécurité : mdp en clair retirés et historique git purgé le 23/10/2026 (voir JOURNAL). Nouveau mdp dashboard + re-chiffrement faits le 23/10. Reste : rotation des mdp des comptes shops exposés (à faire par Florian, un humain saisit les mdp).
+5. Sécurité : mdp en clair retirés et historique git purgé le 23/10/2026 (voir JOURNAL). Nouveau mdp dashboard + re-chiffrement faits le 23/10. Rotation des mdp des comptes shops : **refusée par Florian** (risque accepté).
