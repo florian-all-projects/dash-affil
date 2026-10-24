@@ -169,6 +169,12 @@ const jsonld: object[] = [
 
     <Faq items={text.faq} title={s.faqTitle} />
 
+    {/* Barre d'achat fixe sur mobile : le prix et le bouton restent à portée pendant la lecture */}
+    <div class="mobile-buybar fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-line bg-white px-4 py-2.5 lg:hidden">
+      <div class="min-w-0 flex-1 leading-tight"><p class="truncate text-sm font-semibold">{p.name}</p><p class="text-xs text-muted">{s.from} <b class="text-ink num">{price(p.from)}</b></p></div>
+      <a class="btn-buy text-sm" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.buyAt(primaryName)}</a>
+    </div>
+
     {rel.length > 0 && (
       <section class="section">
         <div class="flex items-end justify-between gap-4">

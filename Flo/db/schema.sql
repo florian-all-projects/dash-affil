@@ -128,13 +128,14 @@ CREATE TABLE IF NOT EXISTS content (
 -- Villes du Canada (pages « weed delivery + ville »)
 CREATE TABLE IF NOT EXISTS cities (
   id              INTEGER PRIMARY KEY,
-  name            TEXT NOT NULL,
-  slug            TEXT NOT NULL UNIQUE,
   province        TEXT NOT NULL,                 -- code : ON, QC, BC, AB...
+  slug            TEXT NOT NULL,                 -- unique dans la province (Windsor ON / Windsor NS)
+  name            TEXT NOT NULL,
+  name_fr         TEXT,
   population      INTEGER,
   lat             REAL,
   lng             REAL,
-  UNIQUE (name, province)
+  UNIQUE (province, slug)
 );
 
 -- Règles par province (âge légal, détaillant public, consommation)
@@ -148,15 +149,21 @@ CREATE TABLE IF NOT EXISTS provinces (
   verified_at     TEXT
 );
 
--- Annuaire des shops physiques (données à fournir)
+-- Annuaire des magasins physiques autorisés (registres officiels des provinces, voir Flo/stores/)
 CREATE TABLE IF NOT EXISTS physical_shops (
   id              INTEGER PRIMARY KEY,
   city_id         INTEGER NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
   name            TEXT NOT NULL,
   address         TEXT,
-  hours           TEXT,
+  postal_code     TEXT,
+  phone           TEXT,
   website         TEXT,
-  source          TEXT,
+  lat             REAL,
+  lng             REAL,
+  hours           TEXT,
+  source          TEXT,                          -- registre officiel : AGCO, AGLC, LCRB, SQDC...
+  source_url      TEXT,
+  retrieved_at    TEXT,
   updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 

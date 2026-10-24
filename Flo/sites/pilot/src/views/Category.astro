@@ -32,12 +32,15 @@ const NOUNS = {
   accessory: { en: "Cannabis Accessories", fr: "accessoires de cannabis" }, other: { en: "Cannabis Topicals", fr: "topiques au cannabis" },
 } as const;
 const noun = NOUNS[cat as keyof typeof NOUNS] ?? { en: C.label.en, fr: C.label.fr.toLowerCase() };
+// Pluriel « compté » pour les phrases avec un nombre (« 675 flower strains »)
+const COUNTED = { flower: "flower strains", edible: "edibles", concentrate: "concentrates", vape: "vapes", cbd: "CBD products", seed: "seed packs", accessory: "accessories", other: "topicals" } as const;
+const counted = COUNTED[cat as keyof typeof COUNTED] ?? "products";
 const h1 = lang === "en" ? `Buy ${noun.en} Online in Canada` : `Acheter des ${noun.fr} en ligne au Canada`;
 const pageTitle = lang === "en"
   ? mkTitle(`Buy ${noun.en} Online in Canada: ${st.count} Products Compared${page > 1 ? `, Page ${page}` : ""}`, `Buy ${noun.en} Online in Canada${page > 1 ? ` (p. ${page})` : ""}`)
   : mkTitle(`Acheter des ${noun.fr} en ligne au Canada${page > 1 ? `, page ${page}` : ""}`, `${C.label.fr} en ligne au Canada${page > 1 ? ` (p. ${page})` : ""}`);
 const desc = lang === "en"
-  ? `Compare ${st.count} ${noun.en.toLowerCase()} from ${st.shops} Canadian online shops, from ${fmtPrice(st.from, lang)}. Prices checked every week, delivery by mail across Canada.`
+  ? `Compare ${st.count} ${counted} from ${st.shops} Canadian online shops, from ${fmtPrice(st.from, lang)}. Prices checked every week, delivery by mail across Canada.`
   : `Comparez ${st.count} ${noun.fr} de ${st.shops} boutiques en ligne canadiennes, dès ${fmtPrice(st.from, lang)}. Prix vérifiés chaque semaine, livraison par la poste partout au Canada.`;
 const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.catalogue, href: r.catalogue(lang) }, { name: C.label[lang] }];
 const jsonld = [
