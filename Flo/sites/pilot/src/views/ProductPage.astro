@@ -1,78 +1,181 @@
 ---
 import Base from "../layouts/Base.astro";
-import ProductRow from "../components/ProductRow.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ProductCard from "../components/ProductCard.astro";
+import Faq from "../components/Faq.astro";
 import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
-import { productBlurb, productsByCategory, exportedAt, type Product } from "../lib/catalog";
-import { SHORT_NAME } from "../data/shops-content";
-interface Props { lang: Lang; p: Product }
-const { lang, p } = Astro.props;
+import { productBySlug, related, exportedAt, couponsForShop, fallbackText } from "../lib/catalog";
+import { SHORT_NAME, SHOP_FACTS } from "../data/shops-content";
+import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
+
+interface Props { lang: Lang; slug: string }
+const { lang, slug } = Astro.props;
+const p = productBySlug.get(slug)!;
 const s = t[lang];
 const other: Lang = lang === "en" ? "fr" : "en";
-const catLabel = CATEGORY_SLUGS[p.category]?.label[lang] ?? "";
 const price = (c: number) => fmtPrice(c, lang);
-const blurb = productBlurb(p, lang, price);
-const related = productsByCategory(p.category).filter((x) => x.id !== p.id && x.strainType === p.strainType).slice(0, 6);
-const img = p.image ?? `/img/cat/${p.category}.webp`;
-const title = lang === "en"
-  ? `${p.name}: price from ${price(p.from)}, compared across ${p.shopCount > 1 ? `${p.shopCount} shops` : "Canadian shops"}`
-  : `${p.name} : prix dès ${price(p.from)}, comparé ${p.shopCount > 1 ? `dans ${p.shopCount} boutiques` : "en ligne au Canada"}`;
 const site = Astro.site!.toString().replace(/\/$/, "");
-const jsonld = [
+const cat = CATEGORY_SLUGS[p.category];
+const text = p.text?.[lang] ?? fallbackText(p, lang, price);
+const f = p.facts;
+const typeLabel = p.strainType ? s.typeLabel[p.strainType as "indica"] : null;
+const shopShort = (slug: string, name: string) => SHORT_NAME[slug] ?? name;
+const primaryName = shopShort(p.primary.shop.slug, p.primary.shop.name);
+const buyLabel = p.primary.price > p.from ? s.buyAtPrice(primaryName, price(p.primary.price)) : s.buyAt(primaryName);
+const facts = SHOP_FACTS[p.primary.shop.slug];
+const coupons = couponsForShop(p.primary.shop.slug);
+const rel = related(p, 8);
+
+// Fiche technique : seulement les champs connus
+const L = lang === "en"
+  ? { cat: "Category", type: "Type", thc: "THC", cbd: "CBD", lineage: "Genetics", grade: "Grade", brand: "Brand", effects: "Described effects", flavors: "Flavours", terpenes: "Terpenes", flowering: "Flowering time", yield: "Yield", formats: "Formats", shops: "Shops compared", specs: "Product sheet", compare: `Where to buy ${p.name}: prices by shop`, shop: "Shop", priceCol: "Price", was: "Regular price", delivery: "Delivery and payment", ship: "Shipping", pay: "Payment", free: "Free shipping", coupon: "Promo code", lowest: "Lowest price", buy: "Buy", noFacts: "This shop does not publish its delivery terms on the pages we read; check them at checkout." }
+  : { cat: "Catégorie", type: "Type", thc: "THC", cbd: "CBD", lineage: "Génétique", grade: "Grade", brand: "Marque", effects: "Effets décrits", flavors: "Saveurs", terpenes: "Terpènes", flowering: "Floraison", yield: "Rendement", formats: "Formats", shops: "Boutiques comparées", specs: "Fiche technique", compare: `Où acheter ${p.name} : prix par boutique`, shop: "Boutique", priceCol: "Prix", was: "Prix habituel", delivery: "Livraison et paiement", ship: "Envoi", pay: "Paiement", free: "Livraison gratuite", coupon: "Code promo", lowest: "Prix le plus bas", buy: "Acheter", noFacts: "Cette boutique ne publie pas ses conditions de livraison sur les pages que nous lisons : vérifiez-les au moment de payer." };
+const spec: Array<[string, string]> = [
+  [L.cat, cat.label[lang]],
+  ...(typeLabel ? [[L.type, typeLabel] as [string, string]] : []),
+  ...(f?.thc ? [[L.thc, f.thc] as [string, string]] : []),
+  ...(f?.cbd ? [[L.cbd, f.cbd] as [string, string]] : []),
+  ...(f?.lineage ? [[L.lineage, f.lineage] as [string, string]] : []),
+  ...(f?.grade ? [[L.grade, f.grade] as [string, string]] : []),
+  ...(f?.brand ? [[L.brand, f.brand] as [string, string]] : []),
+  ...(f?.flowering_time ? [[L.flowering, f.flowering_time] as [string, string]] : []),
+  ...(f?.yield ? [[L.yield, f.yield] as [string, string]] : []),
+  ...(f?.effects?.length ? [[L.effects, f.effects.join(", ")] as [string, string]] : []),
+  ...(f?.flavors?.length ? [[L.flavors, f.flavors.join(", ")] as [string, string]] : []),
+  ...(f?.terpenes?.length ? [[L.terpenes, f.terpenes.join(", ")] as [string, string]] : []),
+  ...(p.weights.length ? [[L.formats, p.weights.join(", ")] as [string, string]] : []),
+  [L.shops, String(p.shopCount)],
+];
+
+const pageTitle = lang === "en"
+  ? mkTitle(`${p.name}: Compare Prices & Buy Online in Canada`, `${p.name} | Buy Online in Canada`)
+  : mkTitle(`${p.name} : prix et achat en ligne au Canada`, `${p.name} | Achat en ligne Canada`);
+const crumbs = [
+  { name: s.breadcrumbHome, href: r.home(lang) },
+  { name: cat.label[lang], href: r.category(lang, p.category) },
+  { name: p.name },
+];
+const prices = p.offers.map((o) => o.price);
+const jsonld: object[] = [
   {
-    "@context": "https://schema.org", "@type": "Product", name: p.name, category: catLabel, image: site + img,
+    "@context": "https://schema.org", "@type": "Product", name: p.name, image: site + p.image.src, description: text.meta,
+    category: cat.label[lang], ...(f?.brand ? { brand: { "@type": "Brand", name: f.brand } } : {}),
     offers: {
-      "@type": "AggregateOffer", priceCurrency: "CAD", lowPrice: (p.from / 100).toFixed(2),
-      highPrice: (p.offers[p.offers.length - 1].price / 100).toFixed(2), offerCount: p.offers.length,
+      "@type": "AggregateOffer", priceCurrency: "CAD", lowPrice: (Math.min(...prices) / 100).toFixed(2), highPrice: (Math.max(...prices) / 100).toFixed(2),
+      offerCount: p.offers.length, availability: "https://schema.org/InStock",
     },
   },
-  {
-    "@context": "https://schema.org", "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: s.nav.menu, item: site + r.menu(lang) },
-      { "@type": "ListItem", position: 2, name: catLabel, item: site + r.category(lang, p.category) },
-      { "@type": "ListItem", position: 3, name: p.name, item: site + r.product(lang, p.slug) },
-    ],
-  },
+  breadcrumbLd(site, crumbs),
+  ...(text.faq.length ? [faqLd(text.faq)] : []),
 ];
 ---
-<Base lang={lang} title={title} description={blurb[0]} path={r.product(lang, p.slug)} alt={r.product(other, p.slug)} jsonld={jsonld}>
-  <div class="wrap pt-8">
-    <nav aria-label="Breadcrumb" class="text-sm text-moss"><a href={r.menu(lang)}>{s.nav.menu}</a> / <a href={r.category(lang, p.category)}>{catLabel}</a></nav>
-    <div class="mt-4 grid gap-8 md:grid-cols-[minmax(0,22rem)_1fr]">
+<Base lang={lang} title={pageTitle} description={text.meta} path={r.product(lang, p.slug)} alt={r.product(other, p.slug)} jsonld={jsonld} image={p.image.src}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+
+    <div class="mt-5 grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
       <figure>
-        <img src={img} alt={p.name} width="704" height="704" class="w-full aspect-square object-cover rounded-lg bg-lichen" loading="eager" />
-        <figcaption class="mt-2 text-xs text-moss">{s.imgNote}</figcaption>
+        <div class="relative aspect-square overflow-hidden rounded-[4px] border border-line bg-fog">
+          <img src={p.image.src} alt={p.name} width="704" height="704" class:list={["h-full w-full", p.image.kind === "shop" ? "object-contain" : "object-cover"]} loading="eager" />
+          {p.discount > 0 && <span class="absolute left-3 top-3 bg-stamp-green text-white text-sm font-bold px-2 py-1 rounded-[2px] num">−{p.discount}%</span>}
+        </div>
+        <figcaption class="mt-2 text-xs text-muted">{p.image.kind === "shop" && p.image.credit ? s.shopPhoto(p.image.credit) : s.imgNote}</figcaption>
       </figure>
+
       <div>
-        <h1 class="text-4xl md:text-5xl">{p.name}</h1>
-        <p class="mt-4 num"><span class="text-sm text-moss">{s.from}</span> <span class="display text-5xl text-copper">{price(p.from)}</span>
-          {p.offers[0].compareAt && p.offers[0].compareAt > p.from && <s class="ml-2 text-moss">{price(p.offers[0].compareAt)}</s>}</p>
-        <a class="btn-buy mt-5 text-lg" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{p.primary.price > p.from ? s.buyAtPrice(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name, price(p.primary.price)) : s.buyAt(SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name)}</a>
-        <div class="prose-bb mt-6">{blurb.map((b) => <p>{b}</p>)}</div>
-        <p class="mt-4 text-xs text-moss">{s.updated(fmtDate(exportedAt, lang))}. {s.disclosure}</p>
+        <h1>{p.name}</h1>
+        <p class="mt-3 text-lg text-ink-soft">{text.lead}</p>
+        <div class="mt-4 flex flex-wrap gap-1.5">
+          {typeLabel && <span class={`chip chip-${p.strainType}`}>{typeLabel}</span>}
+          <a href={r.category(lang, p.category)} class="chip no-underline hover:bg-line">{cat.label[lang]}</a>
+          {f?.thc && <span class="chip">THC {f.thc}</span>}
+          {f?.grade && <span class="chip">{f.grade}</span>}
+        </div>
+
+        <div class="mt-7 flex items-end gap-6">
+          <span class="stamp stamp-lg"><span class="stamp-label">{s.from}</span><span class="stamp-price">{price(p.from)}</span></span>
+          <div class="pb-1 text-sm text-muted">
+            {p.offers[0].compareAt && p.offers[0].compareAt > p.from && <p><s class="num">{price(p.offers[0].compareAt)}</s> {L.was.toLowerCase()}</p>}
+            <p>{s.compareN(p.shopCount)}</p>
+            <p>{s.updated(fmtDate(exportedAt, lang))}</p>
+          </div>
+        </div>
+
+        {p.weights.length > 0 && (
+          <div class="mt-6">
+            <p class="text-sm font-semibold">{L.formats}</p>
+            <ul class="mt-2 flex flex-wrap gap-2">{p.weights.map((w) => <li class="rounded-[4px] border border-line px-2.5 py-1 text-sm">{w}</li>)}</ul>
+            <p class="mt-1.5 text-xs text-muted">{lang === "en" ? "The price shown is for the smallest format. Pick yours on the shop's page." : "Le prix affiché est celui du plus petit format. Choisissez le vôtre sur la page de la boutique."}</p>
+          </div>
+        )}
+
+        <a class="btn-buy mt-7 w-full py-3.5 text-lg sm:w-auto sm:px-8" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{buyLabel}</a>
+        {p.offers.length > 1 && <p class="mt-2 text-sm"><a href="#prices" class="text-mailbox">{lang === "en" ? `Compare the ${p.offers.length} offers` : `Comparer les ${p.offers.length} offres`}</a></p>}
+
+        <div class="parcel mt-7">
+          <p class="parcel-head">{L.delivery}: {p.primary.shop.name}</p>
+          {facts && (facts.shipping || facts.payment || facts.freeShipping) ? (
+            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+              {facts.shipping && <><dt class="font-semibold">{L.ship}</dt><dd>{facts.shipping[lang]}</dd></>}
+              {facts.freeShipping && <><dt class="font-semibold">{L.free}</dt><dd>{facts.freeShipping[lang]}</dd></>}
+              {facts.payment && <><dt class="font-semibold">{L.pay}</dt><dd>{facts.payment[lang]}</dd></>}
+              {coupons.length > 0 && <><dt class="font-semibold">{L.coupon}</dt><dd><a href={r.coupon(lang, p.primary.shop.slug)} class="font-semibold text-mailbox">{coupons[0].code}</a></dd></>}
+            </dl>
+          ) : <p class="text-sm">{L.noFacts}</p>}
+        </div>
+        <p class="mt-3 text-xs text-muted">{s.disclosure}</p>
       </div>
     </div>
 
-    <section class="mt-12" aria-labelledby="offers">
-      <h2 id="offers" class="text-3xl">{s.compare}</h2>
-      <table class="mt-3 w-full text-left num">
-        <thead class="text-sm text-moss"><tr><th class="font-normal py-2">{lang === "en" ? "Shop" : "Boutique"}</th><th class="font-normal py-2">{lang === "en" ? "Price" : "Prix"}</th><th class="py-2"><span class="sr-only">{s.seeOffer}</span></th></tr></thead>
-        <tbody>
-          {p.offers.map((o, i) => (
-            <tr class="border-t border-lichen">
-              <td class="py-3"><a href={r.shop(lang, o.shop.slug)} class="font-semibold">{o.shop.name}</a>{i === 0 && p.shopCount > 1 && <span class="chip ml-2">{lang === "en" ? "Lowest price" : "Prix le plus bas"}</span>}</td>
-              <td class="py-3 display text-2xl text-copper">{price(o.price)}</td>
-              <td class="py-3 text-right"><a class="btn-buy text-sm" href={o.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.seeOffer}</a></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <section id="prices" class="section">
+      <h2>{L.compare}</h2>
+      <div class="mt-4 overflow-x-auto">
+        <table class="table-bb min-w-[34rem]">
+          <thead><tr><th>{L.shop}</th><th>{L.priceCol}</th><th>{L.was}</th><th class="sr-only">{L.buy}</th></tr></thead>
+          <tbody>
+            {p.offers.map((o, i) => (
+              <tr>
+                <td><a href={r.shop(lang, o.shop.slug)} class="font-semibold">{o.shop.name}</a>{i === 0 && <span class="ml-2 chip chip-hybrid">{L.lowest}</span>}</td>
+                <td class="num font-semibold">{price(o.price)}</td>
+                <td class="num text-muted">{o.compareAt && o.compareAt > o.price ? <s>{price(o.compareAt)}</s> : "—"}</td>
+                <td class="text-right"><a class="btn-buy text-sm" href={o.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.buyAt(shopShort(o.shop.slug, o.shop.name))}</a></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    {related.length > 0 && (
-      <section class="mt-12">
-        <h2 class="text-3xl">{lang === "en" ? `More ${p.category === "cbd" ? catLabel : catLabel.toLowerCase()} to compare` : `D'autres produits à comparer (${p.category === "cbd" ? catLabel : catLabel.toLowerCase()})`}</h2>
-        <ul class="mt-3">{related.map((x) => <ProductRow p={x} lang={lang} />)}</ul>
+    <div class="section grid gap-12 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <article class="prose-bb">
+        {text.sections.map((sec, i) => (
+          <>
+            <h2 class:list={[i === 0 && "!mt-0"]}>{sec.h}</h2>
+            {sec.p.map((para) => <p>{para}</p>)}
+          </>
+        ))}
+      </article>
+      <aside>
+        <div class="lg:sticky lg:top-6 rounded-[4px] border border-line">
+          <p class="display border-b border-line px-4 py-3 text-2xl">{L.specs}</p>
+          <dl class="divide-y divide-line text-sm">
+            {spec.map(([k, v]) => (
+              <div class="grid grid-cols-[9rem_1fr] gap-3 px-4 py-2.5"><dt class="text-muted">{k}</dt><dd class="font-medium">{v}</dd></div>
+            ))}
+          </dl>
+        </div>
+      </aside>
+    </div>
+
+    <Faq items={text.faq} title={s.faqTitle} />
+
+    {rel.length > 0 && (
+      <section class="section">
+        <div class="flex items-end justify-between gap-4">
+          <h2>{s.related}</h2>
+          <a href={r.category(lang, p.category)} class="text-sm font-semibold text-mailbox">{lang === "en" ? `All ${cat.label.en.toLowerCase()}` : `Tout le rayon ${cat.label.fr.toLowerCase()}`}</a>
+        </div>
+        <div class="grid-products mt-5">{rel.map((x) => <ProductCard p={x} lang={lang} />)}</div>
       </section>
     )}
   </div>

@@ -1,0 +1,52 @@
+---
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { t, r, fmtDate, type Lang } from "../lib/i18n";
+import { activeShops, products, exportedAt } from "../lib/catalog";
+import { stores } from "../lib/geo";
+import { breadcrumbLd } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const sources = [...new Set(stores.map((x) => x.source))].join(", ");
+const S = lang === "en"
+  ? {
+      h1: "How we compare prices", title: "How Budboard Compares Weed Prices in Canada", desc: "Our method: weekly price checks of every online dispensary menu, one product sheet per product, licensed store data from official registries, and how we earn money.",
+      blocks: [
+        ["What this catalogue is", [`Budboard is a price comparison catalogue for cannabis sold online in Canada. Each week we read the full public menu of ${activeShops.length} online dispensaries and seed banks and list ${products.length.toLocaleString("en-CA")} products, each with every shop that sells it. The latest check ran on ${fmtDate(exportedAt, "en")}.`]],
+        ["How prices are collected", ["Prices come from each shop's public catalogue (store APIs, or the product data published on each product page). We record the price of the smallest format, the regular price when the shop shows one, and stock. A product that disappears from a menu is taken off the catalogue at the next check.", "When the same product is sold by several shops, it gets one sheet with every price side by side. Prices can change between two checks: the shop's checkout price is the one that counts."]],
+        ["Which shop the main button opens", ["Each sheet has a main buy button. When one of the shops selling the product pays us a commission for life on referred customers, the main button points to that shop and shows its price if it is not the cheapest. The comparison table on every sheet always lists all the shops and prices, cheapest first."]],
+        ["Licensed stores near you", [`City pages list the cannabis stores authorized by the provinces, taken from official public registries (${sources || "provincial registries"}). We do not rank or rate these stores, and we earn nothing from them.`]],
+        ["How the texts are written", ["Product sheets, city and province pages are written with the help of an AI model, from the facts we collect: the shop's own product description, the category, formats and prices, and the provincial rules. The model is told not to invent figures, effects or laws and not to make health claims. Provincial rules are checked against public summaries of each province's law; the date is shown on each page."]],
+        ["Images", ["Most product photos are published by the shops themselves and credited under the photo. A few featured products use an illustration generated for this catalogue; those are labelled as illustrations."]],
+        ["How we make money", [s.disclosure + " We do not accept payment for placement, and shops cannot buy a better position in the lists."]],
+        ["The law", [s.footerLegal]],
+      ],
+    }
+  : {
+      h1: "Notre méthode de comparaison", title: "Comment Budboard compare les prix du cannabis au Canada", desc: "Notre méthode : relevé hebdomadaire des menus de chaque boutique en ligne, une fiche par produit, magasins autorisés issus des registres officiels, et notre modèle de revenus.",
+      blocks: [
+        ["Ce qu'est ce catalogue", [`Budboard est un catalogue comparateur de prix pour le cannabis vendu en ligne au Canada. Chaque semaine, nous lisons le menu public complet de ${activeShops.length} boutiques en ligne et banques de graines et listons ${products.length.toLocaleString("fr-CA")} produits, chacun avec toutes les boutiques qui le vendent. Le dernier relevé date du ${fmtDate(exportedAt, "fr")}.`]],
+        ["Comment les prix sont relevés", ["Les prix viennent du catalogue public de chaque boutique (API de la boutique, ou données produit publiées sur chaque fiche). Nous enregistrons le prix du plus petit format, le prix habituel quand la boutique l'affiche, et le stock. Un produit qui disparaît d'un menu sort du catalogue au relevé suivant.", "Quand plusieurs boutiques vendent le même produit, il a une seule fiche avec tous les prix côte à côte. Les prix peuvent changer entre deux relevés : c'est le prix affiché au paiement chez la boutique qui compte."]],
+        ["Quelle boutique ouvre le bouton principal", ["Chaque fiche a un bouton d'achat principal. Quand l'une des boutiques qui vendent le produit nous verse une commission à vie sur les clients recommandés, le bouton principal mène à cette boutique et affiche son prix s'il n'est pas le plus bas. Le tableau comparatif de chaque fiche liste toujours toutes les boutiques et tous les prix, du moins cher au plus cher."]],
+        ["Les magasins autorisés près de chez vous", [`Les pages villes listent les magasins de cannabis autorisés par les provinces, tirés des registres publics officiels (${sources || "registres provinciaux"}). Nous ne classons ni ne notons ces magasins, et ils ne nous rapportent rien.`]],
+        ["Comment les textes sont rédigés", ["Les fiches produits, pages villes et provinces sont rédigées avec l'aide d'un modèle d'IA, à partir des faits que nous recueillons : la description de la boutique, la catégorie, les formats et prix, et les règles provinciales. Le modèle a pour consigne de ne pas inventer de chiffres, d'effets ou de lois et de ne faire aucune allégation de santé. Les règles provinciales sont vérifiées d'après des résumés publics de chaque loi ; la date figure sur chaque page."]],
+        ["Les images", ["La plupart des photos produits sont publiées par les boutiques elles-mêmes et créditées sous la photo. Quelques produits mis en avant ont une illustration créée pour ce catalogue, signalée comme telle."]],
+        ["Comment nous gagnons de l'argent", [s.disclosure + " Nous n'acceptons aucun paiement pour un placement, et une boutique ne peut pas acheter une meilleure position dans les listes."]],
+        ["La loi", [s.footerLegal]],
+      ],
+    };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: S.h1 }];
+---
+<Base lang={lang} title={S.title} description={S.desc} path={r.about(lang)} alt={r.about(other)} jsonld={[breadcrumbLd(site, crumbs)]}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+    <h1 class="mt-4">{S.h1}</h1>
+    <article class="prose-bb mt-4">
+      {S.blocks.map(([h, ps]) => (<><h2>{h}</h2>{(ps as string[]).map((x) => <p>{x}</p>)}</>))}
+    </article>
+  </div>
+</Base>

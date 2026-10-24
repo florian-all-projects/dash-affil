@@ -39,7 +39,63 @@ export const SHOP_INTRO: Record<string, { en: string; fr: string }> = {
     en: "CBD2GO sells CBD oils, gummies, capsules and pet products, and runs regular promo codes by email.",
     fr: "CBD2GO vend huiles, jujubes, capsules au CBD et produits pour animaux, et envoie régulièrement des codes promo par courriel.",
   },
-  ganjawest: { en: "Ganja West is a mail-order shop we could not price-check yet.", fr: "Ganja West est une boutique en ligne dont nous n'avons pas encore pu relever les prix." },
-  qcs: { en: "Quebec Cannabis Seeds is a Canadian seed bank.", fr: "Quebec Cannabis Seeds est une banque de graines québécoise." },
-  torontoseeds: { en: "Toronto Cannabis Seeds is a Canadian seed bank.", fr: "Toronto Cannabis Seeds est une banque de graines canadienne." },
+  ganjawest: {
+    en: "Ganja West is a large mail-order dispensary with a wide concentrate and vape range, and several ways to pay.",
+    fr: "Ganja West est une grande boutique de vente par correspondance, avec un large choix de concentrés et de vapoteuses et plusieurs moyens de paiement.",
+  },
+  qcs: {
+    en: "Quebec Cannabis Seeds (QCS) is a seed bank based in Quebec that breeds feminized, autoflower, fast-version and CBD seeds for short northern seasons.",
+    fr: "Quebec Cannabis Seeds (QCS) est une banque de graines québécoise qui sélectionne des graines féminisées, autofloraison, « fast version » et CBD pour les saisons courtes du Nord.",
+  },
+  torontoseeds: {
+    en: "Toronto Cannabis Seeds is an Ontario seed bank selling feminized, autoflower and CBD seeds in packs of five.",
+    fr: "Toronto Cannabis Seeds est une banque de graines ontarienne qui vend des graines féminisées, autofloraison et CBD en paquets de cinq.",
+  },
+};
+
+/** Paiement et livraison : relevés sur les pages des shops le 24/10/2026 (accueil, FAQ). null = non publié ou non vérifié. */
+export interface ShopFacts { payment: { en: string; fr: string } | null; shipping: { en: string; fr: string } | null; freeShipping: { en: string; fr: string } | null; source: string }
+export const SHOP_FACTS: Record<string, ShopFacts> = {
+  bmwo: {
+    payment: { en: "Interac e-Transfer (the FAQ also mentions Visa and Mastercard). No PayPal.", fr: "Virement Interac (la FAQ mentionne aussi Visa et Mastercard). Pas de PayPal." },
+    shipping: { en: "Canada Post Xpresspost, in discreet packaging.", fr: "Xpresspost de Postes Canada, emballage discret." },
+    freeShipping: null,
+    source: "https://buymyweedonline.cc/faq/",
+  },
+  getkush: {
+    payment: null,
+    shipping: { en: "Canada Post Xpresspost.", fr: "Xpresspost de Postes Canada." },
+    freeShipping: { en: "Free shipping on orders over $129.", fr: "Livraison gratuite dès 129 $." },
+    source: "https://getkush.cc/",
+  },
+  ganjawest: {
+    payment: { en: "Interac e-Transfer, Bitcoin, USDT or credit card.", fr: "Virement Interac, Bitcoin, USDT ou carte de crédit." },
+    shipping: { en: "Express shipping across Canada.", fr: "Envoi express partout au Canada." },
+    freeShipping: null,
+    source: "https://ganjawest.co/",
+  },
+  lowpricebud: {
+    payment: null,
+    shipping: { en: "Canada Post Xpresspost, insured, with a tracking number.", fr: "Xpresspost de Postes Canada, assuré, avec numéro de suivi." },
+    freeShipping: { en: "Free shipping on orders over $150.", fr: "Livraison gratuite dès 150 $." },
+    source: "https://lowpricebud.co/",
+  },
+  chronicfarms: {
+    payment: { en: "Interac e-Transfer.", fr: "Virement Interac." },
+    shipping: { en: "Express shipping to Canadian addresses only, flat $25 below the free-shipping threshold.", fr: "Envoi express vers des adresses canadiennes seulement, forfait de 25 $ sous le seuil de gratuité." },
+    freeShipping: { en: "Free express shipping on orders over $150. No minimum order.", fr: "Livraison express gratuite dès 150 $. Pas de commande minimum." },
+    source: "https://chronicfarms.cc/faq/",
+  },
+  qcs: {
+    payment: null,
+    shipping: { en: "Ships from Quebec within 24 hours of payment (Monday to Friday) by Canada Post, in plain packaging.", fr: "Expédié du Québec dans les 24 heures suivant le paiement (du lundi au vendredi) par Postes Canada, emballage neutre." },
+    freeShipping: { en: "Free shipping on orders over $200.", fr: "Livraison gratuite dès 200 $." },
+    source: "https://quebeccannabisseeds.com/",
+  },
+  torontoseeds: {
+    payment: { en: "Interac e-Transfer, credit card or cash on delivery.", fr: "Virement Interac, carte de crédit ou paiement à la livraison." },
+    shipping: { en: "Express (1 to 3 days) or regular (3 to 7 days) delivery.", fr: "Livraison express (1 à 3 jours) ou standard (3 à 7 jours)." },
+    freeShipping: null,
+    source: "https://torontocannabisseeds.com/",
+  },
 };

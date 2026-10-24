@@ -1,0 +1,40 @@
+---
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { t, r, fmtDate, type Lang } from "../lib/i18n";
+import { activeShops, couponsForShop, deals, exportedAt } from "../lib/catalog";
+import { SHOP_FACTS } from "../data/shops-content";
+import { breadcrumbLd } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const month = new Date(exportedAt).toLocaleDateString(lang === "en" ? "en-CA" : "fr-CA", { month: "long", year: "numeric" });
+const L = lang === "en"
+  ? { h1: "Online Dispensary Promo Codes in Canada", title: `Weed Promo Codes & Coupons in Canada (${month})`, desc: `Promo codes and free-shipping thresholds for ${activeShops.length} Canadian online dispensaries, checked ${fmtDate(exportedAt, "en")}.`, lede: "Every code we know for the shops in this catalogue, with the free-shipping thresholds they publish. Checked every week.", noCode: "No code right now", see: "Codes and deals" }
+  : { h1: "Codes promo des boutiques de cannabis en ligne", title: `Codes promo cannabis au Canada (${month})`, desc: `Codes promo et seuils de livraison gratuite de ${activeShops.length} boutiques en ligne canadiennes, vérifiés le ${fmtDate(exportedAt, "fr")}.`, lede: "Tous les codes que nous connaissons pour les boutiques du catalogue, avec les seuils de livraison gratuite qu'elles publient. Vérifiés chaque semaine.", noCode: "Pas de code en ce moment", see: "Codes et offres" };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.coupons }];
+---
+<Base lang={lang} title={L.title} description={L.desc} path={r.coupons(lang)} alt={r.coupons(other)} jsonld={[breadcrumbLd(site, crumbs)]}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+    <h1 class="mt-4">{L.h1}</h1>
+    <p class="lede mt-3">{L.lede}</p>
+    <ul class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {activeShops.map((sh) => {
+        const c = couponsForShop(sh.slug);
+        const f = SHOP_FACTS[sh.slug];
+        return (
+          <li class="parcel flex flex-col">
+            <p class="parcel-head">{sh.name}</p>
+            {c.length ? c.map((x) => <p><b class="display text-2xl tracking-wide">{x.code}</b> <span class="text-sm">{x.description}</span></p>) : <p class="text-sm text-muted">{L.noCode}</p>}
+            {f?.freeShipping && <p class="mt-2 text-sm">{f.freeShipping[lang]}</p>}
+            <a href={r.coupon(lang, sh.slug)} class="mt-auto pt-3 text-sm font-semibold text-mailbox">{L.see}</a>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+</Base>

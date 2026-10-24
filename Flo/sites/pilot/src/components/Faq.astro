@@ -1,0 +1,18 @@
+---
+// Liste de questions-réponses (le schéma FAQPage est ajouté par la page qui l'utilise).
+interface Props { items: Array<{ q: string; a: string }>; title?: string; id?: string }
+const { items, title, id = "faq" } = Astro.props;
+---
+{items.length > 0 && (
+  <section id={id} class="section">
+    {title && <h2>{title}</h2>}
+    <div class="mt-4 border-t border-line">
+      {items.map((f, i) => (
+        <details class="faq" open={i === 0}>
+          <summary>{f.q}</summary>
+          <div><p>{f.a}</p></div>
+        </details>
+      ))}
+    </div>
+  </section>
+)}

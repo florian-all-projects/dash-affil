@@ -1,0 +1,27 @@
+---
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ProductCard from "../components/ProductCard.astro";
+import { t, r, fmtDate, type Lang } from "../lib/i18n";
+import { deals, exportedAt } from "../lib/catalog";
+import { breadcrumbLd, itemListLd } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const list = deals(240);
+const L = lang === "en"
+  ? { h1: "Weed Deals in Canada This Week", title: "Weed Deals Canada: This Week's Biggest Price Cuts", desc: `${list.length} cannabis products on sale at Canadian online dispensaries this week, sorted by discount. Checked ${fmtDate(exportedAt, "en")}.`, lede: "Products whose price is lower than the regular price the shop itself displays, at least 10% off. Sorted by the size of the cut." }
+  : { h1: "Les promotions cannabis de la semaine", title: "Promotions cannabis au Canada : les plus fortes baisses", desc: `${list.length} produits au cannabis en promotion cette semaine dans les boutiques en ligne canadiennes, triés par remise. Vérifié le ${fmtDate(exportedAt, "fr")}.`, lede: "Les produits dont le prix est inférieur d'au moins 10 % au prix habituel affiché par la boutique elle-même, triés par ampleur de la baisse." };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.deals }];
+---
+<Base lang={lang} title={L.title} description={L.desc} path={r.deals(lang)} alt={r.deals(other)} jsonld={[breadcrumbLd(site, crumbs), itemListLd(site, L.h1, list.map((p) => r.product(lang, p.slug)))]}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+    <h1 class="mt-4">{L.h1}</h1>
+    <p class="lede mt-3">{L.lede} {s.updated(fmtDate(exportedAt, lang))}.</p>
+    <div class="grid-products mt-8">{list.map((p, i) => <ProductCard p={p} lang={lang} showCategory eager={i < 4} />)}</div>
+  </div>
+</Base>

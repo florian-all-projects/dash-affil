@@ -1,0 +1,16 @@
+---
+import Base from "../layouts/Base.astro";
+import { r, type Lang } from "../lib/i18n";
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+---
+<Base lang={lang} title="Page not found | Budboard" description="This page is not in the catalogue." path="/404.html">
+  <div class="wrap py-16">
+    <h1>This page is not in the catalogue</h1>
+    <p class="lede mt-3">The product may be out of stock everywhere, or the link is old. Cette page n'est pas dans le catalogue.</p>
+    <div class="mt-6 flex flex-wrap gap-3">
+      <a href={r.catalogue("en")} class="btn-buy">Open the catalogue</a>
+      <a href={r.catalogue("fr")} class="btn-ghost">Ouvrir le catalogue</a>
+    </div>
+  </div>
+</Base>

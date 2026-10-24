@@ -1,0 +1,7 @@
+---
+import View from "../../../views/ProvincePage.astro";
+import { provincePaths } from "../../../lib/paths";
+export function getStaticPaths() { return provincePaths("en"); }
+const { code } = Astro.props;
+---
+<View lang="en" code={code} />

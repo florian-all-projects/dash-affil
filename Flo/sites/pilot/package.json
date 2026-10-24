@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "data": "node scripts/export-data.mjs",
-    "dev": "astro dev",
+    "data": "node scripts/export-data.mjs && python3 scripts/fetch-shop-images.py",
+    "content:products": "node ../../gen/product-content.mjs --site pilot --out .cache/content",
+    "content:pages": "tsx scripts/gen-page-content.ts --out .cache/pages",
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "wrangler pages deploy dist --project-name budboard-ca --branch main --commit-dirty=true"
@@ -15,6 +16,7 @@
     "tailwindcss": "4.1.18"
   },
   "devDependencies": {
+    "tsx": "4.20.6",
     "wrangler": "4.151.3"
   }
 }

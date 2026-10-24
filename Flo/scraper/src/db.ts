@@ -111,8 +111,8 @@ export async function saveOffers(
       // Rien n'a changé : on note seulement qu'on l'a revu.
       stmts.push(
         db
-          .prepare("UPDATE product_offers SET last_seen = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE shop_id = ? AND source_id = ?")
-          .bind(shop.id, o.sourceId),
+          .prepare("UPDATE product_offers SET last_seen = strftime('%Y-%m-%dT%H:%M:%SZ','now'), description_src = ? WHERE shop_id = ? AND source_id = ?")
+          .bind(o.descriptionSrc, shop.id, o.sourceId),
       );
       continue;
     }

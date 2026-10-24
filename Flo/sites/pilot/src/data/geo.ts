@@ -17,48 +17,50 @@ export interface Province {
   homeGrow: boolean;     // culture à domicile (4 plants max) autorisée
   publicUse: string;     // consommation dans l'espace public (EN)
   publicUseFr: string;
+  inFr: string;          // « en Ontario », « au Québec »… (préposition + nom)
+  dansFr?: string;
 }
 
 export const PROVINCES: Province[] = [
   { code: "AB", slug: "alberta", slugFr: "alberta", name: "Alberta", nameFr: "Alberta", age: 18,
     retailer: "the AGLC government online store and licensed private stores", retailerFr: "la boutique en ligne gouvernementale de l'AGLC et les magasins privés autorisés",
-    homeGrow: true, publicUse: "allowed only where tobacco smoking is allowed, never in a vehicle", publicUseFr: "permise seulement là où l'on peut fumer du tabac, jamais en voiture" },
+    homeGrow: true, publicUse: "allowed only where tobacco smoking is allowed, never in a vehicle", publicUseFr: "permise seulement là où l'on peut fumer du tabac, jamais en voiture", inFr: "en Alberta" },
   { code: "BC", slug: "british-columbia", slugFr: "colombie-britannique", name: "British Columbia", nameFr: "Colombie-Britannique", age: 19,
     retailer: "BC Cannabis Stores (government) and licensed private stores", retailerFr: "BC Cannabis Stores (gouvernement) et les magasins privés autorisés",
-    homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, banned near playgrounds, schools and places used by children", publicUseFr: "permise là où l'on peut fumer du tabac, interdite près des aires de jeux, des écoles et des lieux fréquentés par les enfants" },
+    homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, banned near playgrounds, schools and places used by children", publicUseFr: "permise là où l'on peut fumer du tabac, interdite près des aires de jeux, des écoles et des lieux fréquentés par les enfants", inFr: "en Colombie-Britannique" },
   { code: "MB", slug: "manitoba", slugFr: "manitoba", name: "Manitoba", nameFr: "Manitoba", age: 19,
     retailer: "licensed private retailers", retailerFr: "les détaillants privés autorisés",
-    homeGrow: false, publicUse: "banned in public places", publicUseFr: "interdite dans les lieux publics" },
+    homeGrow: false, publicUse: "banned in public places", publicUseFr: "interdite dans les lieux publics", inFr: "au Manitoba" },
   { code: "NB", slug: "new-brunswick", slugFr: "nouveau-brunswick", name: "New Brunswick", nameFr: "Nouveau-Brunswick", age: 19,
     retailer: "Cannabis NB stores and its online shop", retailerFr: "les magasins Cannabis NB et leur boutique en ligne",
-    homeGrow: true, publicUse: "banned in public places and vehicles", publicUseFr: "interdite dans les lieux publics et les véhicules" },
+    homeGrow: true, publicUse: "banned in public places and vehicles", publicUseFr: "interdite dans les lieux publics et les véhicules", inFr: "au Nouveau-Brunswick" },
   { code: "NL", slug: "newfoundland-and-labrador", slugFr: "terre-neuve-et-labrador", name: "Newfoundland and Labrador", nameFr: "Terre-Neuve-et-Labrador", age: 19,
     retailer: "the NLC government online store and licensed stores", retailerFr: "la boutique en ligne gouvernementale de la NLC et les magasins autorisés",
-    homeGrow: true, publicUse: "banned in public places and vehicles", publicUseFr: "interdite dans les lieux publics et les véhicules" },
+    homeGrow: true, publicUse: "banned in public places and vehicles", publicUseFr: "interdite dans les lieux publics et les véhicules", inFr: "à Terre-Neuve-et-Labrador" },
   { code: "NS", slug: "nova-scotia", slugFr: "nouvelle-ecosse", name: "Nova Scotia", nameFr: "Nouvelle-Écosse", age: 19,
     retailer: "NSLC stores and the NSLC website", retailerFr: "les magasins NSLC et le site de la NSLC",
-    homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, never in a vehicle", publicUseFr: "permise là où l'on peut fumer du tabac, jamais en voiture" },
+    homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, never in a vehicle", publicUseFr: "permise là où l'on peut fumer du tabac, jamais en voiture", inFr: "en Nouvelle-Écosse" },
   { code: "NT", slug: "northwest-territories", slugFr: "territoires-du-nord-ouest", name: "Northwest Territories", nameFr: "Territoires du Nord-Ouest", age: 19,
     retailer: "the territorial government's online store, delivered by Canada Post", retailerFr: "la boutique en ligne du gouvernement territorial, livrée par Postes Canada",
-    homeGrow: true, publicUse: "allowed on trails, roads and in parks when no public event is taking place", publicUseFr: "permise sur les sentiers, les routes et dans les parcs en dehors des événements publics" },
+    homeGrow: true, publicUse: "allowed on trails, roads and in parks when no public event is taking place", publicUseFr: "permise sur les sentiers, les routes et dans les parcs en dehors des événements publics", inFr: "dans les Territoires du Nord-Ouest" },
   { code: "NU", slug: "nunavut", slugFr: "nunavut", name: "Nunavut", nameFr: "Nunavut", age: 19,
     retailer: "the Nunavut Liquor and Cannabis Commission (online, by phone and through agents)", retailerFr: "la Commission des alcools et du cannabis du Nunavut (en ligne, par téléphone et par agents)",
-    homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, except vehicles and school, hospital and playground grounds", publicUseFr: "permise là où l'on peut fumer du tabac, sauf en voiture et sur les terrains d'écoles, d'hôpitaux et d'aires de jeux" },
+    homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, except vehicles and school, hospital and playground grounds", publicUseFr: "permise là où l'on peut fumer du tabac, sauf en voiture et sur les terrains d'écoles, d'hôpitaux et d'aires de jeux", inFr: "au Nunavut" },
   { code: "ON", slug: "ontario", slugFr: "ontario", name: "Ontario", nameFr: "Ontario", age: 19,
     retailer: "the Ontario Cannabis Store (ocs.ca) and licensed private stores", retailerFr: "l'Ontario Cannabis Store (ocs.ca) et les magasins privés autorisés",
-    homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, never in a vehicle", publicUseFr: "permise là où l'on peut fumer du tabac, jamais en voiture" },
+    homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, never in a vehicle", publicUseFr: "permise là où l'on peut fumer du tabac, jamais en voiture", inFr: "en Ontario" },
   { code: "PE", slug: "prince-edward-island", slugFr: "ile-du-prince-edouard", name: "Prince Edward Island", nameFr: "Île-du-Prince-Édouard", age: 19,
     retailer: "PEI Cannabis stores and peicannabiscorp.com", retailerFr: "les magasins PEI Cannabis et peicannabiscorp.com",
-    homeGrow: true, publicUse: "banned in public places, vehicles and boats", publicUseFr: "interdite dans les lieux publics, les véhicules et les bateaux" },
+    homeGrow: true, publicUse: "banned in public places, vehicles and boats", publicUseFr: "interdite dans les lieux publics, les véhicules et les bateaux", inFr: "à l'Île-du-Prince-Édouard" },
   { code: "QC", slug: "quebec", slugFr: "quebec", name: "Quebec", nameFr: "Québec", age: 21,
     retailer: "the SQDC (stores and sqdc.ca)", retailerFr: "la SQDC (succursales et sqdc.ca)",
-    homeGrow: false, publicUse: "banned wherever tobacco smoking is banned, plus other listed places", publicUseFr: "interdite partout où le tabac est interdit, ainsi que dans d'autres lieux désignés" },
+    homeGrow: false, publicUse: "banned wherever tobacco smoking is banned, plus other listed places", publicUseFr: "interdite partout où le tabac est interdit, ainsi que dans d'autres lieux désignés", inFr: "au Québec" },
   { code: "SK", slug: "saskatchewan", slugFr: "saskatchewan", name: "Saskatchewan", nameFr: "Saskatchewan", age: 19,
     retailer: "licensed retailers", retailerFr: "les détaillants autorisés",
-    homeGrow: true, publicUse: "banned in public places and vehicles", publicUseFr: "interdite dans les lieux publics et les véhicules" },
+    homeGrow: true, publicUse: "banned in public places and vehicles", publicUseFr: "interdite dans les lieux publics et les véhicules", inFr: "en Saskatchewan" },
   { code: "YT", slug: "yukon", slugFr: "yukon", name: "Yukon", nameFr: "Yukon", age: 19,
     retailer: "Cannabis Yukon, run by the Yukon Liquor Corporation, and licensed stores", retailerFr: "Cannabis Yukon, géré par la Société des alcools du Yukon, et les magasins autorisés",
-    homeGrow: true, publicUse: "banned in public places; cannabis must be in a closed container in vehicles", publicUseFr: "interdite dans les lieux publics ; en voiture, le cannabis doit rester dans un contenant fermé" },
+    homeGrow: true, publicUse: "banned in public places; cannabis must be in a closed container in vehicles", publicUseFr: "interdite dans les lieux publics ; en voiture, le cannabis doit rester dans un contenant fermé", inFr: "au Yukon" },
 ];
 
 export interface City {

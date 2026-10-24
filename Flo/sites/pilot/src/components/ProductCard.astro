@@ -1,0 +1,30 @@
+---
+// Fiche du catalogue : image, timbre de prix, nom, type, comparaison, bouton d'achat.
+import { t, r, fmtPrice, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
+import type { Product } from "../lib/catalog";
+import { SHORT_NAME } from "../data/shops-content";
+interface Props { p: Product; lang: Lang; showCategory?: boolean; eager?: boolean }
+const { p, lang, showCategory = false, eager = false } = Astro.props;
+const s = t[lang];
+const shopName = SHORT_NAME[p.primary.shop.slug] ?? p.primary.shop.name;
+const label = p.primary.price > p.from ? s.buyAtPrice(shopName, fmtPrice(p.primary.price, lang)) : s.buyAt(shopName);
+---
+<article class="card" data-type={p.strainType ?? ""} data-shops={p.offers.map((o) => o.shop.slug).join(" ")} data-price={p.from} data-name={p.name.toLowerCase()} data-shopcount={p.shopCount} data-discount={p.discount}>
+  <a href={r.product(lang, p.slug)} class="card-media block" tabindex="-1" aria-hidden="true">
+    <img src={p.image.src} alt="" width="600" height="600" loading={eager ? "eager" : "lazy"} decoding="async" class:list={[p.image.kind !== "shop" && "cover"]} />
+    {p.discount > 0 && <span class="absolute left-2 top-2 bg-stamp-green text-white text-xs font-bold px-1.5 py-0.5 rounded-[2px] num">−{p.discount}%</span>}
+    <span class="card-stamp stamp"><span class="stamp-label">{s.from}</span><span class="stamp-price">{fmtPrice(p.from, lang)}</span></span>
+  </a>
+  <div class="flex flex-1 flex-col gap-2 p-3 pt-5">
+    <h3 class="font-[family-name:var(--font-sans)] text-[0.98rem] font-semibold leading-snug tracking-normal">
+      <a href={r.product(lang, p.slug)} class="no-underline hover:underline">{p.name}</a>
+    </h3>
+    <div class="flex flex-wrap gap-1">
+      {p.strainType && <span class={`chip chip-${p.strainType}`}>{s.typeLabel[p.strainType as "indica"]}</span>}
+      {showCategory && <span class="chip">{CATEGORY_SLUGS[p.category]?.label[lang]}</span>}
+      {p.weights.slice(0, 3).map((w) => <span class="chip">{w}</span>)}
+    </div>
+    <p class="mt-auto text-xs text-muted">{s.compareN(p.shopCount)}</p>
+    <a class="btn-buy text-sm w-full" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{label}</a>
+  </div>
+</article>

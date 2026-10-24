@@ -4,3 +4,7 @@ dist/
 .wrangler/
 src/data/generated/
 .featured-jobs.json
+
+# Photos des shops (retéléchargeables, non versionnées)
+public/img/s/
+.cache/

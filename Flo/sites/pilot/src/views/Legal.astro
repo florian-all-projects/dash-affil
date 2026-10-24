@@ -1,0 +1,43 @@
+---
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { t, r, type Lang } from "../lib/i18n";
+import { breadcrumbLd } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const S = lang === "en"
+  ? {
+      h1: "Legal notice and privacy", title: "Legal Notice, Privacy & Affiliate Disclosure", desc: "Legal notice, privacy policy, affiliate disclosure and disclaimer of the Budboard cannabis price comparison catalogue.",
+      blocks: [
+        ["Affiliate disclosure", [s.disclosure, "Buy buttons and shop links carry a partner identifier. The shop may set its own cookies when you follow one of these links; that is covered by the shop's privacy policy, not ours."]],
+        ["Disclaimer", [s.footerLegal, "Nothing on this site is legal or medical advice. Product descriptions repeat or summarize what the shops publish; check the shop's page before ordering. Prices and stock change between our weekly checks."]],
+        ["Age", ["This catalogue is for adults of legal age in their province or territory: 19, or 18 in Alberta and 21 in Quebec."]],
+        ["Privacy", ["We do not ask for an account, a name or an email address, and we run no advertising or tracking cookies. Your browser stores one setting locally (the legal-age confirmation) so the question is not asked again; it never leaves your device.", "The site is hosted by Cloudflare, which processes technical request data (such as IP addresses) to deliver pages and protect the service."]],
+        ["Corrections", ["Spotted a wrong price, a closed store or an outdated rule? Prices are refreshed every week and store lists come from official registries; errors are corrected at the next update."]],
+      ],
+    }
+  : {
+      h1: "Mentions légales et confidentialité", title: "Mentions légales, confidentialité et affiliation", desc: "Mentions légales, politique de confidentialité, déclaration d'affiliation et avertissements du catalogue comparateur Budboard.",
+      blocks: [
+        ["Affiliation", [s.disclosure, "Les boutons d'achat et les liens vers les boutiques portent un identifiant de partenaire. La boutique peut déposer ses propres témoins (cookies) quand vous suivez l'un de ces liens ; sa politique de confidentialité s'applique alors, pas la nôtre."]],
+        ["Avertissement", [s.footerLegal, "Rien sur ce site ne constitue un avis juridique ou médical. Les descriptions de produits reprennent ou résument ce que publient les boutiques ; vérifiez la page de la boutique avant de commander. Prix et stocks changent entre nos relevés hebdomadaires."]],
+        ["Âge", ["Ce catalogue s'adresse aux adultes ayant l'âge légal dans leur province ou territoire : 19 ans, 18 ans en Alberta et 21 ans au Québec."]],
+        ["Confidentialité", ["Nous ne demandons ni compte, ni nom, ni adresse courriel, et n'utilisons aucun témoin publicitaire ou de suivi. Votre navigateur garde un seul réglage en local (la confirmation de l'âge légal) pour ne pas reposer la question ; il ne quitte jamais votre appareil.", "Le site est hébergé par Cloudflare, qui traite des données techniques de requête (comme l'adresse IP) pour servir les pages et protéger le service."]],
+        ["Corrections", ["Un prix erroné, un magasin fermé, une règle dépassée ? Les prix sont mis à jour chaque semaine et les listes de magasins viennent des registres officiels ; les erreurs sont corrigées à la mise à jour suivante."]],
+      ],
+    };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: S.h1 }];
+---
+<Base lang={lang} title={S.title} description={S.desc} path={r.legal(lang)} alt={r.legal(other)} jsonld={[breadcrumbLd(site, crumbs)]}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+    <h1 class="mt-4">{S.h1}</h1>
+    <article class="prose-bb mt-4">
+      {S.blocks.map(([h, ps]) => (<><h2>{h}</h2>{(ps as string[]).map((x) => <p>{x}</p>)}</>))}
+    </article>
+  </div>
+</Base>

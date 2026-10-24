@@ -31,7 +31,7 @@ const products = await q(
 );
 // Offres en stock uniquement, avec prix ; une ligne par (produit, shop)
 const offers = await q(
-  `SELECT o.product_id, o.shop_id, o.product_url, o.price_cents, o.compare_at_cents, o.currency, o.in_stock, o.raw_name, o.first_seen, o.last_seen
+  `SELECT o.product_id, o.shop_id, o.product_url, o.price_cents, o.compare_at_cents, o.currency, o.in_stock, o.raw_name, o.image_url, o.first_seen, o.last_seen
    FROM product_offers o JOIN shops s ON s.id = o.shop_id
    WHERE s.status = 'active' AND o.in_stock = 1 AND o.price_cents IS NOT NULL AND o.price_cents > 0`,
 );
@@ -44,6 +44,23 @@ const runs = await q(
   `SELECT s.slug, max(r.finished_at) AS last_ok FROM scrape_runs r JOIN shops s ON s.id = r.shop_id WHERE r.status = 'ok' GROUP BY s.slug`,
 );
 
+// Contenu éditorial des fiches (site pilot) : par paquets, les corps de texte sont volumineux
+const contentByProduct = {};
+for (let offset = 0; ; offset += 1500) {
+  const rows = await q(
+    `SELECT c.entity_id, c.lang, c.field, c.body FROM content c JOIN sites s ON s.id = c.site_id
+     WHERE s.slug = 'pilot' AND c.entity_type = 'product' ORDER BY c.id LIMIT 1500 OFFSET ${offset}`,
+  );
+  for (const r of rows) {
+    const e = (contentByProduct[r.entity_id] ??= {});
+    if (r.field === "facts") e.facts = JSON.parse(r.body);
+    else if (r.field === "page") e[r.lang] = JSON.parse(r.body);
+  }
+  if (rows.length < 1500) break;
+}
+for (const [id, e] of Object.entries(contentByProduct)) if (!e.en || !e.fr) delete contentByProduct[id];
+save("content-products", contentByProduct);
+
 save("shops", shops);
 save("products", products);
 save("offers", offers);
@@ -51,4 +68,4 @@ save("coupons", coupons);
 save("images", images);
 save("runs", runs);
 save("meta", { exported_at: new Date().toISOString() });
-console.log(`export : ${shops.length} shops, ${products.length} produits, ${offers.length} offres en stock, ${coupons.length} coupons`);
+console.log(`export : ${shops.length} shops, ${products.length} produits, ${offers.length} offres en stock, ${coupons.length} coupons, ${Object.keys(contentByProduct).length} fiches rédigées`);

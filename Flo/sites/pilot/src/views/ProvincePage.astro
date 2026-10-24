@@ -1,66 +1,112 @@
 ---
 import Base from "../layouts/Base.astro";
-import { t, r, fmtDate, type Lang } from "../lib/i18n";
-import { CITIES, PROVINCES, LEGAL_SOURCE, LEGAL_VERIFIED, type Province } from "../data/geo";
-interface Props { lang: Lang; prov: Province }
-const { lang, prov } = Astro.props;
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ProductCard from "../components/ProductCard.astro";
+import Faq from "../components/Faq.astro";
+import { t, r, fmtPrice, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
+import { products, categoryStats, activeShops, byPopularity } from "../lib/catalog";
+import { provinceOf, citiesOf, storesOf, cityName, provName, provSlug, LEGAL_SOURCE } from "../lib/geo";
+import { pageContent } from "../lib/content";
+import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
+
+interface Props { lang: Lang; code: string }
+const { lang, code } = Astro.props;
+const prov = provinceOf(code);
 const s = t[lang];
 const other: Lang = lang === "en" ? "fr" : "en";
-const name = lang === "en" ? prov.name : prov.nameFr;
-const cities = CITIES.filter((c) => c.province === prov.code);
-const h1 = lang === "en" ? `Is weed legal in ${name}?` : `Le cannabis est-il légal : ${name} ?`;
-const answer = lang === "en"
-  ? `Yes. Adults ${prov.age} and older can buy, carry and use cannabis in ${name}, within limits. Legal sales go through ${prov.retailer}.`
-  : `Oui. Les adultes de ${prov.age} ans et plus peuvent acheter, transporter et consommer du cannabis (${name}), dans certaines limites. La vente légale passe par ${prov.retailerFr}.`;
-const rows = lang === "en"
-  ? [
-      ["Legal age", `${prov.age} and older`],
-      ["Where to buy legally", prov.retailer],
-      ["Public possession", "Up to 30 g of dried cannabis (federal limit)"],
-      ["Home growing", prov.homeGrow ? "Allowed, up to 4 plants per household" : "Banned for non-medical use"],
-      ["Public consumption", prov.publicUse],
-    ]
-  : [
-      ["Âge légal", `${prov.age} ans et plus`],
-      ["Où acheter légalement", prov.retailerFr],
-      ["Possession en public", "Jusqu'à 30 g de cannabis séché (limite fédérale)"],
-      ["Culture à domicile", prov.homeGrow ? "Permise, jusqu'à 4 plants par résidence" : "Interdite à des fins non médicales"],
-      ["Consommation en public", prov.publicUseFr],
-    ];
-const mailOrder = lang === "en"
-  ? "Online mail-order shops, including the ones compared on Budboard, are not licensed by any province. Buying from them is outside the legal retail system, even though possession of a legal amount is allowed. If you want a fully legal purchase, use the provincial channel above."
-  : "Les boutiques de vente par correspondance, y compris celles comparées sur Budboard, ne détiennent aucune licence provinciale. Acheter chez elles se fait hors du circuit légal de vente au détail, même si la possession d'une quantité légale est permise. Pour un achat entièrement légal, passez par le canal provincial indiqué plus haut.";
 const site = Astro.site!.toString().replace(/\/$/, "");
-const jsonld = [{
-  "@context": "https://schema.org", "@type": "FAQPage",
-  mainEntity: [{ "@type": "Question", name: h1, acceptedAnswer: { "@type": "Answer", text: answer } }],
-}];
----
-<Base lang={lang} title={`${h1} | Budboard`} description={answer} path={r.province(lang, prov.slug, prov.slugFr)} alt={r.province(other, prov.slug, prov.slugFr)} jsonld={jsonld}>
-  <div class="wrap pt-8">
-    <h1 class="text-5xl md:text-6xl max-w-3xl">{h1}</h1>
-    <p class="mt-5 text-xl max-w-2xl leading-relaxed">{answer}</p>
-    <table class="mt-8 w-full max-w-3xl text-left">
-      <tbody>
-        {rows.map(([k, val]) => (
-          <tr class="border-t border-lichen align-top"><th class="py-3 pr-6 font-semibold w-1/3">{k}</th><td class="py-3 text-moss">{val}</td></tr>
-        ))}
-      </tbody>
-    </table>
-    <div class="prose-bb mt-8"><p>{mailOrder}</p></div>
-    <p class="mt-4 text-xs text-moss">{lang === "en" ? "Source:" : "Source :"} <a href={LEGAL_SOURCE} rel="nofollow noopener">Wikipedia</a>, {lang === "en" ? "checked" : "vérifié le"} {fmtDate(LEGAL_VERIFIED, lang)}. {lang === "en" ? "Rules change: check your province's official website before you buy." : "Les règles évoluent : vérifiez le site officiel de votre province avant d'acheter."}</p>
+const price = (c: number) => fmtPrice(c, lang);
+const pName = provName(prov, lang);
+const list = citiesOf(code);
+const nStores = storesOf(code).length;
+const content = pageContent("province", code, lang);
+const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st && x.c !== "other");
+const picks = [...products].filter((p) => p.category === "flower").sort(byPopularity).slice(code.charCodeAt(0) % 8, (code.charCodeAt(0) % 8) + 8);
 
-    {cities.length > 0 && (
-      <section class="mt-10">
-        <h2 class="text-3xl">{lang === "en" ? `Delivery prices in ${name}` : `Prix de livraison : ${name}`}</h2>
-        <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-2">{cities.map((c) => <li><a href={r.city(lang, c.slug)}>{lang === "en" ? c.name : c.nameFr}</a></li>)}</ul>
-      </section>
-    )}
-    <section class="mt-10">
-      <h2 class="text-3xl">{lang === "en" ? "Other provinces and territories" : "Autres provinces et territoires"}</h2>
-      <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        {PROVINCES.filter((p) => p.code !== prov.code).map((p) => <li><a href={r.province(lang, p.slug, p.slugFr)}>{lang === "en" ? p.name : p.nameFr}</a></li>)}
+const L = lang === "en"
+  ? {
+      h1: `Buy Weed Online in ${prov.name}`,
+      kicker: "Delivery, prices and cannabis laws",
+      title: mkTitle(`Buy Weed Online in ${prov.name}: Delivery, Prices & Laws`, `Weed in ${prov.name}: Delivery, Prices & Laws`),
+      desc: `Buy weed online in ${prov.name}: legal age ${prov.age}, rules for public use and home growing, ${nStores ? `${nStores} licensed stores, ` : ""}and ${products.length.toLocaleString("en-CA")} products from ${activeShops.length} online shops that deliver in ${prov.name}.`,
+      law: `Cannabis law in ${prov.name}`, age: "Legal age", possession: "Possession in public", possessionV: "30 g of dried cannabis (federal)", publicUse: "Public use", grow: "Home growing", growYes: "Allowed, 4 plants per household", growNo: "Not allowed", sales: "Legal sales", verified: "Checked against the provincial rules summary on",
+      cities: `Cities in ${prov.name}`, citiesNote: nStores ? `${nStores} provincially licensed stores in the official registry, by city.` : "Cities with a delivery page.",
+      prices: `Online prices delivered in ${prov.name}`, picks: `Flower delivered in ${prov.name}`, stores: "stores",
+    }
+  : {
+      h1: `Acheter du cannabis en ligne ${prov.inFr}`,
+      kicker: "Livraison, prix et lois sur le cannabis",
+      title: mkTitle(`Acheter du cannabis en ligne ${prov.inFr} : livraison, prix, lois`, `Cannabis ${prov.inFr} : livraison, prix et lois`),
+      desc: `Acheter du cannabis en ligne ${prov.inFr} : âge légal ${prov.age} ans, règles de consommation et de culture, ${nStores ? `${nStores} magasins autorisés, ` : ""}et ${products.length.toLocaleString("fr-CA")} produits de ${activeShops.length} boutiques en ligne qui livrent ${prov.inFr}.`,
+      law: `La loi sur le cannabis ${prov.inFr}`, age: "Âge légal", possession: "Possession en public", possessionV: "30 g de cannabis séché (fédéral)", publicUse: "Consommation en public", grow: "Culture à domicile", growYes: "Permise, 4 plants par résidence", growNo: "Interdite", sales: "Vente légale", verified: "Vérifié d'après le résumé des règles provinciales le",
+      cities: `Les villes ${prov.inFr}`, citiesNote: nStores ? `${nStores} magasins autorisés dans le registre officiel, par ville.` : "Les villes qui ont une page livraison.",
+      prices: `Les prix en ligne livrés ${prov.inFr}`, picks: `Des fleurs livrées ${prov.inFr}`, stores: "magasins",
+    };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.delivery, href: r.delivery(lang) }, { name: pName }];
+const jsonld = [breadcrumbLd(site, crumbs), ...(content?.faq?.length ? [faqLd(content.faq)] : [])];
+---
+<Base lang={lang} title={L.title} description={L.desc} path={r.province(lang, provSlug(prov, lang))} alt={r.province(other, provSlug(prov, other))} jsonld={jsonld}>
+  <section class="band border-b border-line">
+    <div class="wrap grid gap-8 py-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:py-12">
+      <div>
+        <Breadcrumbs items={crumbs} />
+        <h1 class="mt-4">{L.h1}</h1>
+        <p class="display mt-2 text-2xl text-mailbox">{L.kicker}</p>
+        <p class="lede mt-4">{content?.lead ?? L.desc}</p>
+      </div>
+      <div class="parcel self-start">
+        <p class="parcel-head">{L.law}</p>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          <dt class="font-semibold">{L.age}</dt><dd class="num">{prov.age}+</dd>
+          <dt class="font-semibold">{L.possession}</dt><dd>{L.possessionV}</dd>
+          <dt class="font-semibold">{L.publicUse}</dt><dd>{lang === "en" ? prov.publicUse : prov.publicUseFr}</dd>
+          <dt class="font-semibold">{L.grow}</dt><dd>{prov.homeGrow ? L.growYes : L.growNo}</dd>
+          <dt class="font-semibold">{L.sales}</dt><dd>{lang === "en" ? prov.retailer : prov.retailerFr}</dd>
+        </dl>
+        <p class="mt-3 text-xs text-muted">{L.verified} 2026-10-23 (<a href={LEGAL_SOURCE} rel="nofollow noopener">source</a>).</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="section">
+      <h2>{L.cities}</h2>
+      <p class="mt-1 text-sm text-muted">{L.citiesNote}</p>
+      <ul class="mt-5 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+        {list.map((c) => (
+          <li class="flex items-baseline justify-between gap-2 border-b border-line py-1.5">
+            <a href={r.city(lang, provSlug(prov, lang), c.slug)} class="font-semibold">{cityName(c, lang)}</a>
+            {c.stores.length > 0 && <span class="text-xs text-muted num">{c.stores.length} {L.stores}</span>}
+          </li>
+        ))}
       </ul>
     </section>
+
+    <section class="section">
+      <h2>{L.prices}</h2>
+      <ul class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        {board.map(({ c, st }) => (
+          <li><a href={r.category(lang, c)} class="flex h-full flex-col rounded-[4px] border border-line p-3 no-underline hover:border-ink">
+            <span class="font-semibold">{CATEGORY_SLUGS[c].label[lang]}</span>
+            <span class="mt-auto pt-2 text-xs text-muted">{s.from} <b class="display text-xl text-ink num">{price(st!.from)}</b></span>
+          </a></li>
+        ))}
+      </ul>
+    </section>
+
+    {content && (
+      <section class="section">
+        <article class="prose-bb">
+          {content.sections.map((sec, i) => (<><h2 class:list={[i === 0 && "!mt-0"]}>{sec.h}</h2>{sec.p.map((x) => <p>{x}</p>)}</>))}
+        </article>
+      </section>
+    )}
+
+    <section class="section">
+      <h2>{L.picks}</h2>
+      <div class="grid-products mt-6">{picks.map((p) => <ProductCard p={p} lang={lang} />)}</div>
+    </section>
+
+    {content?.faq && <Faq items={content.faq} title={s.faqTitle} />}
   </div>
 </Base>

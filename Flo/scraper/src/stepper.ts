@@ -4,7 +4,8 @@
 // L'avancement est stocké dans la table scrape_state. Un cycle complet est relancé tous les CYCLE_DAYS jours.
 
 import { addToRun, closeRun, loadOfferHashes, markMissing, saveOffers, startRun, type RunStats, type ShopRow } from "./db";
-import { ChallengeError, fetchWooPage, mapWooProduct } from "./woo";
+import { ChallengeError, fetchWooPage, mapWooProduct, type ScrapedOffer } from "./woo";
+import { discover, fetchLdProducts, type DiscoverConfig } from "./jsonld";
 
 export interface StepEnv {
   DB: D1Database;
@@ -24,9 +25,19 @@ export const STATE_DDL = `CREATE TABLE IF NOT EXISTS scrape_state (
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 )`;
 
-const SUPPORTED = ["woocommerce"];
+const SUPPORTED = ["woocommerce", "jsonld"];
+// Mode jsonld : page 1 = énumération des URL (file scrape_queue), puis LD_BATCH fiches par exécution
+const LD_BATCH = 8;
+
+export const QUEUE_DDL = `CREATE TABLE IF NOT EXISTS scrape_queue (
+  shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  pos INTEGER NOT NULL,
+  url TEXT NOT NULL,
+  PRIMARY KEY (shop_id, pos)
+)`;
 
 interface Job extends ShopRow {
+  scrape_config: string | null;
   state_status: string;
   next_page: number;
   run_id: number | null;
@@ -50,7 +61,7 @@ export async function step(env: StepEnv): Promise<StepResult> {
 
   const job = await db
     .prepare(
-      `SELECT sh.id, sh.slug, sh.name, sh.domain, sh.category, sh.platform, sh.status,
+      `SELECT sh.id, sh.slug, sh.name, sh.domain, sh.category, sh.platform, sh.status, sh.scrape_config,
               st.status AS state_status, st.next_page, st.run_id, st.attempts, st.cycle_started_at
        FROM scrape_state st JOIN shops sh ON sh.id = st.shop_id
        WHERE st.status IN ('running','pending')
@@ -89,19 +100,47 @@ export async function step(env: StepEnv): Promise<StepResult> {
 
   const page = job.next_page;
   try {
-    const { items, totalPages } = await fetchWooPage(job.domain, page, perPage);
     const stats: RunStats = { pages: 1, seen: 0, created: 0, priceChanged: 0, excluded: 0 };
-    const offers = [];
-    for (const p of items) {
-      const o = mapWooProduct(p, job.category);
-      if (o) offers.push(o);
-      else stats.excluded++;
+    let offers: ScrapedOffer[] = [];
+    let totalPages: number;
+    let empty = false;
+    if (job.platform === "jsonld") {
+      const cfg = JSON.parse(job.scrape_config ?? "null") as DiscoverConfig | null;
+      if (!cfg) throw new Error("scrape_config manquant pour un shop jsonld");
+      if (page === 1) {
+        // Énumération : on remplit la file, aucune fiche lue à ce tour
+        const urls = await discover(cfg);
+        await db.prepare("DELETE FROM scrape_queue WHERE shop_id = ?").bind(job.id).run();
+        const ins = urls.map((u, i) => db.prepare("INSERT INTO scrape_queue (shop_id, pos, url) VALUES (?, ?, ?)").bind(job.id, i, u));
+        for (let i = 0; i < ins.length; i += 100) await db.batch(ins.slice(i, i + 100));
+        totalPages = 1 + Math.ceil(urls.length / LD_BATCH);
+        empty = urls.length === 0;
+      } else {
+        const { results } = await db
+          .prepare("SELECT url FROM scrape_queue WHERE shop_id = ? AND pos >= ? AND pos < ? ORDER BY pos")
+          .bind(job.id, (page - 2) * LD_BATCH, (page - 1) * LD_BATCH)
+          .all<{ url: string }>();
+        const r = await fetchLdProducts(results.map((x) => x.url), job.category);
+        offers = r.offers;
+        const n = await db.prepare("SELECT count(*) AS n FROM scrape_queue WHERE shop_id = ?").bind(job.id).first<{ n: number }>();
+        totalPages = 1 + Math.ceil((n?.n ?? 0) / LD_BATCH);
+        empty = results.length === 0;
+      }
+    } else {
+      const r = await fetchWooPage(job.domain, page, perPage);
+      totalPages = r.totalPages;
+      empty = r.items.length === 0;
+      for (const p of r.items) {
+        const o = mapWooProduct(p, job.category);
+        if (o) offers.push(o);
+        else stats.excluded++;
+      }
     }
     const known = await loadOfferHashes(db, job.id, offers.map((o) => o.sourceId));
     await saveOffers(db, job, offers, known, stats);
     await addToRun(db, runId, stats);
 
-    const done = items.length === 0 || page >= totalPages;
+    const done = empty || page >= totalPages;
     if (done) {
       const run = await db.prepare("SELECT started_at FROM scrape_runs WHERE id = ?").bind(runId).first<{ started_at: string }>();
       await markMissing(db, job.id, run!.started_at);

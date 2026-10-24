@@ -1,0 +1,7 @@
+---
+import View from "../../../../views/Category.astro";
+import { categoryPaths } from "../../../../lib/paths";
+export function getStaticPaths() { return categoryPaths("fr", true); }
+const { cat, page } = Astro.props;
+---
+<View lang="fr" cat={cat} page={page} />

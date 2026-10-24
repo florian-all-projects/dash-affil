@@ -1,0 +1,89 @@
+---
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ProductCard from "../components/ProductCard.astro";
+import Faq from "../components/Faq.astro";
+import { t, r, fmtDate, type Lang } from "../lib/i18n";
+import { shops, productsByShop, couponsForShop, byPopularity, exportedAt } from "../lib/catalog";
+import { SHORT_NAME, SHOP_FACTS } from "../data/shops-content";
+import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
+
+interface Props { lang: Lang; shop: string }
+const { lang, shop } = Astro.props;
+const sh = shops.find((x) => x.slug === shop)!;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const short = SHORT_NAME[shop] ?? sh.name;
+const coupons = couponsForShop(shop);
+const facts = SHOP_FACTS[shop];
+const list = productsByShop(shop);
+const onSale = list.filter((p) => { const o = p.offers.find((x) => x.shop.slug === shop)!; return o.compareAt && o.compareAt > o.price; })
+  .sort((a, b) => b.discount - a.discount).slice(0, 8);
+const fallback = onSale.length ? onSale : [...list].sort(byPopularity).slice(0, 8);
+const month = new Date(exportedAt).toLocaleDateString(lang === "en" ? "en-CA" : "fr-CA", { month: "long", year: "numeric" });
+const L = lang === "en"
+  ? {
+      h1: `${sh.name} Promo Codes & Coupons`, title: mkTitle(`${sh.name} Promo Codes & Coupons (${month})`, `${short} Promo Code (${month})`),
+      desc: `${coupons.length ? `${coupons.length} ${sh.name} promo code${coupons.length > 1 ? "s" : ""}` : `${sh.name} deals`} for ${month}, checked ${fmtDate(exportedAt, "en")}${facts?.freeShipping ? `, plus ${facts.freeShipping.en.toLowerCase()}` : ""}.`,
+      none: `We have no working code for ${sh.name} right now. The deals below are price cuts the shop displays on its own menu.`,
+      how: `How to use a ${short} promo code`, steps: ["Open the shop through the button on this page and add your products to the cart.", "Paste the code in the coupon field of the cart or checkout page before paying.", "Check that the discount appears in the order total. Codes can expire or exclude some products."],
+      deals: onSale.length ? `${short} price cuts this week` : `Popular at ${short}`, verified: "Last checked", kind: { affiliate: "Code from our partnership", public: "Public code" },
+      faq: [
+        { q: `Is there a working ${sh.name} promo code?`, a: coupons.length ? `Yes: ${coupons.map((c) => c.code).join(", ")}. We list the codes we know and check them every week; the last check was ${fmtDate(exportedAt, "en")}.` : `Not right now. We check every week; the page shows price cuts published by the shop in the meantime.` },
+        ...(facts?.freeShipping ? [{ q: `Does ${sh.name} offer free shipping?`, a: facts.freeShipping.en }] : []),
+        { q: `Can I stack two ${short} codes?`, a: "Most online shops accept a single coupon per order. Try the code with the biggest discount for your cart." },
+      ],
+    }
+  : {
+      h1: `Codes promo ${sh.name}`, title: mkTitle(`Code promo ${sh.name} (${month})`, `Code promo ${short} (${month})`),
+      desc: `${coupons.length ? `${coupons.length} code${coupons.length > 1 ? "s" : ""} promo ${sh.name}` : `Bons plans ${sh.name}`} pour ${month}, vérifiés le ${fmtDate(exportedAt, "fr")}${facts?.freeShipping ? `, et ${facts.freeShipping.fr.toLowerCase()}` : ""}.`,
+      none: `Nous n'avons pas de code valide pour ${sh.name} en ce moment. Les offres ci-dessous sont les baisses de prix affichées par la boutique elle-même.`,
+      how: `Comment utiliser un code promo ${short}`, steps: ["Ouvrez la boutique avec le bouton de cette page et ajoutez vos produits au panier.", "Collez le code dans le champ « coupon » du panier ou de la page de paiement avant de payer.", "Vérifiez que la remise apparaît dans le total. Un code peut expirer ou exclure certains produits."],
+      deals: onSale.length ? `Les baisses de prix ${short} cette semaine` : `Les produits populaires chez ${short}`, verified: "Dernière vérification", kind: { affiliate: "Code issu de notre partenariat", public: "Code public" },
+      faq: [
+        { q: `Existe-t-il un code promo ${sh.name} valide ?`, a: coupons.length ? `Oui : ${coupons.map((c) => c.code).join(", ")}. Nous listons les codes connus et les vérifions chaque semaine ; dernière vérification le ${fmtDate(exportedAt, "fr")}.` : `Pas en ce moment. Nous vérifions chaque semaine ; en attendant, la page montre les baisses de prix publiées par la boutique.` },
+        ...(facts?.freeShipping ? [{ q: `${sh.name} offre-t-elle la livraison gratuite ?`, a: facts.freeShipping.fr }] : []),
+        { q: `Peut-on cumuler deux codes ${short} ?`, a: "La plupart des boutiques en ligne n'acceptent qu'un coupon par commande. Essayez celui qui donne la plus grosse remise sur votre panier." },
+      ],
+    };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.coupons, href: r.coupons(lang) }, { name: sh.name }];
+---
+<Base lang={lang} title={L.title} description={L.desc} path={r.coupon(lang, shop)} alt={r.coupon(other, shop)} jsonld={[breadcrumbLd(site, crumbs), faqLd(L.faq)]}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+    <h1 class="mt-4">{L.h1}</h1>
+    <p class="mt-2 text-sm text-muted">{L.verified}{lang === "en" ? ":" : " :"} {fmtDate(exportedAt, lang)}</p>
+    <div class="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div>
+        {coupons.length ? (
+          <ul class="space-y-4">
+            {coupons.map((c) => (
+              <li class="parcel flex flex-wrap items-center gap-5">
+                <span class="stamp stamp-lg"><span class="stamp-label">{lang === "en" ? "code" : "code"}</span><span class="stamp-price tracking-wider">{c.code}</span></span>
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold">{c.description ?? ""}</p>
+                  <p class="text-xs text-muted">{c.source === "affiliate" ? L.kind.affiliate : L.kind.public}{c.valid_until ? `, ${c.valid_until}` : ""}</p>
+                </div>
+                <a href={sh.affiliate_url ?? `https://${sh.domain}/`} rel="sponsored nofollow noopener" target="_blank" class="btn-buy">{s.buyAt(short)}</a>
+              </li>
+            ))}
+          </ul>
+        ) : <p class="parcel">{L.none}</p>}
+      </div>
+      <div class="rounded-[4px] border border-line p-5">
+        <h2 class="!text-2xl">{L.how}</h2>
+        <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm">{L.steps.map((x) => <li>{x}</li>)}</ol>
+        {facts?.freeShipping && <p class="mt-4 text-sm"><b>{lang === "en" ? "Free shipping" : "Livraison gratuite"} :</b> {facts.freeShipping[lang]}</p>}
+        <a href={r.shop(lang, shop)} class="mt-4 inline-block text-sm font-semibold text-mailbox">{lang === "en" ? `${short} review` : `Avis ${short}`}</a>
+      </div>
+    </div>
+
+    <section class="section">
+      <h2>{L.deals}</h2>
+      <div class="grid-products mt-6">{fallback.map((p) => <ProductCard p={p} lang={lang} showCategory />)}</div>
+    </section>
+    <Faq items={L.faq} title={s.faqTitle} />
+    <p class="mt-10 text-xs text-muted">{s.disclosure}</p>
+  </div>
+</Base>

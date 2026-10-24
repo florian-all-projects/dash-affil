@@ -1,73 +1,100 @@
 ---
-// Fiche boutique (mode "shop") ou page codes promo d'une boutique (mode "coupon").
+// Fiche boutique (« avis ») : uniquement des faits relevés (catalogue, prix, conditions publiées) + texte généré à partir de ces faits.
 import Base from "../layouts/Base.astro";
-import ProductRow from "../components/ProductRow.astro";
-import { t, r, fmtPrice, fmtDate, CATEGORY_ORDER, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
-import { productsByShop, couponsForShop, exportedAt, type Shop } from "../lib/catalog";
-import { SHOP_INTRO } from "../data/shops-content";
-interface Props { lang: Lang; shop: Shop; mode: "shop" | "coupon" }
-const { lang, shop, mode } = Astro.props;
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ProductCard from "../components/ProductCard.astro";
+import Faq from "../components/Faq.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
+import { shops, productsByShop, couponsForShop, byPopularity, exportedAt } from "../lib/catalog";
+import { pageContent } from "../lib/content";
+import { SHORT_NAME, SHOP_INTRO, SHOP_FACTS } from "../data/shops-content";
+import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
+
+interface Props { lang: Lang; shop: string }
+const { lang, shop } = Astro.props;
+const sh = shops.find((x) => x.slug === shop)!;
 const s = t[lang];
 const other: Lang = lang === "en" ? "fr" : "en";
-const list = productsByShop(shop.slug);
-const priceAt = (p: (typeof list)[number]) => p.offers.find((o) => o.shop.slug === shop.slug)!.price;
-const cheapest = [...list].sort((a, b) => priceAt(a) - priceAt(b)).slice(0, 10);
-const byCat = CATEGORY_ORDER.map((c) => ({ c, n: list.filter((p) => p.category === c).length })).filter((x) => x.n);
-const cps = couponsForShop(shop.slug);
-const home = shop.affiliate_url ?? `https://${shop.domain}/`;
-const path = mode === "shop" ? r.shop(lang, shop.slug) : r.coupon(lang, shop.slug);
-const altPath = mode === "shop" ? r.shop(other, shop.slug) : r.coupon(other, shop.slug);
-const title = mode === "shop"
-  ? (lang === "en" ? `${shop.name}: ${list.length} products and prices compared` : `${shop.name} : ${list.length} produits et prix comparés`)
-  : (lang === "en" ? `${shop.name} promo codes and coupons` : `Codes promo ${shop.name}`);
-const lede = mode === "shop"
-  ? SHOP_INTRO[shop.slug]?.[lang] ?? ""
-  : (lang === "en"
-      ? `Promo codes for ${shop.name}, checked against what the shop sends us. Enter the code at checkout on the shop's site.`
-      : `Les codes promo de ${shop.name}, tels que la boutique nous les envoie. Saisissez le code au moment de payer sur le site de la boutique.`);
+const site = Astro.site!.toString().replace(/\/$/, "");
+const price = (c: number) => fmtPrice(c, lang);
+const list = productsByShop(shop);
+const own = (p: (typeof list)[number]) => p.offers.find((o) => o.shop.slug === shop)!;
+const prices = list.map((p) => own(p).price);
+const cats = CATEGORY_ORDER.map((c) => ({ c, n: list.filter((p) => p.category === c).length })).filter((x) => x.n);
+const cheapestHere = list.filter((p) => p.offers[0].shop.slug === shop).length;
+const shared = list.filter((p) => p.shopCount > 1).length;
+const top = [...list].sort(byPopularity).slice(0, 12);
+const coupons = couponsForShop(shop);
+const facts = SHOP_FACTS[shop];
+const content = pageContent("shop", shop, lang);
+const short = SHORT_NAME[shop] ?? sh.name;
+const L = lang === "en"
+  ? { h1: `${sh.name} Review`, kicker: "Prices, catalogue, delivery and promo codes", title: mkTitle(`${sh.name} Review: Prices, Delivery & Promo Codes`, `${sh.name} Review & Promo Codes`), desc: `${sh.name} review: ${list.length} products from ${price(Math.min(...prices))}, ${facts?.shipping?.en ?? "delivery across Canada"} Prices compared with other online dispensaries every week.`, sheet: "Shop sheet", products: "Products in stock", range: "Price range", cheapest: "Cheapest shop for", sharedL: "Products also sold elsewhere", ship: "Shipping", free: "Free shipping", pay: "Payment", aff: "Affiliate link", lifetime: "Yes, commission for life on referred customers", catsT: `What ${short} sells`, topT: `Popular at ${short}`, couponT: `${short} promo codes`, visit: `Visit ${short}`, source: "Delivery and payment terms read on the shop's site", none: "Not published", all: "See all" }
+  : { h1: `Avis ${sh.name}`, kicker: "Prix, catalogue, livraison et codes promo", title: mkTitle(`Avis ${sh.name} : prix, livraison et codes promo`, `Avis ${sh.name} et codes promo`), desc: `Avis ${sh.name} : ${list.length} produits dès ${price(Math.min(...prices))}, ${facts?.shipping?.fr ?? "livraison partout au Canada"} Prix comparés chaque semaine avec les autres boutiques en ligne.`, sheet: "Fiche boutique", products: "Produits en stock", range: "Fourchette de prix", cheapest: "Boutique la moins chère pour", sharedL: "Produits vendus aussi ailleurs", ship: "Envoi", free: "Livraison gratuite", pay: "Paiement", aff: "Lien affilié", lifetime: "Oui, commission à vie sur les clients recommandés", catsT: `Ce que vend ${short}`, topT: `Les produits populaires chez ${short}`, couponT: `Codes promo ${short}`, visit: `Visiter ${short}`, source: "Conditions de livraison et de paiement lues sur le site de la boutique", none: "Non publié", all: "Tout voir" };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.shops, href: r.shops(lang) }, { name: sh.name }];
+const jsonld = [
+  breadcrumbLd(site, crumbs),
+  { "@context": "https://schema.org", "@type": "OnlineStore", name: sh.name, url: `https://${sh.domain}/` },
+  ...(content?.faq?.length ? [faqLd(content.faq)] : []),
+];
 ---
-<Base lang={lang} title={`${title} | Budboard`} description={lede} path={path} alt={altPath}>
-  <div class="wrap pt-8">
-    <nav aria-label="Breadcrumb" class="text-sm text-moss"><a href={mode === "shop" ? r.shops(lang) : r.coupons(lang)}>{mode === "shop" ? s.nav.shops : s.nav.coupons}</a> / {shop.name}</nav>
-    <h1 class="mt-3 text-5xl md:text-6xl max-w-3xl">{title}</h1>
-    <p class="mt-4 max-w-2xl text-lg">{lede}</p>
+<Base lang={lang} title={L.title} description={L.desc} path={r.shop(lang, shop)} alt={r.shop(other, shop)} jsonld={jsonld}>
+  <section class="band border-b border-line">
+    <div class="wrap grid gap-8 py-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:py-12">
+      <div>
+        <Breadcrumbs items={crumbs} />
+        <h1 class="mt-4">{L.h1}</h1>
+        <p class="display mt-2 text-2xl text-mailbox">{L.kicker}</p>
+        <p class="lede mt-4">{content?.lead ?? SHOP_INTRO[shop]?.[lang]}</p>
+        <a href={sh.affiliate_url ?? `https://${sh.domain}/`} rel="sponsored nofollow noopener" target="_blank" class="btn-buy mt-6 px-6 py-3">{L.visit}</a>
+      </div>
+      <div class="parcel self-start">
+        <p class="parcel-head">{L.sheet}</p>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          <dt class="font-semibold">{L.products}</dt><dd class="num">{list.length}</dd>
+          <dt class="font-semibold">{L.range}</dt><dd class="num">{price(Math.min(...prices))} – {price(Math.max(...prices))}</dd>
+          <dt class="font-semibold">{L.cheapest}</dt><dd class="num">{cheapestHere} {lang === "en" ? "products" : "produits"}</dd>
+          <dt class="font-semibold">{L.sharedL}</dt><dd class="num">{shared}</dd>
+          <dt class="font-semibold">{L.ship}</dt><dd>{facts?.shipping?.[lang] ?? <span class="text-muted">{L.none}</span>}</dd>
+          <dt class="font-semibold">{L.free}</dt><dd>{facts?.freeShipping?.[lang] ?? <span class="text-muted">{L.none}</span>}</dd>
+          <dt class="font-semibold">{L.pay}</dt><dd>{facts?.payment?.[lang] ?? <span class="text-muted">{L.none}</span>}</dd>
+        </dl>
+        <p class="mt-3 text-xs text-muted">{s.updated(fmtDate(exportedAt, lang))}. {facts && <>{L.source} (<a href={facts.source} rel="nofollow noopener">{new URL(facts.source).hostname}</a>).</>}</p>
+      </div>
+    </div>
+  </section>
 
-    {mode === "coupon" && (
-      <section class="mt-8">
-        {cps.length ? (
-          <ul class="grid gap-4 sm:grid-cols-2">
-            {cps.map((c) => (
-              <li class="rounded-lg bg-paper ring-1 ring-lichen p-5">
-                <p class="display text-4xl text-leaf tracking-wide">{c.code}</p>
-                <p class="mt-2">{c.kind === "percent" && c.value ? (lang === "en" ? `${c.value}% off` : `${c.value} % de rabais`) : c.description}</p>
-                <p class="mt-1 text-sm text-moss">{c.source === "affiliate" ? (lang === "en" ? "Code issued to Budboard readers." : "Code réservé aux lecteurs de Budboard.") : (lang === "en" ? "Public code sent by the shop; it may have expired." : "Code public envoyé par la boutique ; il a peut-être expiré.")}</p>
-                <p class="mt-1 text-xs text-moss">{lang === "en" ? "Added" : "Ajouté le"} {fmtDate(c.updated_at, lang)}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p class="text-moss">{lang === "en" ? `No code for ${shop.name} right now. Prices below are already the lowest we found.` : `Pas de code pour ${shop.name} en ce moment. Les prix ci-dessous sont déjà les plus bas relevés.`}</p>
-        )}
-        <a class="btn-buy mt-6" href={home} rel="sponsored nofollow noopener" target="_blank">{lang === "en" ? `Go to ${shop.name}` : `Aller sur ${shop.name}`}</a>
+  <div class="wrap">
+    <section class="section">
+      <h2>{L.catsT}</h2>
+      <ul class="mt-5 flex flex-wrap gap-2">
+        {cats.map(({ c, n }) => <li><a href={r.category(lang, c)} class="btn-ghost text-sm">{CATEGORY_SLUGS[c].label[lang]} <span class="ml-1 text-muted num">{n}</span></a></li>)}
+      </ul>
+    </section>
+
+    {coupons.length > 0 && (
+      <section class="section">
+        <div class="parcel max-w-2xl">
+          <p class="parcel-head">{L.couponT}</p>
+          <ul class="space-y-2">{coupons.map((c) => <li><b class="display text-2xl tracking-wide">{c.code}</b> <span class="text-sm">{c.description}</span></li>)}</ul>
+          <a href={r.coupon(lang, shop)} class="mt-3 inline-block text-sm font-semibold text-mailbox">{L.all}</a>
+        </div>
       </section>
     )}
 
-    {mode === "shop" && (
-      <section class="mt-8 flex flex-wrap gap-3 items-center">
-        <a class="btn-buy" href={home} rel="sponsored nofollow noopener" target="_blank">{lang === "en" ? `Visit ${shop.name}` : `Visiter ${shop.name}`}</a>
-        {cps.length > 0 && <a href={r.coupon(lang, shop.slug)} class="font-semibold text-copper">{lang === "en" ? `${cps.length} promo code${cps.length > 1 ? "s" : ""}` : `${cps.length} code${cps.length > 1 ? "s" : ""} promo`}</a>}
-        <ul class="flex flex-wrap gap-2 text-sm">
-          {byCat.map(({ c, n }) => <li class="chip">{CATEGORY_SLUGS[c].label[lang]} <span class="num">{n}</span></li>)}
-        </ul>
-      </section>
-    )}
+    <section class="section">
+      <h2>{L.topT}</h2>
+      <div class="grid-products mt-6">{top.map((p) => <ProductCard p={p} lang={lang} showCategory />)}</div>
+    </section>
 
-    {cheapest.length > 0 && (
-      <section class="mt-12">
-        <h2 class="text-4xl">{lang === "en" ? `Cheapest products at ${shop.name}` : `Les produits les moins chers chez ${shop.name}`}</h2>
-        <p class="mt-2 text-sm text-moss">{s.updated(fmtDate(exportedAt, lang))}. {s.disclosure}</p>
-        <ul class="mt-3">{cheapest.map((p) => <ProductRow p={p} lang={lang} showCategory />)}</ul>
+    {content && (
+      <section class="section">
+        <article class="prose-bb">
+          {content.sections.map((sec, i) => (<><h2 class:list={[i === 0 && "!mt-0"]}>{sec.h}</h2>{sec.p.map((x) => <p>{x}</p>)}</>))}
+        </article>
       </section>
     )}
+    {content?.faq && <Faq items={content.faq} title={s.faqTitle} />}
+    <p class="mt-10 text-xs text-muted">{s.disclosure}</p>
   </div>
 </Base>

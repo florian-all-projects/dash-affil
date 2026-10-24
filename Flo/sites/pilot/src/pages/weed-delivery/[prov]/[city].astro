@@ -1,0 +1,7 @@
+---
+import View from "../../../views/CityPage.astro";
+import { cityPaths } from "../../../lib/paths";
+export function getStaticPaths() { return cityPaths("en"); }
+const { cityKey } = Astro.props;
+---
+<View lang="en" cityKey={cityKey} />

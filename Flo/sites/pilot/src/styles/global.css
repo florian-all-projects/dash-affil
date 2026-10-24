@@ -1,69 +1,139 @@
 @import "tailwindcss";
 
 /*
-  Budboard : direction « tableau de prix de dispensaire ».
-  Palette dérivée du thème 21st.dev « Forest Copper » (serafimcloud), resserrée :
-  épinette (encre), feuille (action), cuivre (prix), brume de sauge (fond), lichen (traits).
-  Une seule police, Archivo, dont l'axe de largeur sert à la fois aux titres (condensé) et au texte.
+  Budboard : identité « catalogue postal » (voir DESIGN.md).
+  Le catalogue de vente par correspondance du cannabis au Canada, réédité chaque semaine.
 */
 @theme {
-  --color-spruce: #1f2e24;
-  --color-spruce-deep: #16231b;
-  --color-leaf: #2f6e47;
-  --color-leaf-bright: #45a167;
-  --color-copper: #a17045;
-  --color-copper-light: #d9a77a;
-  --color-mist: #f0f4f2;
-  --color-lichen: #d5ddd8;
-  --color-moss: #4c6756;
+  --color-ink: #1c2541;
+  --color-ink-soft: #3a4566;
+  --color-mailbox: #b3261e;
+  --color-mailbox-dark: #8c1c16;
+  --color-kraft: #c9a06b;
+  --color-kraft-light: #f1e6d4;
+  --color-stamp-green: #2e6b4e;
+  --color-fog: #f3f4f6;
+  --color-line: #d9dce3;
+  --color-muted: #5b6478;
   --color-paper: #ffffff;
-  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
-  --radius-chip: 0.375rem;
+  --color-indica: #4b3f8f;
+  --color-sativa: #b5651d;
+  --color-hybrid: #2e6b4e;
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Big Shoulders Display", "Arial Narrow", ui-sans-serif, sans-serif;
+  --radius-card: 4px;
 }
 
 @layer base {
   html { color-scheme: light; }
   body {
-    background: var(--color-mist);
-    color: var(--color-spruce);
+    background: var(--color-paper);
+    color: var(--color-ink);
     font-family: var(--font-sans);
-    font-variation-settings: "wdth" 100;
+    font-size: 1rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, .display {
-    font-variation-settings: "wdth" 72;
+    font-family: var(--font-display);
     font-weight: 800;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.005em;
     line-height: 1.02;
     text-wrap: balance;
   }
+  h1 { font-size: clamp(2.4rem, 5vw, 4rem); }
+  h2 { font-size: clamp(1.8rem, 3.2vw, 2.4rem); }
+  h3 { font-size: 1.4rem; }
   p { text-wrap: pretty; }
   .num { font-variant-numeric: tabular-nums; }
-  a { text-underline-offset: 3px; }
-  :focus-visible { outline: 3px solid var(--color-copper); outline-offset: 2px; border-radius: 2px; }
+  a { color: inherit; text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--color-mailbox); outline-offset: 2px; border-radius: 2px; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   }
 }
 
 @layer components {
-  .wrap { width: min(72rem, 100% - 2rem); margin-inline: auto; }
-  .prose-bb { max-width: 68ch; line-height: 1.65; }
+  .wrap { width: min(78rem, 100% - 2rem); margin-inline: auto; }
+  .prose-bb { max-width: 70ch; line-height: 1.7; font-size: 1.0625rem; }
   .prose-bb p + p { margin-top: 0.9em; }
+  .prose-bb h2 { margin-top: 2.2rem; margin-bottom: 0.6rem; font-size: 1.9rem; }
+  .prose-bb h3 { margin-top: 1.6rem; margin-bottom: 0.4rem; }
+  .prose-bb ul { list-style: disc; padding-left: 1.2rem; margin-top: 0.6rem; }
+  .prose-bb li + li { margin-top: 0.3rem; }
+  .prose-bb a { color: var(--color-mailbox); }
+
+  /* Bouton d'achat : rouge boîte aux lettres */
   .btn-buy {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-    background: var(--color-leaf); color: #fff; font-weight: 700;
-    padding: 0.55rem 0.95rem; border-radius: var(--radius-chip);
+    background: var(--color-mailbox); color: #fff; font-weight: 700; text-decoration: none;
+    padding: 0.65rem 1rem; border-radius: var(--radius-card); line-height: 1.2;
   }
-  .btn-buy:hover { background: var(--color-spruce); }
+  .btn-buy:hover { background: var(--color-mailbox-dark); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    border: 1.5px solid var(--color-ink); color: var(--color-ink); font-weight: 600; text-decoration: none;
+    padding: 0.55rem 0.95rem; border-radius: var(--radius-card); line-height: 1.2;
+  }
+  .btn-ghost:hover { background: var(--color-ink); color: #fff; }
+
   .chip {
-    display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.45rem;
-    border-radius: var(--radius-chip); background: var(--color-lichen); color: var(--color-spruce);
+    display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 0.05rem 0.45rem;
+    border-radius: 2px; background: var(--color-fog); color: var(--color-ink); line-height: 1.6;
   }
-  .chip-indica { background: #dfe4f3; color: #2d3a6b; }
-  .chip-sativa { background: #f3ead9; color: #6b4a1d; }
-  .chip-hybrid { background: #dcefe3; color: #1e5636; }
-  /* Rangée de menu : la brique de base des listes de produits */
-  .menu-row { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 1rem; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid var(--color-lichen); }
-  @media (min-width: 48rem) { .menu-row { grid-template-columns: minmax(0, 1fr) 9rem 7rem 8.5rem; } }
+  .chip-indica { background: #ece9f7; color: var(--color-indica); }
+  .chip-sativa { background: #f8ecdf; color: #8a4b12; }
+  .chip-hybrid { background: #e3f0e9; color: #1f4f38; }
+
+  /* Signature 1 : le prix sur un timbre dentelé (pointillé blanc sur bord kraft) */
+  .stamp {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--color-kraft-light); color: var(--color-ink);
+    border: 3px dotted #fff; box-shadow: 0 0 0 3px var(--color-kraft-light), 0 0 0 4px var(--color-kraft);
+    padding: 0.3rem 0.55rem 0.2rem; text-align: center; line-height: 1;
+  }
+  .stamp-label { font-size: 0.65rem; font-weight: 600; color: var(--color-muted); }
+  .stamp-price { font-family: var(--font-display); font-weight: 800; font-size: 1.45rem; font-variant-numeric: tabular-nums; }
+  .stamp-lg .stamp-price { font-size: 2.6rem; }
+  .stamp-lg .stamp-label { font-size: 0.8rem; }
+
+  /* Signature 3 : l'étiquette de colis (livraison, règles, codes) */
+  .parcel {
+    background: var(--color-kraft-light); border: 2px dashed var(--color-kraft);
+    border-radius: var(--radius-card); padding: 1.1rem 1.2rem;
+  }
+  .parcel-head {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; line-height: 1.1;
+    padding-bottom: 0.55rem; margin-bottom: 0.7rem; border-bottom: 1px solid var(--color-kraft);
+  }
+
+  /* Fiche du catalogue (carte produit) */
+  .card {
+    position: relative; display: flex; flex-direction: column; background: #fff;
+    border: 1px solid var(--color-line); border-radius: var(--radius-card); overflow: hidden;
+  }
+  .card:hover { border-color: var(--color-ink); }
+  .card-media { position: relative; aspect-ratio: 1; background: var(--color-fog); }
+  .card-media img { width: 100%; height: 100%; object-fit: contain; }
+  .card-media img.cover { object-fit: cover; }
+  .card-stamp { position: absolute; right: 0.6rem; bottom: -0.9rem; }
+
+  .grid-products { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 40rem) { .grid-products { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; } }
+  @media (min-width: 64rem) { .grid-products { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+  .table-bb { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  .table-bb th { text-align: left; font-weight: 600; color: var(--color-muted); font-size: 0.8rem; padding: 0.5rem 0.6rem; border-bottom: 2px solid var(--color-ink); }
+  .table-bb td { padding: 0.65rem 0.6rem; border-bottom: 1px solid var(--color-line); vertical-align: middle; }
+
+  .band { background: var(--color-fog); }
+  .section { margin-top: 4rem; }
+  .lede { font-size: 1.15rem; line-height: 1.6; color: var(--color-ink-soft); max-width: 62ch; }
+
+  details.faq { border-bottom: 1px solid var(--color-line); }
+  details.faq summary { cursor: pointer; list-style: none; padding: 1rem 2rem 1rem 0; font-weight: 600; position: relative; }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after { content: "+"; position: absolute; right: 0.25rem; top: 0.85rem; font-size: 1.3rem; color: var(--color-mailbox); }
+  details.faq[open] summary::after { content: "−"; }
+  details.faq > div { padding: 0 0 1.1rem; color: var(--color-ink-soft); max-width: 70ch; }
 }

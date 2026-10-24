@@ -1,0 +1,14 @@
+---
+// Logo : le nom dans un timbre dentelé, feuille stylisée à la place du « o ».
+interface Props { label: string }
+const { label } = Astro.props;
+---
+<span class="inline-flex items-center gap-2" aria-label={label}>
+  <svg width="34" height="40" viewBox="0 0 34 40" aria-hidden="true">
+    <rect x="2" y="2" width="30" height="36" fill="#f1e6d4" />
+    <rect x="2" y="2" width="30" height="36" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="2 3" />
+    <rect x="6" y="6" width="22" height="28" fill="none" stroke="#b3261e" stroke-width="1.5" />
+    <path d="M17 29 V14 M17 22 C 12 21 10 17 10 13 C 14 14 16.5 17 17 22 Z M17 22 C 22 21 24 17 24 13 C 20 14 17.5 17 17 22 Z M17 18 C 15 15 15 11 17 8 C 19 11 19 15 17 18 Z" fill="#2e6b4e" stroke="#2e6b4e" stroke-width="0.6" stroke-linejoin="round" />
+  </svg>
+  <span class="font-[family-name:var(--font-display)] font-extrabold text-[1.9rem] leading-none tracking-wide">{label}</span>
+</span>

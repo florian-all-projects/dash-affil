@@ -1,118 +1,164 @@
 ---
 import Base from "../layouts/Base.astro";
-import ProductRow from "../components/ProductRow.astro";
-import { t, r, fmtPrice, fmtDate, CATEGORY_ORDER, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
-import { categoryStats, deals, exportedAt, products, shops, coupons } from "../lib/catalog";
-import { CITIES, PROVINCES } from "../data/geo";
+import ProductCard from "../components/ProductCard.astro";
+import Postmark from "../components/Postmark.astro";
+import Faq from "../components/Faq.astro";
+import { t, r, fmtPrice, fmtDate, fmtStamp, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
+import { products, deals, categoryStats, activeShops, productsByShop, byPopularity, couponsForShop, exportedAt } from "../lib/catalog";
+import { PROVINCES, cities, stores, cityName, provName, provSlug, provinceOf } from "../lib/geo";
+import { pageContent } from "../lib/content";
+import { SHORT_NAME, SHOP_FACTS } from "../data/shops-content";
+import { faqLd, itemListLd } from "../lib/seo";
+
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const s = t[lang];
-const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st);
-const topDeals = deals(6);
-const tracked = new Set(products.flatMap((p) => p.offers.map((o) => o.shop.slug))).size;
-const big = CITIES.slice(0, 12);
-const copy = lang === "en"
+const other: Lang = lang === "en" ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const price = (c: number) => fmtPrice(c, lang);
+const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st && x.c !== "other");
+const topDeals = deals(8);
+const mostCompared = [...products].filter((p) => p.shopCount > 1).sort(byPopularity).slice(0, 8);
+const content = pageContent("home", "home", lang);
+const editionDate = fmtDate(exportedAt, lang);
+const shopRows = activeShops
+  .map((sh) => {
+    const list = productsByShop(sh.slug);
+    return { sh, n: list.length, from: Math.min(...list.map((p) => p.offers.find((o) => o.shop.slug === sh.slug)!.price)), cats: new Set(list.map((p) => p.category)).size, facts: SHOP_FACTS[sh.slug], coupon: couponsForShop(sh.slug)[0] };
+  })
+  .sort((a, b) => b.n - a.n);
+
+const L = lang === "en"
   ? {
-      h1: "Weed delivery prices across Canada, checked every week.",
-      lede: `We read the full menus of ${tracked} online shops that ship across Canada and list every product at its lowest price. Pick a city to see what delivery looks like where you live, or open the menu.`,
-      boardTitle: "This week's lowest prices",
-      boardCols: ["Category", "Products", "Lowest price"],
-      dealsTitle: "Biggest price cuts right now",
-      dealsNote: "Discount compared with the regular price the shop itself displays.",
-      citiesTitle: "Weed delivery by city",
-      allCities: "All cities",
-      lawTitle: "The rules depend on your province",
-      lawBody: "Legal age, where you can smoke and whether you can grow at home change from one province to the next.",
-      shopsTitle: "Shops we compare",
-      couponsLink: "See all promo codes",
+      title: `Buy Weed Online in Canada | Compare ${activeShops.length} Online Dispensaries`,
+      desc: `Buy weed online in Canada for less: compare ${products.length.toLocaleString("en-CA")} products from ${activeShops.length} online dispensaries that deliver by mail. Prices checked every week, promo codes, delivery by city.`,
+      h1: "Buy weed online in Canada",
+      kicker: "The price comparator for every online dispensary",
+      lede: `This catalogue reads the full menu of ${activeShops.length} online dispensaries and seed banks that ship across Canada, every week. ${products.length.toLocaleString("en-CA")} products, each listed with every shop that sells it, so you can order at the lowest price.`,
+      browse: "Browse the catalogue",
+      deals: "Biggest price cuts this week", dealsNote: "Discount compared with the regular price the shop itself displays.",
+      compared: "Sold by several shops", comparedNote: "Same product, different prices: these are the items where comparing pays off.",
+      shopsTitle: "Online dispensaries compared", shopsCols: ["Shop", "Products", "From", "Free shipping", "Payment", "Promo code"],
+      review: "Review", none: "Not published",
+      deliveryTitle: "Weed delivery across Canada", deliveryNote: `Online shops deliver by mail to every province. Each city page also lists the ${stores.length.toLocaleString("en-CA")} provincially licensed stores we found in official registries.`,
+      provinces: "By province", topCities: "Popular cities", allCities: "All cities",
+      catTitle: "Shop by category", items: "items",
     }
   : {
-      h1: "Les prix de livraison de cannabis au Canada, vérifiés chaque semaine.",
-      lede: `Nous lisons le menu complet de ${tracked} boutiques en ligne qui livrent partout au Canada et affichons chaque produit à son prix le plus bas. Choisissez une ville pour voir la livraison chez vous, ou ouvrez le menu.`,
-      boardTitle: "Les prix les plus bas cette semaine",
-      boardCols: ["Catégorie", "Produits", "Prix le plus bas"],
-      dealsTitle: "Les plus fortes baisses de prix",
-      dealsNote: "Remise calculée sur le prix habituel affiché par la boutique elle-même.",
-      citiesTitle: "Livraison de cannabis par ville",
-      allCities: "Toutes les villes",
-      lawTitle: "Les règles dépendent de votre province",
-      lawBody: "L'âge légal, les lieux où l'on peut fumer et la culture à domicile changent d'une province à l'autre.",
-      shopsTitle: "Les boutiques comparées",
-      couponsLink: "Voir tous les codes promo",
+      title: "Acheter du cannabis en ligne au Canada : le comparateur de prix",
+      desc: `Achetez du cannabis en ligne au Canada au meilleur prix : comparez ${products.length.toLocaleString("fr-CA")} produits de ${activeShops.length} boutiques en ligne qui livrent par la poste. Prix vérifiés chaque semaine, codes promo, livraison par ville.`,
+      h1: "Acheter du cannabis en ligne au Canada",
+      kicker: "Le comparateur de toutes les boutiques en ligne",
+      lede: `Ce catalogue lit chaque semaine le menu complet de ${activeShops.length} boutiques en ligne et banques de graines qui livrent partout au Canada. ${products.length.toLocaleString("fr-CA")} produits, chacun avec toutes les boutiques qui le vendent, pour commander au prix le plus bas.`,
+      browse: "Parcourir le catalogue",
+      deals: "Les plus fortes baisses de la semaine", dealsNote: "Remise calculée sur le prix habituel affiché par la boutique elle-même.",
+      compared: "Vendus par plusieurs boutiques", comparedNote: "Même produit, prix différents : c'est ici que comparer rapporte.",
+      shopsTitle: "Les boutiques en ligne comparées", shopsCols: ["Boutique", "Produits", "Dès", "Livraison gratuite", "Paiement", "Code promo"],
+      review: "Avis", none: "Non publié",
+      deliveryTitle: "Livraison de cannabis partout au Canada", deliveryNote: `Les boutiques en ligne livrent par la poste dans toutes les provinces. Chaque page ville liste aussi les ${stores.length.toLocaleString("fr-CA")} magasins autorisés par les provinces que nous avons trouvés dans les registres officiels.`,
+      provinces: "Par province", topCities: "Villes les plus demandées", allCities: "Toutes les villes",
+      catTitle: "Acheter par catégorie", items: "produits",
     };
-const jsonld = [{ "@context": "https://schema.org", "@type": "WebSite", name: "Budboard", inLanguage: lang === "en" ? "en-CA" : "fr-CA", url: Astro.site!.toString() }];
+const jsonld = [
+  itemListLd(site, L.deals, topDeals.map((p) => r.product(lang, p.slug))),
+  ...(content?.faq?.length ? [faqLd(content.faq)] : []),
+];
 ---
-<Base lang={lang} title={lang === "en" ? "Budboard: weed delivery prices across Canada" : "Budboard : prix de la livraison de cannabis au Canada"} description={copy.lede} path={r.home(lang)} alt={r.home(lang === "en" ? "fr" : "en")} jsonld={jsonld}>
-  <section class="bg-spruce text-mist">
-    <div class="wrap grid gap-10 py-12 md:py-16 lg:grid-cols-[1fr_minmax(0,30rem)] items-start">
+<Base lang={lang} title={L.title} description={L.desc} path={r.home(lang)} alt={r.home(other)} jsonld={jsonld}>
+  <section class="band border-b border-line">
+    <div class="wrap grid gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:py-14">
       <div>
-        <h1 class="text-5xl md:text-7xl">{copy.h1}</h1>
-        <p class="mt-6 text-lg text-mist/85 max-w-xl leading-relaxed">{copy.lede}</p>
-        <form class="mt-8 flex flex-wrap gap-2" action={r.cities(lang)} method="get" onsubmit="var v=this.querySelector('select').value; if(v){location.href=v; return false;}">
-          <label for="city" class="sr-only">{copy.citiesTitle}</label>
-          <select id="city" class="min-w-56 rounded-[var(--radius-chip)] bg-paper text-spruce px-3 py-2.5 font-semibold">
-            <option value="">{lang === "en" ? "Choose your city" : "Choisissez votre ville"}</option>
-            {CITIES.map((c) => <option value={r.city(lang, c.slug)}>{lang === "en" ? c.name : c.nameFr}</option>)}
-          </select>
-          <button class="btn-buy bg-copper hover:bg-copper-light hover:text-spruce" type="submit">{lang === "en" ? "See delivery" : "Voir la livraison"}</button>
-        </form>
+        <Postmark class="text-mailbox -rotate-6" top={lang === "en" ? "WEEKLY EDITION" : "ÉDITION HEBDO"} date={fmtStamp(exportedAt, lang)} bottom={lang === "en" ? "ALL OF CANADA" : "TOUT LE CANADA"} size={118} />
+        <h1 class="mt-5">{L.h1}</h1>
+        <p class="display mt-2 text-2xl text-mailbox">{L.kicker}</p>
+        <p class="lede mt-4">{content?.lead ?? L.lede}</p>
+        <a href={r.catalogue(lang)} class="btn-buy mt-6 px-6 py-3 text-base">{L.browse}</a>
       </div>
+      <div>
+        <p class="sr-only">{L.catTitle}</p>
+        <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {board.map(({ c, st }) => (
+            <li>
+              <a href={r.category(lang, c)} class="card no-underline">
+                <div class="card-media"><img src={`/img/cat/${c}.webp`} alt="" width="704" height="704" class="cover" loading="eager" />
+                  <span class="card-stamp stamp"><span class="stamp-label">{s.from}</span><span class="stamp-price">{price(st!.from)}</span></span></div>
+                <div class="p-3 pt-4"><p class="display text-2xl leading-none">{CATEGORY_SLUGS[c].label[lang]}</p><p class="text-xs text-muted num">{st!.count.toLocaleString(lang === "en" ? "en-CA" : "fr-CA")} {L.items}</p></div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </section>
 
-      <div class="rounded-lg bg-spruce-deep ring-1 ring-mist/10 p-5 md:p-6" aria-labelledby="board-title">
-        <h2 id="board-title" class="text-2xl text-mist">{copy.boardTitle}</h2>
-        <p class="text-xs text-mist/60 mt-1">{s.updated(fmtDate(exportedAt, lang))}</p>
-        <table class="mt-4 w-full text-left num">
-          <thead class="text-xs text-mist/60">
-            <tr><th class="font-normal pb-2">{copy.boardCols[0]}</th><th class="font-normal pb-2 text-right">{copy.boardCols[1]}</th><th class="font-normal pb-2 text-right">{copy.boardCols[2]}</th></tr>
-          </thead>
+  <div class="wrap">
+    {topDeals.length > 0 && (
+      <section class="section">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div><h2>{L.deals}</h2><p class="mt-1 text-sm text-muted">{L.dealsNote}</p></div>
+          <a href={r.deals(lang)} class="text-sm font-semibold text-mailbox">{s.nav.deals}</a>
+        </div>
+        <div class="grid-products mt-6">{topDeals.map((p) => <ProductCard p={p} lang={lang} showCategory />)}</div>
+      </section>
+    )}
+
+    {mostCompared.length > 0 && (
+      <section class="section">
+        <h2>{L.compared}</h2>
+        <p class="mt-1 text-sm text-muted">{L.comparedNote}</p>
+        <div class="grid-products mt-6">{mostCompared.map((p) => <ProductCard p={p} lang={lang} showCategory />)}</div>
+      </section>
+    )}
+
+    <section class="section">
+      <h2>{L.shopsTitle}</h2>
+      <div class="mt-5 overflow-x-auto">
+        <table class="table-bb min-w-[52rem]">
+          <thead><tr>{L.shopsCols.map((c) => <th>{c}</th>)}<th class="sr-only">{L.review}</th></tr></thead>
           <tbody>
-            {board.map(({ c, st }) => (
-              <tr class="border-t border-mist/10">
-                <td class="py-2.5"><a class="text-mist font-semibold no-underline hover:underline" href={r.category(lang, c)}>{CATEGORY_SLUGS[c].label[lang]}</a></td>
-                <td class="py-2.5 text-right text-mist/70">{st!.count}</td>
-                <td class="py-2.5 text-right"><span class="display text-2xl text-copper-light">{fmtPrice(st!.from, lang)}</span></td>
+            {shopRows.map(({ sh, n, from, facts, coupon }) => (
+              <tr>
+                <td><a href={r.shop(lang, sh.slug)} class="font-semibold">{sh.name}</a></td>
+                <td class="num">{n.toLocaleString(lang === "en" ? "en-CA" : "fr-CA")}</td>
+                <td class="num font-semibold">{price(from)}</td>
+                <td class="text-sm">{facts?.freeShipping?.[lang] ?? <span class="text-muted">{L.none}</span>}</td>
+                <td class="text-sm">{facts?.payment?.[lang] ?? <span class="text-muted">{L.none}</span>}</td>
+                <td>{coupon ? <a href={r.coupon(lang, sh.slug)} class="font-semibold text-mailbox">{coupon.code}</a> : <span class="text-muted">-</span>}</td>
+                <td class="text-right"><a href={r.shop(lang, sh.slug)} class="btn-ghost text-sm">{L.review}</a></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
-  </section>
-
-  {topDeals.length > 0 && (
-    <section class="wrap mt-14">
-      <h2 class="text-4xl">{copy.dealsTitle}</h2>
-      <p class="mt-2 text-moss text-sm">{copy.dealsNote}</p>
-      <ul class="mt-4">{topDeals.map((p) => <ProductRow p={p} lang={lang} showCategory thumb />)}</ul>
     </section>
-  )}
 
-  <section class="wrap mt-16 grid gap-10 md:grid-cols-2">
-    <div>
-      <h2 class="text-4xl">{copy.citiesTitle}</h2>
-      <ul class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2">
-        {big.map((c) => <li><a href={r.city(lang, c.slug)} class="text-leaf font-semibold">{lang === "en" ? c.name : c.nameFr}</a></li>)}
-      </ul>
-      <a href={r.cities(lang)} class="inline-block mt-4 text-sm font-semibold">{copy.allCities}</a>
-    </div>
-    <div>
-      <h2 class="text-4xl">{copy.lawTitle}</h2>
-      <p class="mt-3 text-moss">{copy.lawBody}</p>
-      <ul class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-        {PROVINCES.map((p) => (
-          <li><a href={r.province(lang, p.slug, p.slugFr)}>{lang === "en" ? p.name : p.nameFr}</a> <span class="text-moss num">{p.age}+</span></li>
-        ))}
-      </ul>
-    </div>
-  </section>
+    <section class="section">
+      <h2>{L.deliveryTitle}</h2>
+      <p class="lede mt-2">{L.deliveryNote}</p>
+      <div class="mt-6 grid gap-8 md:grid-cols-2">
+        <div class="parcel">
+          <p class="parcel-head">{L.provinces}</p>
+          <ul class="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+            {PROVINCES.map((p) => <li class="flex justify-between gap-2"><a href={r.province(lang, provSlug(p, lang))}>{provName(p, lang)}</a><span class="num text-muted">{p.age}+</span></li>)}
+          </ul>
+        </div>
+        <div>
+          <p class="display text-2xl">{L.topCities}</p>
+          <ul class="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+            {cities.slice(0, 24).map((c) => <li><a href={r.city(lang, provSlug(provinceOf(c.province), lang), c.slug)} class="font-semibold">{cityName(c, lang)}</a></li>)}
+          </ul>
+          <a href={r.delivery(lang)} class="mt-4 inline-block text-sm font-semibold text-mailbox">{L.allCities}</a>
+        </div>
+      </div>
+    </section>
 
-  <section class="wrap mt-16">
-    <h2 class="text-4xl">{copy.shopsTitle}</h2>
-    <ul class="mt-4 flex flex-wrap gap-2">
-      {shops.filter((sh) => products.some((p) => p.offers.some((o) => o.shop.slug === sh.slug))).map((sh) => (
-        <li><a href={r.shop(lang, sh.slug)} class="chip text-sm px-3 py-1.5 no-underline hover:bg-leaf hover:text-paper">{sh.name}</a></li>
-      ))}
-    </ul>
-    {coupons.length > 0 && <a class="inline-block mt-4 text-sm font-semibold" href={r.coupons(lang)}>{copy.couponsLink}</a>}
-  </section>
+    {content && (
+      <section class="section">
+        <article class="prose-bb">
+          {content.sections.map((sec) => (<><h2>{sec.h}</h2>{sec.p.map((x) => <p>{x}</p>)}</>))}
+        </article>
+      </section>
+    )}
+    {content?.faq && <Faq items={content.faq} title={s.faqTitle} />}
+  </div>
 </Base>

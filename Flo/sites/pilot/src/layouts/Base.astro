@@ -1,6 +1,10 @@
 ---
 import "../styles/global.css";
-import { t, r, type Lang } from "../lib/i18n";
+import { t, r, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
+import { exportedAt, products, activeShops, productsByCategory } from "../lib/catalog";
+import { PROVINCES, cities, cityName, provName, provSlug, provinceOf } from "../lib/geo";
+import { SHORT_NAME } from "../data/shops-content";
+import Logo from "../components/Logo.astro";
 
 interface Props {
   lang: Lang;
@@ -9,21 +13,22 @@ interface Props {
   path: string;          // chemin de la page courante
   alt?: string | null;   // chemin de la page équivalente dans l'autre langue
   jsonld?: object[];
+  image?: string;
 }
-const { lang, title, description, path, alt = null, jsonld = [] } = Astro.props;
+const { lang, title, description, path, alt = null, jsonld = [], image } = Astro.props;
 const s = t[lang];
 const site = Astro.site!.toString().replace(/\/$/, "");
 const other: Lang = lang === "en" ? "fr" : "en";
 const altPath = alt ?? r.home(other);
 const enPath = lang === "en" ? path : alt;
 const frPath = lang === "fr" ? path : alt;
-const navItems = [
-  { href: r.menu(lang), label: s.nav.menu },
-  { href: r.cities(lang), label: s.nav.cities },
-  { href: r.shops(lang), label: s.nav.shops },
-  { href: r.coupons(lang), label: s.nav.coupons },
-  { href: r.guide(lang), label: s.nav.guide },
-];
+const cats = CATEGORY_ORDER.filter((c) => productsByCategory(c).length > 0);
+const editionDate = fmtDate(exportedAt, lang);
+const topCities = cities.slice(0, 14);
+const orgLd = {
+  "@context": "https://schema.org", "@type": "WebSite", name: s.siteName, url: site + r.home(lang), inLanguage: lang === "en" ? "en-CA" : "fr-CA",
+  potentialAction: { "@type": "SearchAction", target: `${site}${r.catalogue(lang)}?q={search_term_string}`, "query-input": "required name=search_term_string" },
+};
 ---
 <!doctype html>
 <html lang={lang === "en" ? "en-CA" : "fr-CA"}>
@@ -41,62 +46,124 @@ const navItems = [
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:url" content={site + path} />
+    {image && <meta property="og:image" content={site + image} />}
     <meta property="og:locale" content={lang === "en" ? "en_CA" : "fr_CA"} />
+    <script type="application/ld+json" set:html={JSON.stringify(orgLd)} />
     {jsonld.map((j) => <script type="application/ld+json" set:html={JSON.stringify(j)} />)}
   </head>
   <body class="min-h-screen flex flex-col">
-    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-paper px-3 py-2 z-50">Skip to content</a>
-    <header class="bg-spruce text-mist">
-      <div class="wrap flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
-        <a href={r.home(lang)} class="display text-2xl text-mist no-underline flex items-center gap-2" aria-label={s.siteName}>
-          <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="1" y="1" width="24" height="24" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 17h12M7 13h8M7 9h10" stroke="#d9a77a" stroke-width="2.4" stroke-linecap="round"/></svg>
-          {s.siteName}
-        </a>
-        <nav class="order-3 w-full md:order-none md:w-auto md:flex-1" aria-label="Main">
-          <ul class="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-            {navItems.map((n) => (
-              <li><a href={n.href} class:list={["no-underline hover:underline", path.startsWith(n.href) ? "text-copper-light" : "text-mist/90"]}>{n.label}</a></li>
-            ))}
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-paper px-3 py-2 z-50">{lang === "en" ? "Skip to content" : "Aller au contenu"}</a>
+
+    {/* Bandeau d'édition : la date du relevé des prix, c'est l'information de fraîcheur du catalogue */}
+    <div class="bg-ink text-white/90 text-[0.8rem]">
+      <div class="wrap flex items-center gap-4 py-1.5">
+        <span>{s.edition(editionDate)}</span>
+        <span class="hidden sm:inline text-white/60">{s.productsCount(products.length)}, {s.shopsCount(activeShops.length)}</span>
+        <a href={altPath} hreflang={other} lang={other} class="ml-auto font-semibold no-underline hover:underline">{s.langSwitch}</a>
+      </div>
+    </div>
+
+    <header class="border-b border-line bg-white">
+      <div class="wrap flex flex-wrap items-center gap-x-6 gap-y-3 py-4">
+        <a href={r.home(lang)} class="no-underline text-ink"><Logo label={s.siteName} /></a>
+        <form action={r.catalogue(lang)} method="get" role="search" class="relative order-3 w-full md:order-none md:w-auto md:flex-1 md:max-w-xl" data-search>
+          <label for="q" class="sr-only">{s.searchLabel}</label>
+          <input id="q" name="q" type="search" autocomplete="off" placeholder={s.searchPlaceholder}
+            class="w-full rounded-[4px] border-2 border-ink bg-white px-3 py-2.5 pr-24 text-[0.95rem] placeholder:text-muted focus:outline-none focus:border-mailbox" />
+          <button class="absolute right-1 top-1 bottom-1 btn-buy px-3 py-0 text-sm">{lang === "en" ? "Search" : "Chercher"}</button>
+          <ul data-results class="absolute left-0 right-0 top-full z-40 mt-1 hidden max-h-[70vh] overflow-auto rounded-[4px] border border-line bg-white shadow-lg"></ul>
+        </form>
+        <nav aria-label={lang === "en" ? "Site" : "Site"} class="ml-auto hidden lg:block">
+          <ul class="flex gap-5 text-sm font-semibold">
+            <li><a href={r.deals(lang)} class="no-underline hover:text-mailbox">{s.nav.deals}</a></li>
+            <li><a href={r.delivery(lang)} class="no-underline hover:text-mailbox">{s.nav.delivery}</a></li>
+            <li><a href={r.shops(lang)} class="no-underline hover:text-mailbox">{s.nav.shops}</a></li>
+            <li><a href={r.coupons(lang)} class="no-underline hover:text-mailbox">{s.nav.coupons}</a></li>
           </ul>
         </nav>
-        <a href={altPath} hreflang={other} lang={other} class="ml-auto text-sm text-mist/90 border border-mist/30 rounded-[var(--radius-chip)] px-2 py-1 no-underline hover:border-mist">{s.langSwitch}</a>
       </div>
+      <nav aria-label={lang === "en" ? "Categories" : "Catégories"} class="border-t border-line">
+        <ul class="wrap flex gap-x-6 overflow-x-auto py-2.5 text-[0.95rem] font-semibold whitespace-nowrap">
+          {cats.map((c) => (
+            <li><a href={r.category(lang, c)} class:list={["no-underline hover:text-mailbox", path.startsWith(r.category(lang, c)) && "text-mailbox"]}>{CATEGORY_SLUGS[c].label[lang]}</a></li>
+          ))}
+          <li class="lg:hidden"><a href={r.deals(lang)} class="no-underline text-mailbox">{s.nav.deals}</a></li>
+          <li class="lg:hidden"><a href={r.delivery(lang)} class="no-underline">{s.nav.delivery}</a></li>
+          <li class="lg:hidden"><a href={r.shops(lang)} class="no-underline">{s.nav.shops}</a></li>
+          <li class="lg:hidden"><a href={r.coupons(lang)} class="no-underline">{s.nav.coupons}</a></li>
+        </ul>
+      </nav>
     </header>
 
     <main id="main" class="flex-1">
       <slot />
     </main>
 
-    <footer class="bg-spruce-deep text-mist/80 text-sm mt-16">
-      <div class="wrap py-10 grid gap-6 md:grid-cols-3">
-        <div>
-          <p class="display text-xl text-mist">{s.siteName}</p>
-          <p class="mt-2">{s.tagline}</p>
+    <footer class="mt-20 bg-ink text-white/80 text-sm">
+      <div class="wrap grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="lg:col-span-1">
+          <a href={r.home(lang)} class="no-underline text-white"><Logo label={s.siteName} /></a>
+          <p class="mt-3">{s.tagline}</p>
+          <p class="mt-3 text-white/60">{s.edition(editionDate)}</p>
         </div>
-        <p class="md:col-span-2">{s.disclosure} {s.footerLegal}</p>
-        <ul class="flex flex-wrap gap-x-5 gap-y-1 md:col-span-3">
-          <li><a class="text-mist/90" href={r.about(lang)}>{lang === "en" ? "How we compare prices" : "Notre méthode"}</a></li>
-          <li><a class="text-mist/90" href={r.guide(lang)}>{s.nav.guide}</a></li>
-          <li><a class="text-mist/90" href={r.cities(lang)}>{s.nav.cities}</a></li>
-        </ul>
+        <div>
+          <p class="display text-xl text-white">{s.nav.catalogue}</p>
+          <ul class="mt-3 space-y-1.5">
+            {cats.map((c) => <li><a href={r.category(lang, c)} class="no-underline hover:underline">{lang === "en" ? `Buy ${CATEGORY_SLUGS[c].label.en.toLowerCase()} online` : `${CATEGORY_SLUGS[c].label.fr} en ligne`}</a></li>)}
+            <li><a href={r.deals(lang)} class="no-underline hover:underline">{s.nav.deals}</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="display text-xl text-white">{s.nav.delivery}</p>
+          <ul class="mt-3 space-y-1.5">
+            {topCities.map((c) => <li><a href={r.city(lang, provSlug(provinceOf(c.province), lang), c.slug)} class="no-underline hover:underline">{lang === "en" ? `Weed delivery ${c.name}` : `Livraison ${cityName(c, lang)}`}</a></li>)}
+            <li><a href={r.delivery(lang)} class="no-underline font-semibold text-white hover:underline">{lang === "en" ? "All cities" : "Toutes les villes"}</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="display text-xl text-white">{lang === "en" ? "Provinces" : "Provinces"}</p>
+          <ul class="mt-3 space-y-1.5">
+            {PROVINCES.map((p) => <li><a href={r.province(lang, provSlug(p, lang))} class="no-underline hover:underline">{provName(p, lang)}</a> <span class="text-white/50 num">{p.age}+</span></li>)}
+          </ul>
+        </div>
+        <div>
+          <p class="display text-xl text-white">{s.nav.shops}</p>
+          <ul class="mt-3 space-y-1.5">
+            {activeShops.map((sh) => <li><a href={r.shop(lang, sh.slug)} class="no-underline hover:underline">{lang === "en" ? `${SHORT_NAME[sh.slug] ?? sh.name} review` : `Avis ${SHORT_NAME[sh.slug] ?? sh.name}`}</a></li>)}
+            <li><a href={r.coupons(lang)} class="no-underline font-semibold text-white hover:underline">{s.nav.coupons}</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-white/15">
+        <div class="wrap grid gap-4 py-6 text-[0.8rem] text-white/65 md:grid-cols-[1fr_auto]">
+          <p>{s.disclosure} {s.footerLegal}</p>
+          <ul class="flex flex-wrap gap-x-5 gap-y-1 md:justify-end">
+            <li><a href={r.about(lang)} class="no-underline hover:underline">{lang === "en" ? "How we compare prices" : "Notre méthode"}</a></li>
+            <li><a href={r.legal(lang)} class="no-underline hover:underline">{lang === "en" ? "Legal notice & privacy" : "Mentions légales et confidentialité"}</a></li>
+            <li><a href={altPath} hreflang={other} lang={other} class="no-underline hover:underline">{s.langSwitch}</a></li>
+          </ul>
+        </div>
       </div>
     </footer>
 
-    <dialog id="age-gate" class="m-auto max-w-md rounded-lg p-0 backdrop:bg-spruce/80" aria-labelledby="age-title">
-      <div class="bg-paper p-6">
-        <p id="age-title" class="display text-3xl">{s.ageTitle}</p>
+    <dialog id="age-gate" class="m-auto max-w-md rounded-[4px] p-0 backdrop:bg-ink/85" aria-labelledby="age-title">
+      <div class="parcel m-0 border-0 p-7">
+        <p id="age-title" class="display text-4xl">{s.ageTitle}</p>
         <p class="mt-3 leading-relaxed">{s.ageBody}</p>
         <div class="mt-6 flex gap-3">
           <button type="button" class="btn-buy" data-age-yes>{s.ageYes}</button>
-          <a class="inline-flex items-center px-3 text-moss" href="https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis.html">{s.ageNo}</a>
+          <a class="inline-flex items-center px-3 text-muted" href="https://www.canada.ca/en/health-canada/services/drugs-medication/cannabis.html">{s.ageNo}</a>
         </div>
       </div>
     </dialog>
-    <script is:inline>
+    <script is:inline define:vars={{ lang, productBase: lang === "en" ? "/product/" : "/fr/produit/", fromLabel: s.from, noHit: lang === "en" ? "No match. Try a shorter word." : "Aucun résultat. Essayez un mot plus court." }}>
       (function () {
+        // Contrôle d'âge (mémorisé dans ce navigateur seulement)
         var ok = false;
         try { ok = localStorage.getItem("bb-age") === "1"; } catch (e) {}
         var d = document.getElementById("age-gate");
@@ -108,6 +175,33 @@ const navItems = [
             d.close();
           });
         }
+        // Recherche instantanée : l'index est chargé au premier focus
+        var form = document.querySelector("[data-search]");
+        if (!form) return;
+        var input = form.querySelector("input"), list = form.querySelector("[data-results]"), index = null, loading = null;
+        function load() { if (!loading) loading = fetch("/search-index.json").then(function (r) { return r.json(); }).then(function (j) { index = j; }); return loading; }
+        function norm(x) { return x.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+        function money(c) { var v = c / 100; var s = v % 1 ? v.toFixed(2) : String(v); return lang === "en" ? "$" + s : s.replace(".", ",") + " $"; }
+        function render() {
+          var q = norm(input.value.trim());
+          if (q.length < 2 || !index) { list.classList.add("hidden"); list.innerHTML = ""; return; }
+          var words = q.split(/\s+/), hits = [];
+          for (var i = 0; i < index.length && hits.length < 12; i++) {
+            var it = index[i], n = it.k;
+            if (words.every(function (w) { return n.indexOf(w) !== -1; })) hits.push(it);
+          }
+          list.innerHTML = hits.length ? hits.map(function (it) {
+            return '<li><a class="flex items-center gap-3 px-3 py-2 no-underline hover:bg-fog" href="' + productBase + it.s + '/">' +
+              '<img src="' + it.i + '" alt="" width="40" height="40" class="size-10 shrink-0 rounded-[2px] bg-fog object-cover" loading="lazy">' +
+              '<span class="min-w-0 flex-1 truncate">' + it.n.replace(/</g, "&lt;") + '</span>' +
+              '<span class="text-xs text-muted">' + fromLabel + ' <b class="text-ink">' + money(it.p) + '</b></span></a></li>';
+          }).join("") : '<li class="px-3 py-2 text-muted">' + noHit + '</li>';
+          list.classList.remove("hidden");
+        }
+        input.addEventListener("focus", load);
+        input.addEventListener("input", function () { load().then(render); });
+        document.addEventListener("click", function (e) { if (!form.contains(e.target)) list.classList.add("hidden"); });
+        input.addEventListener("keydown", function (e) { if (e.key === "Escape") list.classList.add("hidden"); });
       })();
     </script>
   </body>

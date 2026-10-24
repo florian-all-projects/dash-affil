@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS shops (
   priority        INTEGER NOT NULL DEFAULT 50,   -- plus haut = préféré en cas de doublon
   status          TEXT NOT NULL DEFAULT 'active',-- active | paused | dead
   notes           TEXT,
+  scrape_config   TEXT,                          -- JSON, plateforme jsonld : {"discover":"sitemap"|"listing","url":...} (voir scraper/src/jsonld.ts)
   updated_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
@@ -199,4 +200,12 @@ CREATE TABLE IF NOT EXISTS scrape_state (
   attempts         INTEGER NOT NULL DEFAULT 0,
   cycle_started_at TEXT NOT NULL,
   updated_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+
+-- File d'URL des shops collectés par JSON-LD (remplie à la page 1 de chaque cycle)
+CREATE TABLE IF NOT EXISTS scrape_queue (
+  shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  pos     INTEGER NOT NULL,
+  url     TEXT NOT NULL,
+  PRIMARY KEY (shop_id, pos)
 );

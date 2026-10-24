@@ -1,52 +1,175 @@
 ---
 import Base from "../layouts/Base.astro";
-import ProductRow from "../components/ProductRow.astro";
-import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
-import { productsByCategory, categoryStats, exportedAt, type Product } from "../lib/catalog";
-interface Props { lang: Lang; cat: string; page: number; items: Product[]; pages: number }
-const { lang, cat, page, items, pages } = Astro.props;
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ProductCard from "../components/ProductCard.astro";
+import Faq from "../components/Faq.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
+import { productsByCategory, categoryStats, byPopularity, exportedAt, shops } from "../lib/catalog";
+import { PAGE_SIZE } from "../lib/paths";
+import { pageContent } from "../lib/content";
+import { SHORT_NAME } from "../data/shops-content";
+import { title as mkTitle, breadcrumbLd, faqLd, itemListLd } from "../lib/seo";
+
+interface Props { lang: Lang; cat: string; page: number }
+const { lang, cat, page } = Astro.props;
 const s = t[lang];
-const label = CATEGORY_SLUGS[cat].label[lang];
-const st = categoryStats(cat);
-const total = productsByCategory(cat).length;
-const lower = cat === "cbd" ? label : label.toLowerCase();
 const other: Lang = lang === "en" ? "fr" : "en";
-const title = lang === "en"
-  ? `${label} delivered in Canada: ${total} products compared${page > 1 ? `, page ${page}` : ""}`
-  : `${label} : ${total} produits livrés au Canada, prix comparés${page > 1 ? `, page ${page}` : ""}`;
-const lede = st
-  ? (lang === "en"
-      ? `${total} ${lower} products from ${st.shops} online ${st.shops > 1 ? "shops" : "shop"}, sorted by name. Prices start at ${fmtPrice(st.from, lang)} (${st.cheapest.name}).`
-      : `${total} produits (${lower}) chez ${st.shops} ${st.shops > 1 ? "boutiques" : "boutique"} en ligne, triés par nom. Les prix commencent à ${fmtPrice(st.from, lang)} (${st.cheapest.name}).`)
-  : s.noResults;
-const crumbs = [
-  { name: "Budboard", item: r.home(lang) },
-  { name: s.nav.menu, item: r.menu(lang) },
-  { name: label, item: r.category(lang, cat) },
-];
 const site = Astro.site!.toString().replace(/\/$/, "");
-const jsonld = [{ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.name, item: site + c.item })) }];
+const C = CATEGORY_SLUGS[cat];
+const list = productsByCategory(cat).sort(byPopularity);
+const st = categoryStats(cat)!;
+const pages = Math.ceil(list.length / PAGE_SIZE);
+const items = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+const types = ["indica", "sativa", "hybrid"].filter((ty) => list.some((p) => p.strainType === ty));
+const catShops = shops.filter((sh) => st.shopSlugs.includes(sh.slug));
+const content = pageContent("category", cat, lang);
+
+// Requêtes visées : « buy [catégorie] online canada » / « acheter [catégorie] en ligne »
+const NOUNS = {
+  flower: { en: "Weed Flower", fr: "fleurs de cannabis" }, edible: { en: "Edibles", fr: "comestibles au cannabis" },
+  concentrate: { en: "Concentrates", fr: "concentrés de cannabis" }, vape: { en: "Weed Vapes", fr: "vapoteuses au cannabis" },
+  cbd: { en: "CBD Products", fr: "produits au CBD" }, seed: { en: "Cannabis Seeds", fr: "graines de cannabis" },
+  accessory: { en: "Cannabis Accessories", fr: "accessoires de cannabis" }, other: { en: "Cannabis Topicals", fr: "topiques au cannabis" },
+} as const;
+const noun = NOUNS[cat as keyof typeof NOUNS] ?? { en: C.label.en, fr: C.label.fr.toLowerCase() };
+const h1 = lang === "en" ? `Buy ${noun.en} Online in Canada` : `Acheter des ${noun.fr} en ligne au Canada`;
+const pageTitle = lang === "en"
+  ? mkTitle(`Buy ${noun.en} Online in Canada: ${st.count} Products Compared${page > 1 ? `, Page ${page}` : ""}`, `Buy ${noun.en} Online in Canada${page > 1 ? ` (p. ${page})` : ""}`)
+  : mkTitle(`Acheter des ${noun.fr} en ligne au Canada${page > 1 ? `, page ${page}` : ""}`, `${C.label.fr} en ligne au Canada${page > 1 ? ` (p. ${page})` : ""}`);
+const desc = lang === "en"
+  ? `Compare ${st.count} ${noun.en.toLowerCase()} from ${st.shops} Canadian online shops, from ${fmtPrice(st.from, lang)}. Prices checked every week, delivery by mail across Canada.`
+  : `Comparez ${st.count} ${noun.fr} de ${st.shops} boutiques en ligne canadiennes, dès ${fmtPrice(st.from, lang)}. Prix vérifiés chaque semaine, livraison par la poste partout au Canada.`;
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.catalogue, href: r.catalogue(lang) }, { name: C.label[lang] }];
+const jsonld = [
+  breadcrumbLd(site, crumbs),
+  itemListLd(site, h1, items.map((p) => r.product(lang, p.slug))),
+  ...(page === 1 && content?.faq?.length ? [faqLd(content.faq)] : []),
+];
+const pageHref = (n: number) => r.category(lang, cat, n);
 ---
-<Base lang={lang} title={title} description={lede} path={r.category(lang, cat, page)} alt={r.category(other, cat, page)} jsonld={jsonld}>
-  <div class="wrap pt-8">
-    <nav aria-label="Breadcrumb" class="text-sm text-moss"><a href={r.menu(lang)}>{s.nav.menu}</a> / {label}</nav>
-    <h1 class="mt-3 text-5xl md:text-6xl">{label}</h1>
-    <p class="mt-3 max-w-2xl text-moss">{lede}</p>
-    <p class="mt-1 text-xs text-moss">{s.updated(fmtDate(exportedAt, lang))}. {s.disclosure}</p>
-    <ul class="mt-4 flex flex-wrap gap-2 text-sm">
-      {CATEGORY_ORDER.filter((c) => c !== cat && categoryStats(c)).map((c) => (
-        <li><a class="chip px-3 py-1 no-underline hover:bg-leaf hover:text-paper" href={r.category(lang, c)}>{CATEGORY_SLUGS[c].label[lang]}</a></li>
-      ))}
-    </ul>
-    <ul class="mt-6">{items.map((p) => <ProductRow p={p} lang={lang} />)}</ul>
+<Base lang={lang} title={pageTitle} description={desc} path={r.category(lang, cat, page)} alt={r.category(other, cat, page)} jsonld={jsonld}>
+  <div class="band">
+    <div class="wrap py-8">
+      <Breadcrumbs items={crumbs} />
+      <div class="mt-4 grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
+        <div>
+          <h1>{h1}</h1>
+          <p class="lede mt-3">{content?.lead ?? desc}</p>
+        </div>
+        <span class="stamp stamp-lg justify-self-start"><span class="stamp-label">{s.from}</span><span class="stamp-price">{fmtPrice(st.from, lang)}</span></span>
+      </div>
+      <p class="mt-4 text-sm text-muted">{s.productsCount(st.count)}, {s.shopsCount(st.shops)}. {s.updated(fmtDate(exportedAt, lang))}.</p>
+    </div>
+  </div>
+
+  <div class="wrap mt-6">
+    {/* Filtres : le premier rendu est statique ; un filtre recharge la catégorie entière depuis /data/cat-<cat>.json */}
+    <form class="flex flex-wrap items-end gap-4 border-b border-line pb-4" data-filters data-cat={cat} data-lang={lang}>
+      {types.length > 0 && (
+        <label class="text-sm">
+          <span class="block font-semibold">{s.filterType}</span>
+          <select name="type" class="mt-1 rounded-[4px] border border-line bg-white px-2 py-1.5">
+            <option value="">{s.all}</option>
+            {types.map((ty) => <option value={ty}>{s.typeLabel[ty as "indica"]}</option>)}
+          </select>
+        </label>
+      )}
+      {catShops.length > 1 && (
+        <label class="text-sm">
+          <span class="block font-semibold">{s.filterShop}</span>
+          <select name="shop" class="mt-1 rounded-[4px] border border-line bg-white px-2 py-1.5">
+            <option value="">{s.all}</option>
+            {catShops.map((sh) => <option value={sh.slug}>{SHORT_NAME[sh.slug] ?? sh.name}</option>)}
+          </select>
+        </label>
+      )}
+      <label class="text-sm">
+        <span class="block font-semibold">{s.sortBy}</span>
+        <select name="sort" class="mt-1 rounded-[4px] border border-line bg-white px-2 py-1.5">
+          <option value="popular">{s.sort.popular}</option>
+          <option value="priceAsc">{s.sort.priceAsc}</option>
+          <option value="priceDesc">{s.sort.priceDesc}</option>
+          <option value="discount">{s.sort.discount}</option>
+          <option value="name">{s.sort.name}</option>
+        </select>
+      </label>
+      <p class="ml-auto text-sm text-muted" data-count>{s.showing((page - 1) * PAGE_SIZE + 1, (page - 1) * PAGE_SIZE + items.length, list.length)}</p>
+    </form>
+
+    <div class="grid-products mt-6" data-grid>
+      {items.map((p, i) => <ProductCard p={p} lang={lang} eager={i < 4} />)}
+    </div>
+    <button type="button" class="btn-ghost mx-auto mt-8 hidden" data-more>{lang === "en" ? "Show more" : "Afficher plus"}</button>
+
     {pages > 1 && (
-      <nav class="mt-8 flex flex-wrap gap-2" aria-label="Pagination">
+      <nav aria-label={lang === "en" ? "Pagination" : "Pagination"} class="mt-10 flex flex-wrap items-center justify-center gap-2" data-pager>
+        {page > 1 && <a href={pageHref(page - 1)} rel="prev" class="btn-ghost">{s.prev}</a>}
         {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
-          n === page
-            ? <span aria-current="page" class="chip bg-spruce text-paper px-3 py-1.5 num">{n}</span>
-            : <a class="chip px-3 py-1.5 num no-underline hover:bg-leaf hover:text-paper" href={r.category(lang, cat, n)}>{n}</a>
+          n === page ? <span class="min-w-10 rounded-[4px] bg-ink px-3 py-2 text-center font-bold text-white" aria-current="page">{n}</span>
+          : <a href={pageHref(n)} class="min-w-10 rounded-[4px] border border-line px-3 py-2 text-center no-underline hover:border-ink">{n}</a>
         ))}
+        {page < pages && <a href={pageHref(page + 1)} rel="next" class="btn-ghost">{s.next}</a>}
       </nav>
     )}
+
+    {page === 1 && content && (
+      <div class="section grid gap-12 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <article class="prose-bb">
+          {content.sections.map((sec, i) => (<><h2 class:list={[i === 0 && "!mt-0"]}>{sec.h}</h2>{sec.p.map((x) => <p>{x}</p>)}</>))}
+        </article>
+        <aside class="parcel self-start">
+          <p class="parcel-head">{lang === "en" ? `${C.label.en} by shop` : `${C.label.fr} par boutique`}</p>
+          <ul class="space-y-1.5 text-sm">
+            {catShops.map((sh) => {
+              const n = list.filter((p) => p.offers.some((o) => o.shop.slug === sh.slug)).length;
+              return <li class="flex justify-between gap-3"><a href={r.shop(lang, sh.slug)}>{sh.name}</a><span class="num text-muted">{n}</span></li>;
+            })}
+          </ul>
+        </aside>
+      </div>
+    )}
+    {page === 1 && content?.faq && <Faq items={content.faq} title={s.faqTitle} />}
   </div>
+
+  <script is:inline define:vars={{ lang, s: { from: s.from, compareN1: s.compareN(1), compareNx: s.compareN(99), showing: lang === "en" ? "Showing {a} to {b} of {n}" : "Produits {a} à {b} sur {n}", typeLabel: s.typeLabel }, productBase: lang === "en" ? "/product/" : "/fr/produit/", buyAt: lang === "en" ? "Buy at " : "Acheter chez ", short: SHORT_NAME }}>
+    (function () {
+      var form = document.querySelector("[data-filters]");
+      if (!form) return;
+      var grid = document.querySelector("[data-grid]"), more = document.querySelector("[data-more]"), pager = document.querySelector("[data-pager]"), count = document.querySelector("[data-count]");
+      var data = null, shown = 0, rows = [], STEP = 48;
+      function money(c) { var v = c / 100, x = v % 1 ? v.toFixed(2) : String(v); return lang === "en" ? "$" + x : x.replace(".", ",") + " $"; }
+      function esc(x) { return String(x).replace(/[&<>"]/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]; }); }
+      function card(p) {
+        var compare = p.c === 1 ? s.compareN1 : s.compareNx.replace("99", p.c);
+        return '<article class="card"><a href="' + productBase + p.s + '/" class="card-media block" tabindex="-1" aria-hidden="true">' +
+          '<img src="' + p.i + '" alt="" width="600" height="600" loading="lazy"' + (p.k === "shop" ? "" : ' class="cover"') + '>' +
+          (p.d > 0 ? '<span class="absolute left-2 top-2 bg-stamp-green text-white text-xs font-bold px-1.5 py-0.5 rounded-[2px] num">−' + p.d + '%</span>' : "") +
+          '<span class="card-stamp stamp"><span class="stamp-label">' + s.from + '</span><span class="stamp-price">' + money(p.p) + '</span></span></a>' +
+          '<div class="flex flex-1 flex-col gap-2 p-3 pt-5"><h3 class="font-[family-name:var(--font-sans)] text-[0.98rem] font-semibold leading-snug tracking-normal"><a href="' + productBase + p.s + '/" class="no-underline hover:underline">' + esc(p.n) + '</a></h3>' +
+          '<div class="flex flex-wrap gap-1">' + (p.t ? '<span class="chip chip-' + p.t + '">' + s.typeLabel[p.t] + '</span>' : "") + '</div>' +
+          '<p class="mt-auto text-xs text-muted">' + compare + '</p>' +
+          '<a class="btn-buy text-sm w-full" href="' + p.u + '" rel="sponsored nofollow noopener" target="_blank">' + buyAt + esc(short[p.b] || p.bn) + '</a></div></article>';
+      }
+      function apply() {
+        var f = new FormData(form), type = f.get("type") || "", shop = f.get("shop") || "", sort = f.get("sort") || "popular";
+        rows = data.filter(function (p) { return (!type || p.t === type) && (!shop || p.sh.indexOf(shop) !== -1); });
+        var cmp = { popular: function (a, b) { return b.c - a.c || a.p - b.p; }, priceAsc: function (a, b) { return a.p - b.p; }, priceDesc: function (a, b) { return b.p - a.p; },
+          discount: function (a, b) { return b.d - a.d || a.p - b.p; }, name: function (a, b) { return a.n.localeCompare(b.n); } }[sort];
+        rows.sort(cmp);
+        shown = 0; grid.innerHTML = ""; if (pager) pager.hidden = true; page();
+      }
+      function page() {
+        var next = rows.slice(shown, shown + STEP);
+        grid.insertAdjacentHTML("beforeend", next.map(card).join(""));
+        shown += next.length;
+        more.classList.toggle("hidden", shown >= rows.length);
+        count.textContent = s.showing.replace("{a}", rows.length ? 1 : 0).replace("{b}", shown).replace("{n}", rows.length);
+      }
+      form.addEventListener("change", function () {
+        if (data) return apply();
+        fetch("/data/cat-" + form.dataset.cat + ".json").then(function (r) { return r.json(); }).then(function (j) { data = j; apply(); });
+      });
+      more.addEventListener("click", page);
+    })();
+  </script>
 </Base>

@@ -1,0 +1,47 @@
+---
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { t, r, fmtPrice, type Lang } from "../lib/i18n";
+import { activeShops, productsByShop, couponsForShop, products } from "../lib/catalog";
+import { SHOP_INTRO, SHOP_FACTS } from "../data/shops-content";
+import { breadcrumbLd } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const rows = activeShops.map((sh) => {
+  const list = productsByShop(sh.slug);
+  return { sh, n: list.length, from: Math.min(...list.map((p) => p.offers.find((o) => o.shop.slug === sh.slug)!.price)), coupon: couponsForShop(sh.slug)[0], facts: SHOP_FACTS[sh.slug] };
+}).sort((a, b) => b.n - a.n);
+const L = lang === "en"
+  ? { h1: "Online Dispensaries in Canada: Reviews & Comparison", title: `Online Dispensaries in Canada: ${activeShops.length} Shops Compared & Reviewed`, desc: `Reviews of ${activeShops.length} Canadian online dispensaries and seed banks: catalogue size, prices, shipping, payment and promo codes, updated weekly from their own menus.`, lede: `We read each shop's full menu every week. Here is what each one sells, from what price, how it ships and whether a promo code is running. No paid ranking: shops are sorted by catalogue size.`, products: "products", from: "from", review: "Read the review", coupon: "Promo code" }
+  : { h1: "Les boutiques de cannabis en ligne au Canada : avis et comparatif", title: `Les ${activeShops.length} boutiques de cannabis en ligne au Canada comparées`, desc: `Avis sur ${activeShops.length} boutiques en ligne et banques de graines canadiennes : taille du catalogue, prix, livraison, paiement et codes promo, mis à jour chaque semaine.`, lede: `Nous lisons chaque semaine le menu complet de chaque boutique. Voici ce que chacune vend, à partir de quel prix, comment elle livre et si un code promo est actif. Aucun classement payé : les boutiques sont triées par taille de catalogue.`, products: "produits", from: "dès", review: "Lire l'avis", coupon: "Code promo" };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.shops }];
+---
+<Base lang={lang} title={L.title} description={L.desc} path={r.shops(lang)} alt={r.shops(other)} jsonld={[breadcrumbLd(site, crumbs)]}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+    <h1 class="mt-4">{L.h1}</h1>
+    <p class="lede mt-3">{L.lede}</p>
+    <ol class="mt-8 grid gap-4 md:grid-cols-2">
+      {rows.map(({ sh, n, from, coupon, facts }) => (
+        <li class="rounded-[4px] border border-line p-5">
+          <div class="flex items-start justify-between gap-4">
+            <h2 class="!text-3xl"><a href={r.shop(lang, sh.slug)} class="no-underline hover:underline">{sh.name}</a></h2>
+            <span class="stamp"><span class="stamp-label">{L.from}</span><span class="stamp-price">{fmtPrice(from, lang)}</span></span>
+          </div>
+          <p class="mt-1 text-sm text-muted num">{n.toLocaleString(lang === "en" ? "en-CA" : "fr-CA")} {L.products}</p>
+          <p class="mt-3 text-[0.95rem]">{SHOP_INTRO[sh.slug]?.[lang]}</p>
+          {facts?.freeShipping && <p class="mt-2 text-sm">{facts.freeShipping[lang]}</p>}
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <a href={r.shop(lang, sh.slug)} class="btn-ghost text-sm">{L.review}</a>
+            {coupon && <a href={r.coupon(lang, sh.slug)} class="text-sm font-semibold text-mailbox">{L.coupon} {coupon.code}</a>}
+          </div>
+        </li>
+      ))}
+    </ol>
+    <p class="mt-8 text-xs text-muted">{s.disclosure}</p>
+  </div>
+</Base>

@@ -1,25 +1,20 @@
 // Sitemap bilingue (EN/FR) avec annotations hreflang. Le site est en noindex tant que le NDD n'est pas branché :
 // le sitemap est prêt pour l'ouverture, mais robots.txt ne le déclare pas encore.
 import type { APIRoute } from "astro";
-import { r, CATEGORY_ORDER, type Lang } from "../lib/i18n";
-import { products, productsByCategory, shops, productsByShop } from "../lib/catalog";
-import { CITIES, PROVINCES } from "../data/geo";
-
-const PAGE = 50;
+import { r, type Lang } from "../lib/i18n";
+import { products, activeShops } from "../lib/catalog";
+import { PROVINCES, cities, provSlug, provinceOf } from "../lib/geo";
+import { categoryPaths } from "../lib/paths";
 
 export const GET: APIRoute = ({ site }) => {
   const base = site!.toString().replace(/\/$/, "");
-  const pairs: Array<(l: Lang) => string> = [r.home, r.menu, r.cities, r.shops, r.coupons, r.about, r.guide];
-  for (const c of CATEGORY_ORDER) {
-    const n = Math.ceil(productsByCategory(c).length / PAGE);
-    for (let p = 1; p <= n; p++) pairs.push((l) => r.category(l, c, p));
-  }
+  const pairs: Array<(l: Lang) => string> = [r.home, r.catalogue, r.deals, r.delivery, r.shops, r.coupons, r.about, r.legal];
+  for (const { props } of categoryPaths("en", false)) pairs.push((l) => r.category(l, props.cat));
+  for (const { props } of categoryPaths("en", true)) pairs.push((l) => r.category(l, props.cat, props.page));
   for (const p of products) pairs.push((l) => r.product(l, p.slug));
-  for (const c of CITIES) pairs.push((l) => r.city(l, c.slug));
-  for (const p of PROVINCES) pairs.push((l) => r.province(l, p.slug, p.slugFr));
-  for (const s of shops.filter((s) => productsByShop(s.slug).length)) {
-    pairs.push((l) => r.shop(l, s.slug), (l) => r.coupon(l, s.slug));
-  }
+  for (const p of PROVINCES) pairs.push((l) => r.province(l, provSlug(p, l)));
+  for (const c of cities) pairs.push((l) => r.city(l, provSlug(provinceOf(c.province), l), c.slug));
+  for (const s of activeShops) pairs.push((l) => r.shop(l, s.slug), (l) => r.coupon(l, s.slug));
   const urls = pairs.flatMap((f) => {
     const en = base + f("en"), fr = base + f("fr");
     const alt = `<xhtml:link rel="alternate" hreflang="en-CA" href="${en}"/><xhtml:link rel="alternate" hreflang="fr-CA" href="${fr}"/>`;

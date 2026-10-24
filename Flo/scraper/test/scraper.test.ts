@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { affiliateUrl, canonicalKey, categorize, decodeEntities, isExcluded } from "../src/normalize";
+import { findLdProduct, mapLdProduct } from "../src/jsonld";
 import { mapWooProduct, type WooProduct } from "../src/woo";
 import { scrapeShop, type Env } from "../src/index";
 
@@ -220,4 +221,55 @@ test("mode step : un shop bloqué est abandonné après 3 essais sans bloquer le
   assert.deepEqual(seen, ["cbd2heal:ok", "lowpricebud:err", "lowpricebud:err", "lowpricebud:err-abandon"]);
   const failed = d1.raw.prepare("SELECT st.status FROM scrape_state st JOIN shops s ON s.id=st.shop_id WHERE s.slug='lowpricebud'").get() as any;
   assert.equal(failed.status, "failed");
+});
+
+// Fiche Toronto Cannabis Seeds (JSON-LD réel du 24/10/2026, raccourci)
+const ldPage = (name: string, price: string, url: string) => `<html><head>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Toronto Cannabis Seeds"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org/","@type":"Product","name":"${name}",
+"image":["https://torontocannabisseeds.com/resources/image/18/b2/a.jpg"],
+"description":"Bubba Kush feminized seeds: the classic 90% indica, 18–20% THC, coffee-chocolate-earth flavour.",
+"offers":{"@type":"Offer","url":"${url}","priceCurrency":"CAD","price":"${price}","availability":"https://schema.org/InStock"}}</script>
+</head><body></body></html>`;
+
+test("JSON-LD : lecture d'une fiche AbanteCart", () => {
+  const html = ldPage("Bubba Kush Feminized Seeds | 90% Indica, 18–20% THC", "49", "https://torontocannabisseeds.com/bubba-kush-feminized-cannabis-seeds");
+  const p = findLdProduct(html)!;
+  const o = mapLdProduct(p, "https://torontocannabisseeds.com/cannabis-seeds/bubba-kush-feminized-cannabis-seeds", "Graines")!;
+  assert.equal(o.name, "Bubba Kush Feminized Seeds");
+  assert.equal(o.priceCents, 4900);
+  assert.equal(o.category, "seed");
+  assert.equal(o.strainType, "indica");
+  assert.equal(o.productUrl, "https://torontocannabisseeds.com/bubba-kush-feminized-cannabis-seeds");
+  assert.equal(o.sourceId, "/bubba-kush-feminized-cannabis-seeds");
+  assert.equal(findLdProduct("<html><script type='application/ld+json'>{\"@type\":\"BlogPosting\"}</script></html>"), null);
+});
+
+test("mode step JSON-LD : sitemap, file d'URL, fiches par lots", async () => {
+  const d1 = fakeD1();
+  d1.raw.exec("UPDATE shops SET status='paused' WHERE slug != 'qcs'");
+  const env = { DB: d1 as unknown as D1Database };
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const u = String(input);
+    if (u.endsWith("sitemap.xml")) {
+      const locs = ["/", "/blog", "/acapulco-gold-cannabis-seeds-feminized", "/white-widow-cannabis-seeds-feminized", "/best-autoflower-seeds-guide"]
+        .map((p) => `<url><loc>https://quebeccannabisseeds.com${p}</loc></url>`).join("");
+      return new Response(`<urlset>${locs}</urlset>`, { status: 200 });
+    }
+    if (u.includes("acapulco")) return new Response(ldPage("Acapulco Gold Cannabis Seeds Feminized", "60.00", u), { status: 200 });
+    if (u.includes("white-widow")) return new Response(ldPage("White Widow Cannabis Seeds Feminized", "55.00", u), { status: 200 });
+    return new Response("<html><title>QCS</title></html>", { status: 200 });
+  }) as typeof fetch;
+  const actions: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const r = await step(env);
+    actions.push(r.action === "page" ? `page${r.page}${r.done ? "-fin" : ""}` : r.action === "error" ? `err:${r.error}` : r.action);
+    if (r.action === "idle") break;
+  }
+  // Page 1 = énumération (3 URL après exclusions : /, acapulco, white-widow), page 2 = un lot de 8 fiches
+  assert.deepEqual(actions, ["cycle_started", "page1", "page2-fin", "idle"]);
+  const q = d1.raw.prepare("SELECT count(*) AS n FROM scrape_queue").get() as any;
+  assert.equal(q.n, 3);
+  const offers = d1.raw.prepare("SELECT o.price_cents, p.category FROM product_offers o JOIN products p ON p.id=o.product_id ORDER BY o.price_cents").all() as any[];
+  assert.deepEqual(offers.map((o) => [o.price_cents, o.category]), [[5500, "seed"], [6000, "seed"]]);
 });

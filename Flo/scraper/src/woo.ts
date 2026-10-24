@@ -55,7 +55,8 @@ export function mapWooProduct(p: WooProduct, shopCategory: string): ScrapedOffer
   const rawName = p.name ?? "";
   const name = decodeEntities(rawName).replace(/\s+/g, " ").trim();
   const cats = (p.categories ?? []).map((c) => c.slug);
-  const desc = stripHtml(p.short_description || p.description || "");
+  // Résumé + description complète : la matière première des fiches enrichies (THC, effets, arômes…)
+  const desc = [p.short_description, p.description].map((x) => stripHtml(x || "")).filter(Boolean).join("\n\n");
   if (!name || isExcluded(name, cats, desc)) return null;
 
   const pr = p.prices ?? {};
@@ -83,7 +84,7 @@ export function mapWooProduct(p: WooProduct, shopCategory: string): ScrapedOffer
     currency: pr.currency_code || "CAD",
     inStock: p.is_in_stock !== false,
     imageUrl: p.images?.[0]?.src ?? null,
-    descriptionSrc: desc.slice(0, 2000),
+    descriptionSrc: desc.slice(0, 4000),
     weights,
   };
 }

@@ -1,7 +1,0 @@
----
-import ProvincePage from "../../views/ProvincePage.astro";
-import { PROVINCES } from "../../data/geo";
-export function getStaticPaths() { return PROVINCES.map((prov) => ({ params: { prov: prov.slug }, props: { prov } })); }
-const { prov } = Astro.props;
----
-<ProvincePage lang="en" prov={prov} />

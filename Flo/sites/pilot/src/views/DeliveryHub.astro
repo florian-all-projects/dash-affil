@@ -1,0 +1,40 @@
+---
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { t, r, type Lang } from "../lib/i18n";
+import { activeShops } from "../lib/catalog";
+import { PROVINCES, citiesOf, storesOf, stores, cities, cityName, provName, provSlug } from "../lib/geo";
+import { breadcrumbLd } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const other: Lang = lang === "en" ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const L = lang === "en"
+  ? { h1: "Weed Delivery in Canada, City by City", title: "Weed Delivery in Canada: Every City & Province", desc: `Weed delivery in ${cities.length} Canadian cities: online prices from ${activeShops.length} shops, provincial rules and the ${stores.length.toLocaleString("en-CA")} licensed cannabis stores from official registries.`, lede: `Online dispensaries ship by mail everywhere in Canada. Pick your province or city to see the rules that apply, the lowest online prices and the licensed cannabis stores near you.`, stores: "licensed stores", age: "Legal age" }
+  : { h1: "Livraison de cannabis au Canada, ville par ville", title: "Livraison de cannabis au Canada : toutes les villes", desc: `Livraison de cannabis dans ${cities.length} villes canadiennes : prix en ligne de ${activeShops.length} boutiques, règles provinciales et les ${stores.length.toLocaleString("fr-CA")} magasins autorisés des registres officiels.`, lede: `Les boutiques en ligne livrent par la poste partout au Canada. Choisissez votre province ou votre ville pour voir les règles qui s'appliquent, les prix en ligne les plus bas et les magasins de cannabis autorisés près de chez vous.`, stores: "magasins autorisés", age: "Âge légal" };
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.delivery }];
+---
+<Base lang={lang} title={L.title} description={L.desc} path={r.delivery(lang)} alt={r.delivery(other)} jsonld={[breadcrumbLd(site, crumbs)]}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+    <h1 class="mt-4">{L.h1}</h1>
+    <p class="lede mt-3">{L.lede}</p>
+    <div class="mt-10 grid gap-10 md:grid-cols-2 lg:grid-cols-3">
+      {PROVINCES.map((p) => {
+        const list = citiesOf(p.code);
+        const n = storesOf(p.code).length;
+        return (
+          <section class="parcel">
+            <h2 class="parcel-head !text-2xl"><a href={r.province(lang, provSlug(p, lang))} class="no-underline hover:underline">{provName(p, lang)}</a></h2>
+            <p class="text-xs text-muted">{L.age} {p.age}+{n ? `, ${n.toLocaleString(lang === "en" ? "en-CA" : "fr-CA")} ${L.stores}` : ""}</p>
+            <ul class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              {list.map((c) => <li><a href={r.city(lang, provSlug(p, lang), c.slug)}>{cityName(c, lang)}</a></li>)}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  </div>
+</Base>

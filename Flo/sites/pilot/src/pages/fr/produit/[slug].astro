@@ -1,0 +1,7 @@
+---
+import View from "../../../views/ProductPage.astro";
+import { productPaths } from "../../../lib/paths";
+export function getStaticPaths() { return productPaths("fr"); }
+const { slug } = Astro.props;
+---
+<View lang="fr" slug={slug} />

@@ -1,7 +1,7 @@
 ---
-import ShopPage from "../../../views/ShopPage.astro";
-import { shops, productsByShop } from "../../../lib/catalog";
-export function getStaticPaths() { return shops.filter((s) => productsByShop(s.slug).length).map((shop) => ({ params: { shop: shop.slug }, props: { shop } })); }
+import View from "../../../views/ShopPage.astro";
+import { shopPaths } from "../../../lib/paths";
+export function getStaticPaths() { return shopPaths("fr"); }
 const { shop } = Astro.props;
 ---
-<ShopPage lang="fr" shop={shop} mode="shop" />
+<View lang="fr" shop={shop} />
