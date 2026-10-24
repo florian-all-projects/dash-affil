@@ -1,5 +1,6 @@
 # Archive condensée du JOURNAL (1 ligne par entrée, plus récentes en haut)
 
+- 15/06 — CBD2GO : lien affilié récupéré https://cbd2go.co/ref/10651/ (identifiants dans secrets.enc), 5 liens actifs avec Get Kush, BMWO, Ganja West, Low Price Bud. data.csv, dashboard et secrets.enc mis à jour.
 - 15/06 — The High Club : inscrit au programme Ambassador (3 % à vie, cookie 7 j, EMT), en attente d'approbation, identifiants dans secrets.enc. CBD2GO : candidature acceptée (espace cbd2go.co/affiliate-area/). data.csv, dashboard et secrets.enc mis à jour.
 - 12/06 — Cloudflare débloqués par Florian → LIENS RÉCUPÉRÉS : Ganja West https://ganjawest.co?ref=73813 (7,5%) et Low Price Bud https://lowpricebud.co/?ref=michellelanoy.
 - 12/06 — BMWO : LIEN AFFILIÉ RÉCUPÉRÉ (session active dans l'affiliate area) → ajouté au dashboard + secrets.enc Emails : tout vérifié (boîte + spam).

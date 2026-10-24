@@ -135,7 +135,9 @@ await Promise.all(Array.from({ length: 8 }, async () => {
     } catch (e) { console.error("échec", j.type, j.key, String(e).slice(0, 200)); }
   }
 }));
-console.log(`terminé : ${done}/${todo.length}, ${inTok} + ${outTok} jetons ≈ ${((inTok * 2 + outTok * 8) / 1e6).toFixed(2)} $`);
+// Tarifs OpenAI ($ par million de jetons, entrée / sortie) : gpt-4.1 = 2 / 8, gpt-4.1-mini = 0,4 / 1,6
+const [pin, pout] = MODEL.includes("mini") ? [0.4, 1.6] : [2, 8];
+console.log(`terminé : ${done}/${todo.length}, ${inTok} + ${outTok} jetons ≈ ${((inTok * pin + outTok * pout) / 1e6).toFixed(2)} $`);
 
 // SQL : une ligne par (page, langue) ; entity_id = empreinte numérique de « type:clé », la clé est gardée dans le corps
 const esc = (s: string) => `'${s.replace(/'/g, "''")}'`;
