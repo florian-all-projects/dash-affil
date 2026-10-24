@@ -1,12 +1,16 @@
 ---
-// Fiche boutique (« avis ») : uniquement des faits relevés (catalogue, prix, conditions publiées) + texte généré à partir de ces faits.
+// Fiche boutique (« avis ») : faits relevés seulement. Fiche d'identité, indice de prix face aux autres boutiques sur les
+// mêmes produits, répartition du catalogue, conditions publiées, codes promo, catalogue complet filtrable, guide et FAQ.
 import Base from "../layouts/Base.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
-import ProductCard from "../components/ProductCard.astro";
+import Explorer from "../components/Explorer.astro";
 import Faq from "../components/Faq.astro";
+import GuideBlocks from "../components/GuideBlocks.astro";
+import HBars from "../components/viz/HBars.astro";
 import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
-import { shops, productsByShop, couponsForShop, showcase, exportedAt } from "../lib/catalog";
+import { shops, productsByShop, couponsForShop, couponLabel, exportedAt, byPopularity } from "../lib/catalog";
 import { pageContent } from "../lib/content";
+import { median } from "../lib/stats";
 import { SHORT_NAME, SHOP_INTRO, SHOP_FACTS } from "../data/shops-content";
 import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
 
@@ -14,28 +18,60 @@ interface Props { lang: Lang; shop: string }
 const { lang, shop } = Astro.props;
 const sh = shops.find((x) => x.slug === shop)!;
 const s = t[lang];
-const other: Lang = lang === "en" ? "fr" : "en";
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
 const site = Astro.site!.toString().replace(/\/$/, "");
 const price = (c: number) => fmtPrice(c, lang);
-const list = productsByShop(shop);
-const own = (p: (typeof list)[number]) => p.offers.find((o) => o.shop.slug === shop)!;
+const nf = (n: number) => n.toLocaleString(en ? "en-CA" : "fr-CA");
+const list = productsByShop(shop).sort(byPopularity);
+const own = (p: (typeof list)[number]) => p.offers.filter((o) => o.shop.slug === shop).sort((a, b) => a.price - b.price)[0];
 const prices = list.map((p) => own(p).price);
 const cats = CATEGORY_ORDER.map((c) => ({ c, n: list.filter((p) => p.category === c).length })).filter((x) => x.n);
-const cheapestHere = list.filter((p) => p.offers[0].shop.slug === shop).length;
-const shared = list.filter((p) => p.shopCount > 1).length;
-const top = showcase(list, 12);
+const sharedList = list.filter((p) => p.shopCount > 1);
+const cheapestHere = sharedList.filter((p) => p.offers[0].shop.slug === shop || own(p).price === p.from).length;
+// Indice de prix : sur les produits vendus aussi ailleurs, écart au MÊME poids entre le prix ici et le meilleur prix
+// des autres boutiques (format commun le plus répandu) ; produits sans formats : prix unique comparé tel quel
+const PREF = [3.5, 28, 7, 14, 1];
+const gaps = sharedList.flatMap((p) => {
+  const rows = p.formats.filter((f) => f.offers.some((o) => o.shop.slug === shop) && f.offers.some((o) => o.shop.slug !== shop))
+    .sort((a, b) => b.offers.length - a.offers.length || (PREF.indexOf(a.grams) + 99) % 99 - (PREF.indexOf(b.grams) + 99) % 99);
+  if (rows.length) {
+    const f = rows[0], mine = f.offers.find((o) => o.shop.slug === shop)!.price, best = Math.min(...f.offers.filter((o) => o.shop.slug !== shop).map((o) => o.price));
+    return [Math.round((mine / best - 1) * 100)];
+  }
+  if (p.offers.every((o) => !o.variants.length)) {
+    const others = p.offers.filter((o) => o.shop.slug !== shop).map((o) => o.price);
+    return [Math.round((own(p).price / Math.min(...others) - 1) * 100)];
+  }
+  return [];
+});
+const medGap = median(gaps);
 const coupons = couponsForShop(shop);
 const facts = SHOP_FACTS[shop];
 const content = pageContent("shop", shop, lang);
 const short = SHORT_NAME[shop] ?? sh.name;
-const L = lang === "en"
-  ? { h1: `${sh.name} Review`, kicker: "Prices, catalogue, delivery and promo codes", title: mkTitle(`${sh.name} Review: Prices, Delivery & Promo Codes`, `${sh.name} Review & Promo Codes`), desc: `${sh.name} review: ${list.length} products from ${price(Math.min(...prices))}, ${facts?.shipping?.en ?? "delivery across Canada"} Prices compared with other online dispensaries every week.`, sheet: "Shop sheet", products: "Products in stock", range: "Price range", cheapest: "Cheapest shop for", sharedL: "Products also sold elsewhere", ship: "Shipping", free: "Free shipping", pay: "Payment", aff: "Affiliate link", lifetime: "Yes, commission for life on referred customers", catsT: `What ${short} sells`, topT: `Popular at ${short}`, couponT: `${short} promo codes`, visit: `Visit ${short}`, source: "Delivery and payment terms read on the shop's site", none: "Not published", all: "See all" }
-  : { h1: `Avis ${sh.name}`, kicker: "Prix, catalogue, livraison et codes promo", title: mkTitle(`Avis ${sh.name} : prix, livraison et codes promo`, `Avis ${sh.name} et codes promo`), desc: `Avis ${sh.name} : ${list.length} produits dès ${price(Math.min(...prices))}, ${facts?.shipping?.fr ?? "livraison partout au Canada"} Prix comparés chaque semaine avec les autres boutiques en ligne.`, sheet: "Fiche boutique", products: "Produits en stock", range: "Fourchette de prix", cheapest: "Boutique la moins chère pour", sharedL: "Produits vendus aussi ailleurs", ship: "Envoi", free: "Livraison gratuite", pay: "Paiement", aff: "Lien affilié", lifetime: "Oui, commission à vie sur les clients recommandés", catsT: `Ce que vend ${short}`, topT: `Les produits populaires chez ${short}`, couponT: `Codes promo ${short}`, visit: `Visiter ${short}`, source: "Conditions de livraison et de paiement lues sur le site de la boutique", none: "Non publié", all: "Tout voir" };
+const nSale = list.filter((p) => own(p).compareAt && own(p).compareAt! > own(p).price).length;
+const ppgs = list.map((p) => p.ppg).filter((v): v is number => !!v);
+const L = en
+  ? { h1: `${sh.name} Review`, kicker: "Prices, catalogue, delivery and promo codes", title: mkTitle(`${sh.name} Review: Prices, Delivery & Promo Codes`, `${sh.name} Review & Promo Codes`), desc: `${sh.name} review: ${list.length} products from ${price(Math.min(...prices))}. Delivery terms, payment, promo codes and how its prices compare with other online shops, checked every week.`, sheet: "Shop sheet", ship: "Shipping", free: "Free shipping", pay: "Payment", visit: `Visit ${short}`, source: "Terms read on the shop's site", none: "Not published" }
+  : { h1: `Avis ${sh.name}`, kicker: "Prix, catalogue, livraison et codes promo", title: mkTitle(`Avis ${sh.name} : prix, livraison et codes promo`, `Avis ${sh.name} et codes promo`), desc: `Avis ${sh.name} : ${list.length} produits dès ${price(Math.min(...prices))}. Conditions de livraison, paiement, codes promo et comparaison de ses prix avec les autres boutiques, vérifiés chaque semaine.`, sheet: "Fiche boutique", ship: "Envoi", free: "Livraison gratuite", pay: "Paiement", visit: `Visiter ${short}`, source: "Conditions lues sur le site de la boutique", none: "Non publié" };
+const tiles = [
+  { label: en ? "Products in stock" : "Produits en stock", value: nf(list.length), note: `${cats.length} ${en ? "aisles" : "rayons"}` },
+  { label: en ? "Price range" : "Fourchette de prix", value: `${price(Math.min(...prices))}`, note: `${en ? "to" : "à"} ${price(Math.max(...prices))}` },
+  ...(ppgs.length >= 10 ? [{ label: en ? "Median price per gram" : "Prix médian au gramme", value: `${price(median(ppgs)!)}/g`, note: null }] : []),
+  { label: en ? "On sale" : "En promotion", value: nf(nSale), note: null },
+].slice(0, 4);
 const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.shops, href: r.shops(lang) }, { name: sh.name }];
 const jsonld = [
   breadcrumbLd(site, crumbs),
   { "@context": "https://schema.org", "@type": "OnlineStore", name: sh.name, url: `https://${sh.domain}/` },
   ...(content?.faq?.length ? [faqLd(content.faq)] : []),
+];
+const gapLabel = (g: number) => g === 0 ? (en ? "same price" : "même prix") : g < 0 ? (en ? `${-g}% cheaper` : `${-g} % moins cher`) : (en ? `${g}% dearer` : `${g} % plus cher`);
+const buckets = [
+  { label: en ? "Cheaper here" : "Moins cher ici", n: gaps.filter((g) => g < 0).length, color: "var(--color-stamp-green)" },
+  { label: en ? "Same price" : "Même prix", n: gaps.filter((g) => g === 0).length, color: "var(--color-series-1)" },
+  { label: en ? "Cheaper elsewhere" : "Moins cher ailleurs", n: gaps.filter((g) => g > 0).length, color: "var(--color-series-2)" },
 ];
 ---
 <Base lang={lang} title={L.title} description={L.desc} path={r.shop(lang, shop)} alt={r.shop(other, shop)} jsonld={jsonld}>
@@ -47,17 +83,17 @@ const jsonld = [
         <p class="display mt-2 text-2xl text-mailbox">{L.kicker}</p>
         <p class="lede mt-4">{content?.lead ?? SHOP_INTRO[shop]?.[lang]}</p>
         <a href={sh.affiliate_url ?? `https://${sh.domain}/`} rel="sponsored nofollow noopener" target="_blank" class="btn-buy mt-6 px-6 py-3">{L.visit}</a>
+        <div class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {tiles.map((x) => <div class="tile"><p class="tile-label">{x.label}</p><p class="tile-value">{x.value}</p>{x.note && <p class="tile-note">{x.note}</p>}</div>)}
+        </div>
       </div>
       <div class="parcel self-start">
         <p class="parcel-head">{L.sheet}</p>
         <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-          <dt class="font-semibold">{L.products}</dt><dd class="num">{list.length}</dd>
-          <dt class="font-semibold">{L.range}</dt><dd class="num">{price(Math.min(...prices))} – {price(Math.max(...prices))}</dd>
-          <dt class="font-semibold">{L.cheapest}</dt><dd class="num">{cheapestHere} {lang === "en" ? "products" : "produits"}</dd>
-          <dt class="font-semibold">{L.sharedL}</dt><dd class="num">{shared}</dd>
           <dt class="font-semibold">{L.ship}</dt><dd>{facts?.shipping?.[lang] ?? <span class="text-muted">{L.none}</span>}</dd>
           <dt class="font-semibold">{L.free}</dt><dd>{facts?.freeShipping?.[lang] ?? <span class="text-muted">{L.none}</span>}</dd>
           <dt class="font-semibold">{L.pay}</dt><dd>{facts?.payment?.[lang] ?? <span class="text-muted">{L.none}</span>}</dd>
+          {coupons.length > 0 && <><dt class="font-semibold">{en ? "Promo code" : "Code promo"}</dt><dd><a href={r.coupon(lang, shop)} class="display text-xl font-extrabold tracking-wide text-mailbox no-underline">{coupons[0].code}</a> <span class="text-xs">{couponLabel(coupons[0], lang)}</span></dd></>}
         </dl>
         <p class="mt-3 text-xs text-muted">{s.updated(fmtDate(exportedAt, lang))}. {facts && <>{L.source} (<a href={facts.source} rel="nofollow noopener">{new URL(facts.source).hostname}</a>).</>}</p>
       </div>
@@ -65,35 +101,37 @@ const jsonld = [
   </section>
 
   <div class="wrap">
-    <section class="section">
-      <h2>{L.catsT}</h2>
-      <ul class="mt-5 flex flex-wrap gap-2">
-        {cats.map(({ c, n }) => <li><a href={r.category(lang, c)} class="btn-ghost text-sm">{CATEGORY_SLUGS[c].label[lang]} <span class="ml-1 text-muted num">{n}</span></a></li>)}
-      </ul>
-    </section>
-
-    {coupons.length > 0 && (
-      <section class="section">
-        <div class="parcel max-w-2xl">
-          <p class="parcel-head">{L.couponT}</p>
-          <ul class="space-y-2">{coupons.map((c) => <li><b class="display text-2xl tracking-wide">{c.code}</b> <span class="text-sm">{c.description}</span></li>)}</ul>
-          <a href={r.coupon(lang, shop)} class="mt-3 inline-block text-sm font-semibold text-mailbox">{L.all}</a>
+    <section class="mt-10 grid gap-6 lg:grid-cols-2">
+      {gaps.length >= 5 ? (
+        <div class="panel">
+          <h2 class="panel-title">{en ? `Is ${short} cheaper?` : `${short} est-elle moins chère ?`}</h2>
+          <p class="panel-sub">{en ? `${nf(gaps.length)} products are also sold by another shop in the same weight. Price here versus the best price elsewhere, same weight.` : `${nf(gaps.length)} produits sont aussi vendus par une autre boutique dans le même poids. Prix ici face au meilleur prix ailleurs, à poids égal.`}</p>
+          <p class="mt-4 font-[family-name:var(--font-display)] text-3xl font-extrabold">{medGap !== null && gapLabel(medGap)}</p>
+          <p class="text-sm text-muted">{en ? "median gap on shared products" : "écart médian sur les produits en commun"}</p>
+          <div class="mt-4 flex h-6 w-full gap-[2px] overflow-hidden rounded-[4px]" role="img" aria-label={buckets.map((b) => `${b.label} ${b.n}`).join(", ")}>
+            {buckets.filter((b) => b.n).map((b) => <span style={`width:${(b.n / gaps.length) * 100}%;background:${b.color}`} title={`${b.label} : ${b.n}`}></span>)}
+          </div>
+          <ul class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">{buckets.map((b) => <li class="inline-flex items-center gap-1.5"><span class="size-2.5 rounded-full" style={`background:${b.color}`}></span>{b.label} <b class="num">{b.n}</b></li>)}</ul>
         </div>
-      </section>
-    )}
-
-    <section class="section">
-      <h2>{L.topT}</h2>
-      <div class="grid-products mt-6">{top.map((p) => <ProductCard p={p} lang={lang} showCategory />)}</div>
+      ) : (
+        <div class="panel">
+          <h2 class="panel-title">{en ? `Is ${short} cheaper?` : `${short} est-elle moins chère ?`}</h2>
+          <p class="mt-3 text-sm">{en ? `${short} sells products that few other shops in the catalogue carry, so its prices can rarely be compared like for like. Compare by price per gram in each aisle instead.` : `${short} vend des produits que peu d'autres boutiques du catalogue proposent : ses prix se comparent rarement à produit égal. Comparez plutôt le prix au gramme dans chaque rayon.`}</p>
+          <p class="mt-3 text-sm"><b class="num">{cheapestHere}</b> {en ? "products are cheapest here." : "produits sont les moins chers ici."}</p>
+        </div>
+      )}
+      <div class="panel">
+        <h2 class="panel-title">{en ? `What ${short} sells` : `Ce que vend ${short}`}</h2>
+        <div class="mt-4"><HBars ariaLabel={en ? "Products by aisle" : "Produits par rayon"} rows={cats.sort((a, b) => b.n - a.n).map((x) => ({ label: CATEGORY_SLUGS[x.c].label[lang], value: x.n, display: nf(x.n), href: `${r.shop(lang, shop)}?cat=${x.c}#catalogue` }))} /></div>
+      </div>
     </section>
 
-    {content && (
-      <section class="section">
-        <article class="prose-bb">
-          {content.sections.map((sec, i) => (<><h2 class:list={[i === 0 && "!mt-0"]}>{sec.h}</h2>{sec.p.map((x) => <p>{x}</p>)}</>))}
-        </article>
-      </section>
-    )}
+    <section id="catalogue" class="section">
+      <h2>{en ? `The ${short} catalogue` : `Le catalogue ${short}`}</h2>
+      <Explorer lang={lang} list={list} dataUrl={list.length > 300 ? `/data/shop-${shop}.json` : undefined} showCategory hide={["shop"]} />
+    </section>
+
+    {content && <GuideBlocks sections={content.sections} lang={lang} title={en ? `${short} in detail` : `${short} en détail`} />}
     {content?.faq && <Faq items={content.faq} title={s.faqTitle} />}
     <p class="mt-10 text-xs text-muted">{s.disclosure}</p>
   </div>

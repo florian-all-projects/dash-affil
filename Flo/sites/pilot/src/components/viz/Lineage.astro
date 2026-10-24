@@ -1,0 +1,33 @@
+---
+// Schéma génétique : parents -> variété, à partir de la génétique publiée par le shop (« Sunset Sherbet x Thin Mint GSC »).
+interface Props { lineage: string; name: string; indicaPct: number | null; lang: "en" | "fr" }
+const { lineage, name, indicaPct, lang } = Astro.props;
+const parents = lineage
+  .replace(/\b(cross(ed)? (of|between)|croisement (de|entre)|a cross of|bred from|issue de)\b/gi, "")
+  .split(/\s+(?:x|×|and|et|&)\s+|\s*[×]\s*|,\s*/i)
+  .map((s) => s.replace(/^[\s.(]+|[\s.)]+$/g, "").trim())
+  .filter((s) => s.length > 1 && s.length < 48)
+  .slice(0, 3);
+const short = name.replace(/\s*\([^)]*\)/g, "").replace(/\b(A{2,5}\+?)\b/g, "").replace(/\s+/g, " ").trim();
+---
+{parents.length >= 1 && (
+  <div class="flex flex-col items-center gap-0" role="img" aria-label={`${lang === "en" ? "Genetics" : "Génétique"} : ${parents.join(" × ")} → ${short}`}>
+    <div class="flex flex-wrap justify-center gap-3">
+      {parents.map((p) => <span class="rounded-[4px] border-2 border-dashed border-kraft bg-kraft-light px-3 py-1.5 text-sm font-semibold">{p}</span>)}
+    </div>
+    <svg width="160" height="34" viewBox="0 0 160 34" aria-hidden="true">
+      {parents.length > 1 ? (<><path d="M30 2 V12 H130 V2" fill="none" stroke="#c9a06b" stroke-width="2" /><path d="M80 12 V32" stroke="#c9a06b" stroke-width="2" /></>) : <path d="M80 2 V32" stroke="#c9a06b" stroke-width="2" />}
+      <path d="M74 26 L80 33 L86 26" fill="none" stroke="#c9a06b" stroke-width="2" />
+    </svg>
+    <span class="rounded-[4px] bg-ink px-4 py-2 font-[family-name:var(--font-display)] text-xl font-extrabold text-white">{short}</span>
+    {indicaPct !== null && (
+      <div class="mt-4 w-full max-w-sm">
+        <div class="flex h-4 w-full gap-[2px] overflow-hidden rounded-[4px]" title={`Indica ${indicaPct}% / Sativa ${100 - indicaPct}%`}>
+          {indicaPct > 0 && <span class="h-full bg-indica" style={`width:${indicaPct}%`}></span>}
+          {indicaPct < 100 && <span class="h-full bg-sativa" style={`width:${100 - indicaPct}%`}></span>}
+        </div>
+        <div class="mt-1.5 flex justify-between text-xs"><span class="inline-flex items-center gap-1"><span class="size-2.5 rounded-full bg-indica"></span>Indica <b class="num">{indicaPct}%</b></span><span class="inline-flex items-center gap-1">Sativa <b class="num">{100 - indicaPct}%</b><span class="size-2.5 rounded-full bg-sativa"></span></span></div>
+      </div>
+    )}
+  </div>
+)}

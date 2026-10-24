@@ -2,7 +2,7 @@
 import Base from "../layouts/Base.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import { t, r, fmtDate, type Lang } from "../lib/i18n";
-import { activeShops, couponsForShop, deals, exportedAt } from "../lib/catalog";
+import { activeShops, couponsForShop, couponLabel, deals, exportedAt } from "../lib/catalog";
 import { SHOP_FACTS } from "../data/shops-content";
 import { breadcrumbLd } from "../lib/seo";
 
@@ -29,7 +29,7 @@ const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.co
         return (
           <li class="parcel flex flex-col">
             <p class="parcel-head">{sh.name}</p>
-            {c.length ? c.map((x) => <p><b class="display text-2xl tracking-wide">{x.code}</b> <span class="text-sm">{x.description}</span></p>) : <p class="text-sm text-muted">{L.noCode}</p>}
+            {c.length ? c.map((x) => <p><b class="display text-2xl tracking-wide">{x.code}</b> <span class="text-sm">{couponLabel(x, lang)}{x.verified ? "" : (lang === "en" ? " (not verified)" : " (non vérifié)")}</span></p>) : <p class="text-sm text-muted">{L.noCode}</p>}
             {f?.freeShipping && <p class="mt-2 text-sm">{f.freeShipping[lang]}</p>}
             <a href={r.coupon(lang, sh.slug)} class="mt-auto pt-3 text-sm font-semibold text-mailbox">{L.see}</a>
           </li>

@@ -7,4 +7,5 @@ src/data/generated/
 
 # Photos des shops (retéléchargeables, non versionnées)
 public/img/s/
+public/img/s2/
 .cache/

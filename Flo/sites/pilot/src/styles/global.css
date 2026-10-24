@@ -4,7 +4,7 @@
   Budboard : identité « catalogue postal » (voir DESIGN.md).
   Le catalogue de vente par correspondance du cannabis au Canada, réédité chaque semaine.
 */
-@theme {
+@theme static {
   --color-ink: #1c2541;
   --color-ink-soft: #3a4566;
   --color-mailbox: #b3261e;
@@ -22,6 +22,12 @@
   --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Big Shoulders Display", "Arial Narrow", ui-sans-serif, sans-serif;
   --radius-card: 4px;
+  /* Graphiques : palette catégorielle validée (dataviz, daltonisme OK ; l'aqua s'accompagne toujours d'un libellé ou d'un tableau) */
+  --color-series-1: #3a5fb0;
+  --color-series-2: #c2410c;
+  --color-series-3: #1baf7a;
+  --color-series-4: #7c5ccf;
+  --color-track: #e8eaef;
 }
 
 @layer base {
@@ -127,6 +133,44 @@
   .table-bb td { padding: 0.65rem 0.6rem; border-bottom: 1px solid var(--color-line); vertical-align: middle; }
 
   .band { background: var(--color-fog); }
+  /* Modules d'information (fiches, villes, catégories) */
+  .panel { border: 1px solid var(--color-line); border-radius: var(--radius-card); background: #fff; padding: 1.1rem 1.2rem; }
+  .panel-title { font-family: var(--font-display); font-weight: 800; font-size: 1.45rem; line-height: 1.1; }
+  .panel-sub { font-size: 0.82rem; color: var(--color-muted); margin-top: 0.15rem; }
+  .tile { border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 0.8rem 0.9rem; background: #fff; }
+  .tile-label { font-size: 0.78rem; color: var(--color-muted); }
+  .tile-value { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 0.15rem; }
+  .tile-note { font-size: 0.75rem; color: var(--color-muted); margin-top: 0.15rem; }
+  .bar-track { position: relative; height: 16px; background: var(--color-track); border-radius: 0 4px 4px 0; }
+  .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--color-series-1); border-radius: 0 4px 4px 0; }
+  .bar-fill.is-best { background: var(--color-stamp-green); }
+  .check-list li { position: relative; padding-left: 1.6rem; }
+  .check-list li + li { margin-top: 0.45rem; }
+  .check-list li::before { content: ""; position: absolute; left: 0; top: 0.35rem; width: 0.95rem; height: 0.95rem; border: 2px solid var(--color-stamp-green); border-radius: 2px; }
+  .check-list li::after { content: ""; position: absolute; left: 0.3rem; top: 0.42rem; width: 0.35rem; height: 0.6rem; border: solid var(--color-stamp-green); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  /* Moteur de filtres (Explorer.astro) */
+  .facet { border-bottom: 1px solid var(--color-line); padding: 0.85rem 0; }
+  .facet:first-of-type { padding-top: 0; }
+  details.facet > summary { cursor: pointer; list-style: none; font-weight: 600; font-size: 0.92rem; position: relative; padding-right: 1.5rem; }
+  details.facet > summary::-webkit-details-marker { display: none; }
+  details.facet > summary::after { content: "+"; position: absolute; right: 0.1rem; top: -0.1rem; color: var(--color-mailbox); font-size: 1.15rem; }
+  details.facet[open] > summary::after { content: "−"; }
+  .facet-list { margin-top: 0.55rem; max-height: 22rem; overflow-y: auto; padding-right: 0.25rem; }
+  .facet-opt { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.55rem; padding: 0.28rem 0; font-size: 0.9rem; cursor: pointer; }
+  .facet-opt input { width: 1.05rem; height: 1.05rem; accent-color: var(--color-ink); }
+  .facet-opt.is-empty { opacity: 0.45; }
+  .facet-n { font-size: 0.78rem; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+  .chip-active { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 999px; background: var(--color-ink); color: #fff; font-size: 0.82rem; font-weight: 600; padding: 0.25rem 0.7rem; }
+  .chip-active:hover { background: var(--color-mailbox); }
+  .seg { border: 1px solid var(--color-line); border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.85rem; background: #fff; }
+  .seg[aria-pressed="true"] { background: var(--color-ink); border-color: var(--color-ink); color: #fff; font-weight: 600; }
+  .card-facts { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; font-size: 0.82rem; color: var(--color-ink-soft); }
+  @media (max-width: 63.99rem) {
+    .explorer-panel { position: fixed; inset: 0; z-index: 60; background: #fff; overflow-y: auto; padding: 1rem 1rem 0; visibility: hidden; transform: translateY(100%); transition: transform 0.22s ease, visibility 0s linear 0.22s; }
+    .explorer-panel.is-open { visibility: visible; transform: none; transition: transform 0.22s ease; }
+  }
+  @media (min-width: 64rem) { .explorer-panel { position: sticky; top: 1rem; align-self: start; max-height: calc(100vh - 2rem); overflow-y: auto; padding-right: 0.5rem; } }
+  @media (prefers-reduced-motion: reduce) { .explorer-panel, .explorer-panel.is-open { transition: none; } }
   /* Place pour la barre d'achat fixe des fiches produits sur mobile */
   @media (max-width: 63.99rem) { body:has(.mobile-buybar) { padding-bottom: 4.25rem; } }
   .section { margin-top: 4rem; }

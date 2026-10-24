@@ -1,69 +1,146 @@
 ---
+// Fiche produit : des modules d'information (prix par format, au gramme, par shop, historique, position dans la catégorie,
+// génétique, dégustation, culture ou dosage selon la catégorie, liste avant commande, comparateur), le texte long replié.
 import Base from "../layouts/Base.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import ProductCard from "../components/ProductCard.astro";
 import Faq from "../components/Faq.astro";
+import HBars from "../components/viz/HBars.astro";
+import RangeMarker from "../components/viz/RangeMarker.astro";
+import PriceHistory from "../components/viz/PriceHistory.astro";
+import Lineage from "../components/viz/Lineage.astro";
 import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
-import { productBySlug, related, exportedAt, couponsForShop, fallbackText } from "../lib/catalog";
+import { productBySlug, related, similar, peers, ppgValues, thcValues, strainOf, exportedAt, couponsForShop, fallbackText } from "../lib/catalog";
 import { SHORT_NAME, SHOP_FACTS } from "../data/shops-content";
+import { subtypeLabel } from "../lib/explore";
 import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
 
 interface Props { lang: Lang; slug: string }
 const { lang, slug } = Astro.props;
 const p = productBySlug.get(slug)!;
 const s = t[lang];
-const other: Lang = lang === "en" ? "fr" : "en";
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
 const price = (c: number) => fmtPrice(c, lang);
+const perG = (c: number) => `${price(c)}/g`;
+const num = (x: number) => x.toLocaleString(en ? "en-CA" : "fr-CA", { maximumFractionDigits: 1 });
 const site = Astro.site!.toString().replace(/\/$/, "");
 const cat = CATEGORY_SLUGS[p.category];
 const text = p.text?.[lang] ?? fallbackText(p, lang, price);
 const f = p.facts;
 const typeLabel = p.strainType ? s.typeLabel[p.strainType as "indica"] : null;
-const shopShort = (slug: string, name: string) => SHORT_NAME[slug] ?? name;
-const primaryName = shopShort(p.primary.shop.slug, p.primary.shop.name);
+const shortName = (sl: string, n: string) => SHORT_NAME[sl] ?? n;
+const primaryName = shortName(p.primary.shop.slug, p.primary.shop.name);
 const buyLabel = p.primary.price > p.from ? s.buyAtPrice(primaryName, price(p.primary.price)) : s.buyAt(primaryName);
 const facts = SHOP_FACTS[p.primary.shop.slug];
 const coupons = couponsForShop(p.primary.shop.slug);
+const strain = strainOf(p);
+const peerList = peers(p);
+const peerPpg = ppgValues(peerList);
+const peerThc = thcValues(peerList);
+const ppgRank = p.ppg && peerPpg.length >= 20 ? Math.round((peerPpg.filter((v) => v > p.ppg!).length / peerPpg.length) * 100) : null;
+const thcTop = p.thc?.[1] ?? null;
+const sim = similar(p, 5);
 const rel = related(p, 8);
+const bestFormat = p.formats.length ? p.formats.reduce((a, b) => (b.ppg < a.ppg ? b : a)) : null;
+const smallest = p.formats[0] ?? null;
+const freeMatch = facts?.freeShipping?.en.match(/\$(\d+)/);
+const freeAt = freeMatch ? Number(freeMatch[1]) * 100 : null;
+const weeks = f?.flowering_time ? [...f.flowering_time.matchAll(/(\d+)/g)].map((m) => Number(m[1])) : [];
+const flowerWeeks = weeks.length && /week|semaine/i.test(f!.flowering_time!) ? [Math.min(...weeks), Math.max(...weeks)] : weeks.length && /day|jour/i.test(f!.flowering_time!) ? [Math.round(Math.min(...weeks) / 7), Math.round(Math.max(...weeks) / 7)] : null;
+const per10mg = p.mgTotal && p.category === "edible" ? Math.round(p.from / (p.mgTotal / 10)) : null;
+// Prix par boutique au même poids : le format vendu par le plus de boutiques (3,5 g puis 28 g en cas d'égalité)
+const PREF = [3.5, 28, 7, 14, 1];
+const common = [...p.formats].filter((f) => f.offers.length >= 2).sort((a, b) => b.offers.length - a.offers.length || (PREF.indexOf(a.grams) + 99) % 99 - (PREF.indexOf(b.grams) + 99) % 99)[0] ?? null;
+const smallestFmt = (o: (typeof p.offers)[number]) => { const v = o.variants.filter((x) => x.grams && x.inStock).sort((a, b) => a.price - b.price)[0]; return v ? `${String(v.grams).replace(".", en ? "." : ",")} g` : null; };
+const histories = p.offers.slice(0, 4).map((o) => ({ name: shortName(o.shop.slug, o.shop.name), points: o.history.length ? o.history : [{ at: exportedAt, price: o.price }] }));
 
-// Fiche technique : seulement les champs connus
-const L = lang === "en"
-  ? { cat: "Category", type: "Type", thc: "THC", cbd: "CBD", lineage: "Genetics", grade: "Grade", brand: "Brand", effects: "Described effects", flavors: "Flavours", terpenes: "Terpenes", flowering: "Flowering time", yield: "Yield", formats: "Formats", shops: "Shops compared", specs: "Product sheet", compare: `Where to buy ${p.name}: prices by shop`, shop: "Shop", priceCol: "Price", was: "Regular price", delivery: "Delivery and payment", ship: "Shipping", pay: "Payment", free: "Free shipping", coupon: "Promo code", lowest: "Lowest price", buy: "Buy", noFacts: "This shop does not publish its delivery terms on the pages we read; check them at checkout." }
-  : { cat: "Catégorie", type: "Type", thc: "THC", cbd: "CBD", lineage: "Génétique", grade: "Grade", brand: "Marque", effects: "Effets décrits", flavors: "Saveurs", terpenes: "Terpènes", flowering: "Floraison", yield: "Rendement", formats: "Formats", shops: "Boutiques comparées", specs: "Fiche technique", compare: `Où acheter ${p.name} : prix par boutique`, shop: "Boutique", priceCol: "Prix", was: "Prix habituel", delivery: "Livraison et paiement", ship: "Envoi", pay: "Paiement", free: "Livraison gratuite", coupon: "Code promo", lowest: "Prix le plus bas", buy: "Acheter", noFacts: "Cette boutique ne publie pas ses conditions de livraison sur les pages que nous lisons : vérifiez-les au moment de payer." };
-const spec: Array<[string, string]> = [
-  [L.cat, cat.label[lang]],
-  ...(typeLabel ? [[L.type, typeLabel] as [string, string]] : []),
-  ...(f?.thc ? [[L.thc, f.thc] as [string, string]] : []),
-  ...(f?.cbd ? [[L.cbd, f.cbd] as [string, string]] : []),
-  ...(f?.lineage ? [[L.lineage, f.lineage] as [string, string]] : []),
-  ...(f?.grade ? [[L.grade, f.grade] as [string, string]] : []),
-  ...(f?.brand ? [[L.brand, f.brand] as [string, string]] : []),
-  ...(f?.flowering_time ? [[L.flowering, f.flowering_time] as [string, string]] : []),
-  ...(f?.yield ? [[L.yield, f.yield] as [string, string]] : []),
-  ...(f?.effects?.length ? [[L.effects, f.effects.join(", ")] as [string, string]] : []),
-  ...(f?.flavors?.length ? [[L.flavors, f.flavors.join(", ")] as [string, string]] : []),
-  ...(f?.terpenes?.length ? [[L.terpenes, f.terpenes.join(", ")] as [string, string]] : []),
-  ...(p.weights.length ? [[L.formats, p.weights.join(", ")] as [string, string]] : []),
-  [L.shops, String(p.shopCount)],
+const L = en
+  ? {
+      atGlance: "At a glance", lowest: "Lowest price", bestG: "Best price per gram", shops: "Shops compared", thc: "THC", formats: "Formats",
+      pricesT: `${p.name}: prices by format`, pricesSub: "Best price per format across all shops. Price per gram shows which size is the better deal.",
+      fmt: "Format", best: "Best price", pg: "Per gram", where: "Cheapest at", save: (x: number, base: string) => `${x}% cheaper per gram than ${base}`,
+      shopsT: "Price at each shop", shopsSub: "Smallest format at each shop, cheapest first.", historyT: "Price history",
+      valueT: "Where this price sits", valueSub: (n: number) => `Price per gram compared with ${n} similar products in the catalogue.`,
+      cheaperThan: (x: number) => `Cheaper than ${x}% of similar products`, low: "Low", high: "High", median: "Median", thisOne: "This one",
+      potencyT: "Potency", potencySub: (n: number) => `Highest THC listed by the shop, compared with ${n} products of the same kind.`,
+      geneticsT: "Genetics", tastingT: "Tasting notes", flavors: "Flavours", effects: "Described effects", terpenes: "Terpenes", tasteNote: "As described by the shop. Effects vary from person to person.",
+      growT: "Growing at a glance", flowering: "Flowering", weeksL: "weeks", yieldL: "Yield", growNote: "Home growing rules depend on your province.",
+      doseT: "Dose and value", doseTotal: "THC per package", per10: "Price per 10 mg", onsetT: "How edibles act", onset: "Starts", peak: "Peaks", lasts: "Lasts up to", onsetSrc: "General guidance from the Canadian Centre on Substance Use and Addiction.",
+      checkT: "Before you order", deliveryT: "Delivery and payment", ship: "Shipping", pay: "Payment", free: "Free shipping", coupon: "Promo code", noFacts: "This shop does not publish its delivery terms on the pages we read: check them at checkout.",
+      freeBar: (pct: number, gap: string) => pct >= 100 ? "This item alone reaches free shipping." : `This item covers ${pct}% of the free-shipping threshold: add ${gap} more.`,
+      compareT: "Compare with similar products", product: "Product", type: "Type", from: "From", perg: "Per gram", strainT: "Same strain, other products", strainAll: (n: number) => `All ${n} products of this strain`,
+      descT: "Full description", specs: "Product sheet", cat: "Category", grade: "Grade", lineage: "Genetics", cbd: "CBD", brand: "Brand",
+      ages: "You must be of legal age in your province (19+, 18 in Alberta, 21 in Quebec).", payCheck: "Check the payment methods the shop accepts before ordering.", formatCheck: (g: string) => `Pick the format on the shop's page: ${g}.`, priceCheck: "Prices change weekly: the shop's checkout total is the one that counts.",
+    }
+  : {
+      atGlance: "En bref", lowest: "Prix le plus bas", bestG: "Meilleur prix au gramme", shops: "Boutiques comparées", thc: "THC", formats: "Formats",
+      pricesT: `${p.name} : prix par format`, pricesSub: "Meilleur prix de chaque format, toutes boutiques confondues. Le prix au gramme montre quel format est le plus avantageux.",
+      fmt: "Format", best: "Meilleur prix", pg: "Au gramme", where: "Moins cher chez", save: (x: number, base: string) => `${x} % moins cher au gramme que ${base}`,
+      shopsT: "Le prix dans chaque boutique", shopsSub: "Plus petit format dans chaque boutique, du moins cher au plus cher.", historyT: "Historique des prix",
+      valueT: "Où se situe ce prix", valueSub: (n: number) => `Prix au gramme comparé à ${n} produits semblables du catalogue.`,
+      cheaperThan: (x: number) => `Moins cher que ${x} % des produits semblables`, low: "Bas", high: "Haut", median: "Médiane", thisOne: "Ce produit",
+      potencyT: "Puissance", potencySub: (n: number) => `THC le plus élevé indiqué par la boutique, comparé à ${n} produits du même type.`,
+      geneticsT: "Génétique", tastingT: "Notes de dégustation", flavors: "Saveurs", effects: "Effets décrits", terpenes: "Terpènes", tasteNote: "Selon la description de la boutique. Les effets varient d'une personne à l'autre.",
+      growT: "La culture en bref", flowering: "Floraison", weeksL: "semaines", yieldL: "Rendement", growNote: "Les règles de culture à domicile dépendent de votre province.",
+      doseT: "Dose et rapport qualité-prix", doseTotal: "THC par paquet", per10: "Prix par 10 mg", onsetT: "Comment agissent les comestibles", onset: "Début", peak: "Pic", lasts: "Durée jusqu'à", onsetSrc: "Repères généraux du Centre canadien sur les dépendances et l'usage de substances.",
+      checkT: "Avant de commander", deliveryT: "Livraison et paiement", ship: "Envoi", pay: "Paiement", free: "Livraison gratuite", coupon: "Code promo", noFacts: "Cette boutique ne publie pas ses conditions de livraison sur les pages que nous lisons : vérifiez-les au moment de payer.",
+      freeBar: (pct: number, gap: string) => pct >= 100 ? "Ce produit atteint à lui seul la livraison gratuite." : `Ce produit couvre ${pct} % du seuil de livraison gratuite : ajoutez encore ${gap}.`,
+      compareT: "Comparer avec des produits semblables", product: "Produit", type: "Type", from: "Dès", perg: "Au gramme", strainT: "Même variété, autres produits", strainAll: (n: number) => `Les ${n} produits de cette variété`,
+      descT: "Description complète", specs: "Fiche technique", cat: "Catégorie", grade: "Grade", lineage: "Génétique", cbd: "CBD", brand: "Marque",
+      ages: "Vous devez avoir l'âge légal de votre province (19 ans, 18 en Alberta, 21 au Québec).", payCheck: "Vérifiez les moyens de paiement acceptés par la boutique avant de commander.", formatCheck: (g: string) => `Choisissez le format sur la page de la boutique : ${g}.`, priceCheck: "Les prix changent chaque semaine : seul le total affiché au paiement fait foi.",
+    };
+
+// Comparateur : colonnes adaptées à la catégorie, colonnes vides retirées
+type P = typeof p;
+const per10 = (x: P) => (x.mgTotal ? price(Math.round(x.from / (x.mgTotal / 10))) : null);
+const ALLCOLS: Array<{ h: string; v: (x: P) => string | null; strong?: boolean; cats?: string[] }> = [
+  { h: L.type, v: (x) => (x.strainType ? s.typeLabel[x.strainType as "indica"] : null), cats: ["flower", "concentrate", "vape", "seed"] },
+  { h: "Format", v: (x) => (x.category === "seed" || x.category === "edible" ? subtypeLabel(x.subtype, lang) : null) },
+  { h: L.thc, v: (x) => (x.thc ? `${num(x.thc[1])} %` : null), cats: ["flower", "concentrate", "vape", "seed"] },
+  { h: L.doseTotal, v: (x) => (x.mgTotal ? `${x.mgTotal} mg` : null), cats: ["edible"] },
+  { h: L.from, v: (x) => price(x.from) },
+  { h: L.perg, v: (x) => (x.ppg ? perG(x.ppg) : null), strong: true, cats: ["flower", "concentrate", "vape"] },
+  { h: L.per10, v: per10, strong: true, cats: ["edible"] },
+  { h: L.shops, v: (x) => String(x.shopCount) },
+];
+const cmpRows = [p, ...sim];
+const cmpCols = ALLCOLS.filter((c) => (!c.cats || c.cats.includes(p.category)) && cmpRows.some((x) => c.v(x) !== null));
+const tiles = [
+  { label: L.lowest, value: price(p.from), note: shortName(p.offers[0].shop.slug, p.offers[0].shop.name) },
+  ...(bestFormat ? [{ label: L.bestG, value: perG(bestFormat.ppg), note: bestFormat.label }] : []),
+  { label: L.shops, value: String(p.shopCount), note: null },
+  ...(p.thc ? [{ label: L.thc, value: p.thc[0] === p.thc[1] ? `${num(p.thc[1])} %` : `${num(p.thc[0])} à ${num(p.thc[1])} %`.replace(" à ", en ? " to " : " à "), note: null }] : []),
+  ...(per10mg ? [{ label: L.per10, value: price(per10mg), note: `${p.mgTotal} mg` }] : []),
+  ...(p.formats.length ? [{ label: L.formats, value: String(p.formats.length), note: p.formats.map((x) => x.label).slice(0, 3).join(", ") }] : []),
+].slice(0, 4);
+const checklist = [
+  L.ages,
+  ...(p.formats.length > 1 ? [L.formatCheck(p.formats.map((x) => x.label).join(", "))] : []),
+  ...(facts?.payment ? [] : [L.payCheck]),
+  L.priceCheck,
 ];
 
-const pageTitle = lang === "en"
-  ? mkTitle(`${p.name}: Compare Prices & Buy Online in Canada`, `${p.name} | Buy Online in Canada`)
-  : mkTitle(`${p.name} : prix et achat en ligne au Canada`, `${p.name} | Achat en ligne Canada`);
+const pageTitle = en
+  ? mkTitle(`${p.name}: Price per Gram, Formats & Where to Buy in Canada`, `${p.name}: Prices & Where to Buy in Canada`)
+  : mkTitle(`${p.name} : prix au gramme, formats et où l'acheter`, `${p.name} : prix et où l'acheter au Canada`);
 const crumbs = [
   { name: s.breadcrumbHome, href: r.home(lang) },
   { name: cat.label[lang], href: r.category(lang, p.category) },
+  ...(strain ? [{ name: strain.name, href: r.strain(lang, strain.slug) }] : []),
   { name: p.name },
 ];
 const prices = p.offers.map((o) => o.price);
+const props = [
+  ...(p.thc ? [{ "@type": "PropertyValue", name: "THC", value: `${p.thc[0]}-${p.thc[1]}%` }] : []),
+  ...(typeLabel ? [{ "@type": "PropertyValue", name: "Type", value: typeLabel }] : []),
+  ...(f?.lineage ? [{ "@type": "PropertyValue", name: L.lineage, value: f.lineage }] : []),
+];
 const jsonld: object[] = [
   {
-    "@context": "https://schema.org", "@type": "Product", name: p.name, image: site + p.image.src, description: text.meta,
-    category: cat.label[lang], ...(f?.brand ? { brand: { "@type": "Brand", name: f.brand } } : {}),
-    offers: {
-      "@type": "AggregateOffer", priceCurrency: "CAD", lowPrice: (Math.min(...prices) / 100).toFixed(2), highPrice: (Math.max(...prices) / 100).toFixed(2),
-      offerCount: p.offers.length, availability: "https://schema.org/InStock",
-    },
+    "@context": "https://schema.org", "@type": "Product", name: p.name, image: [site + p.image.src, ...p.gallery.map((g) => site + g)], description: text.meta,
+    category: cat.label[lang], ...(f?.brand ? { brand: { "@type": "Brand", name: f.brand } } : {}), ...(props.length ? { additionalProperty: props } : {}),
+    offers: { "@type": "AggregateOffer", priceCurrency: "CAD", lowPrice: (Math.min(...prices) / 100).toFixed(2), highPrice: (Math.max(...prices) / 100).toFixed(2), offerCount: p.offers.length, availability: "https://schema.org/InStock" },
   },
   breadcrumbLd(site, crumbs),
   ...(text.faq.length ? [faqLd(text.faq)] : []),
@@ -73,47 +150,59 @@ const jsonld: object[] = [
   <div class="wrap pt-6">
     <Breadcrumbs items={crumbs} />
 
-    <div class="mt-5 grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+    {/* 1. En-tête produit */}
+    <div class="mt-5 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <figure>
         <div class="relative aspect-square overflow-hidden rounded-[4px] border border-line bg-fog">
-          <img src={p.image.src} alt={p.name} width="704" height="704" class:list={["h-full w-full", p.image.kind === "shop" ? "object-contain" : "object-cover"]} loading="eager" />
+          <img src={p.image.src} alt={p.name} width="704" height="704" class:list={["h-full w-full", p.image.kind === "shop" ? "object-contain" : "object-cover"]} loading="eager" data-main />
           {p.discount > 0 && <span class="absolute left-3 top-3 bg-stamp-green text-white text-sm font-bold px-2 py-1 rounded-[2px] num">−{p.discount}%</span>}
         </div>
+        {p.gallery.length > 0 && (
+          <div class="mt-3 flex gap-2">
+            {[p.image.src, ...p.gallery].map((g, i) => (
+              <button type="button" class:list={["size-20 overflow-hidden rounded-[4px] border-2 bg-fog", i === 0 ? "border-ink" : "border-line"]} data-thumb={g} aria-label={`${en ? "Photo" : "Photo"} ${i + 1}`}>
+                <img src={g} alt="" width="80" height="80" loading="lazy" class="h-full w-full object-contain" />
+              </button>
+            ))}
+          </div>
+        )}
         <figcaption class="mt-2 text-xs text-muted">{p.image.kind === "shop" && p.image.credit ? s.shopPhoto(p.image.credit) : s.imgNote}</figcaption>
       </figure>
 
       <div>
         <h1>{p.name}</h1>
-        <p class="mt-3 text-lg text-ink-soft">{text.lead}</p>
-        <div class="mt-4 flex flex-wrap gap-1.5">
+        <div class="mt-3 flex flex-wrap gap-1.5">
           {typeLabel && <span class={`chip chip-${p.strainType}`}>{typeLabel}</span>}
           <a href={r.category(lang, p.category)} class="chip no-underline hover:bg-line">{cat.label[lang]}</a>
-          {f?.thc && <span class="chip">THC {f.thc}</span>}
-          {f?.grade && <span class="chip">{f.grade}</span>}
+          {p.grade && <span class="chip">{p.grade}</span>}
+          {strain && <a href={r.strain(lang, strain.slug)} class="chip no-underline hover:bg-line">{en ? "Strain" : "Variété"} : {strain.name}</a>}
         </div>
+        <p class="mt-4 text-[1.05rem] text-ink-soft">{text.lead}</p>
 
-        <div class="mt-7 flex items-end gap-6">
+        <div class="mt-6 flex items-end gap-6">
           <span class="stamp stamp-lg"><span class="stamp-label">{s.from}</span><span class="stamp-price">{price(p.from)}</span></span>
           <div class="pb-1 text-sm text-muted">
-            {p.offers[0].compareAt && p.offers[0].compareAt > p.from && <p><s class="num">{price(p.offers[0].compareAt)}</s> {L.was.toLowerCase()}</p>}
+            {p.offers[0].compareAt && p.offers[0].compareAt > p.from && <p><s class="num">{price(p.offers[0].compareAt)}</s></p>}
             <p>{s.compareN(p.shopCount)}</p>
             <p>{s.updated(fmtDate(exportedAt, lang))}</p>
           </div>
         </div>
 
-        {p.weights.length > 0 && (
-          <div class="mt-6">
-            <p class="text-sm font-semibold">{L.formats}</p>
-            <ul class="mt-2 flex flex-wrap gap-2">{p.weights.map((w) => <li class="rounded-[4px] border border-line px-2.5 py-1 text-sm">{w}</li>)}</ul>
-            <p class="mt-1.5 text-xs text-muted">{lang === "en" ? "The price shown is for the smallest format. Pick yours on the shop's page." : "Le prix affiché est celui du plus petit format. Choisissez le vôtre sur la page de la boutique."}</p>
-          </div>
+        {p.formats.length > 1 && (
+          <ul class="mt-6 flex flex-wrap gap-2" aria-label={L.formats}>
+            {p.formats.map((x) => (
+              <li class:list={["rounded-[4px] border px-2.5 py-1.5 text-sm", bestFormat && x.grams === bestFormat.grams ? "border-stamp-green bg-[#e3f0e9]" : "border-line"]}>
+                <b>{x.label}</b> <span class="num">{price(x.best)}</span> <span class="text-xs text-muted num">({perG(x.ppg)})</span>
+              </li>
+            ))}
+          </ul>
         )}
 
-        <a class="btn-buy mt-7 w-full py-3.5 text-lg sm:w-auto sm:px-8" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{buyLabel}</a>
-        {p.offers.length > 1 && <p class="mt-2 text-sm"><a href="#prices" class="text-mailbox">{lang === "en" ? `Compare the ${p.offers.length} offers` : `Comparer les ${p.offers.length} offres`}</a></p>}
+        <a class="btn-buy mt-6 w-full py-3.5 text-lg sm:w-auto sm:px-8" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{buyLabel}</a>
+        {p.offers.length > 1 && <p class="mt-2 text-sm"><a href="#prices" class="text-mailbox">{en ? `Compare the ${p.offers.length} offers` : `Comparer les ${p.offers.length} offres`}</a></p>}
 
-        <div class="parcel mt-7">
-          <p class="parcel-head">{L.delivery}: {p.primary.shop.name}</p>
+        <div class="parcel mt-6">
+          <p class="parcel-head">{L.deliveryT} : {p.primary.shop.name}</p>
           {facts && (facts.shipping || facts.payment || facts.freeShipping) ? (
             <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
               {facts.shipping && <><dt class="font-semibold">{L.ship}</dt><dd>{facts.shipping[lang]}</dd></>}
@@ -122,54 +211,195 @@ const jsonld: object[] = [
               {coupons.length > 0 && <><dt class="font-semibold">{L.coupon}</dt><dd><a href={r.coupon(lang, p.primary.shop.slug)} class="font-semibold text-mailbox">{coupons[0].code}</a></dd></>}
             </dl>
           ) : <p class="text-sm">{L.noFacts}</p>}
+          {freeAt && (
+            <div class="mt-3">
+              <div class="bar-track"><span class:list={["bar-fill", p.primary.price >= freeAt && "is-best"]} style={`width:${Math.min(100, (p.primary.price / freeAt) * 100).toFixed(0)}%`}></span></div>
+              <p class="mt-1 text-xs">{L.freeBar(Math.round((p.primary.price / freeAt) * 100), price(Math.max(0, freeAt - p.primary.price)))}</p>
+            </div>
+          )}
         </div>
-        <p class="mt-3 text-xs text-muted">{s.disclosure}</p>
       </div>
     </div>
 
-    <section id="prices" class="section">
-      <h2>{L.compare}</h2>
-      <div class="mt-4 overflow-x-auto">
-        <table class="table-bb min-w-[34rem]">
-          <thead><tr><th>{L.shop}</th><th>{L.priceCol}</th><th>{L.was}</th><th class="sr-only">{L.buy}</th></tr></thead>
-          <tbody>
-            {p.offers.map((o, i) => (
-              <tr>
-                <td><a href={r.shop(lang, o.shop.slug)} class="font-semibold">{o.shop.name}</a>{i === 0 && <span class="ml-2 chip chip-hybrid">{L.lowest}</span>}</td>
-                <td class="num font-semibold">{price(o.price)}</td>
-                <td class="num text-muted">{o.compareAt && o.compareAt > o.price ? <s>{price(o.compareAt)}</s> : "—"}</td>
-                <td class="text-right"><a class="btn-buy text-sm" href={o.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.buyAt(shopShort(o.shop.slug, o.shop.name))}</a></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    {/* 2. Repères chiffrés */}
+    <section class="mt-10" aria-label={L.atGlance}>
+      <div class:list={["grid grid-cols-2 gap-3", { 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" }[tiles.length]]}>
+        {tiles.map((x) => <div class="tile"><p class="tile-label">{x.label}</p><p class="tile-value">{x.value}</p>{x.note && <p class="tile-note">{x.note}</p>}</div>)}
       </div>
     </section>
 
-    <div class="section grid gap-12 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-      <article class="prose-bb">
-        {text.sections.map((sec, i) => (
-          <>
-            <h2 class:list={[i === 0 && "!mt-0"]}>{sec.h}</h2>
-            {sec.p.map((para) => <p>{para}</p>)}
-          </>
-        ))}
-      </article>
-      <aside>
-        <div class="lg:sticky lg:top-6 rounded-[4px] border border-line">
-          <p class="display border-b border-line px-4 py-3 text-2xl">{L.specs}</p>
-          <dl class="divide-y divide-line text-sm">
-            {spec.map(([k, v]) => (
-              <div class="grid grid-cols-[9rem_1fr] gap-3 px-4 py-2.5"><dt class="text-muted">{k}</dt><dd class="font-medium">{v}</dd></div>
-            ))}
-          </dl>
+    {/* 3. Prix : par format, par boutique, historique */}
+    <section id="prices" class="section grid gap-6 lg:grid-cols-2">
+      {p.formats.length > 0 && (
+        <div class="panel lg:col-span-2">
+          <h2 class="panel-title">{L.pricesT}</h2>
+          <p class="panel-sub">{L.pricesSub}</p>
+          <div class="mt-4 overflow-x-auto">
+            <table class="table-bb min-w-[40rem]">
+              <thead><tr><th>{L.fmt}</th><th>{L.best}</th><th>{L.pg}</th><th class="w-[34%]"></th><th>{L.where}</th></tr></thead>
+              <tbody>
+                {p.formats.map((x) => {
+                  const worst = Math.max(...p.formats.map((y) => y.ppg));
+                  const saving = smallest && x.grams !== smallest.grams ? Math.round((1 - x.ppg / smallest.ppg) * 100) : 0;
+                  return (
+                    <tr>
+                      <td class="font-semibold">{x.label}</td>
+                      <td class="num">{price(x.best)}</td>
+                      <td class="num font-semibold">{perG(x.ppg)}</td>
+                      <td>
+                        <div class="bar-track" title={perG(x.ppg)}><span class:list={["bar-fill", bestFormat && x.grams === bestFormat.grams && "is-best"]} style={`width:${((x.ppg / worst) * 100).toFixed(0)}%`}></span></div>
+                        {saving > 0 && <p class="mt-1 text-xs text-stamp-green">{L.save(saving, smallest!.label)}</p>}
+                      </td>
+                      <td><a href={x.offers[0].buyUrl} rel="sponsored nofollow noopener" target="_blank" class="text-sm font-semibold text-mailbox">{shortName(x.offers[0].shop.slug, x.offers[0].shop.name)}</a>{x.offers.length > 1 && <span class="block text-xs text-muted">{x.offers.length} {en ? "shops" : "boutiques"}</span>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
+      )}
+      <div class="panel">
+        <h2 class="panel-title">{common ? (en ? `Price for ${common.label} at each shop` : `Le prix du ${common.label.replace(".", ",")} dans chaque boutique`) : L.shopsT}</h2>
+        <p class="panel-sub">{common ? (en ? "Same weight everywhere, cheapest first." : "Même poids partout, du moins cher au plus cher.") : (en ? "Lowest listed price at each shop, cheapest first. Formats can differ: see the format next to each price." : "Prix le plus bas de chaque boutique, du moins cher au plus cher. Les formats peuvent différer : voir le format à côté de chaque prix.")}</p>
+        {p.offers.length === 1 && <p class="mt-3 text-sm">{en ? `Only ${p.primary.shop.name} sells this product among the shops we track. Similar products from other shops are compared below.` : `Parmi les boutiques suivies, seule ${p.primary.shop.name} vend ce produit. Des produits semblables d'autres boutiques sont comparés plus bas.`}</p>}
+        <div class:list={["mt-4", p.offers.length === 1 && "hidden"]}>
+          {common
+            ? <HBars ariaLabel={L.shopsT} rows={common.offers.map((o, i) => ({ label: o.shop.name, value: o.price, display: price(o.price), href: r.shop(lang, o.shop.slug), best: i === 0 }))} />
+            : <HBars ariaLabel={L.shopsT} rows={p.offers.map((o, i) => ({ label: o.shop.name, value: o.price, display: price(o.price), href: r.shop(lang, o.shop.slug), best: i === 0 && p.offers.length > 1, note: smallestFmt(o) ?? undefined }))} />}
+          {!common && p.offers.length > 1 && <ul class="mt-2 space-y-0.5 text-xs text-muted">{p.offers.map((o) => smallestFmt(o) && <li>{o.shop.name} : {smallestFmt(o)}</li>)}</ul>}
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          {p.offers.map((o) => <a class="btn-ghost text-sm" href={o.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.buyAt(shortName(o.shop.slug, o.shop.name))}</a>)}
+        </div>
+      </div>
+      <div class="panel">
+        <h2 class="panel-title">{L.historyT}</h2>
+        <div class="mt-3"><PriceHistory series={histories} fmt={price} lang={lang} /></div>
+      </div>
+    </section>
+
+    {/* 4. Profil : valeur, puissance, génétique, dégustation, culture ou dosage */}
+    <section class="section grid gap-6 md:grid-cols-2">
+      {p.ppg && peerPpg.length >= 20 && (
+        <div class="panel">
+          <h2 class="panel-title">{L.valueT}</h2>
+          <p class="panel-sub">{L.valueSub(peerPpg.length)}</p>
+          {ppgRank !== null && <p class="mt-3 font-semibold">{L.cheaperThan(ppgRank)}</p>}
+          <RangeMarker values={peerPpg} value={p.ppg} fmt={perG} lowLabel={L.low} highLabel={L.high} markerLabel={L.thisOne} medianLabel={L.median} />
+        </div>
+      )}
+      {thcTop && peerThc.length >= 20 && (
+        <div class="panel">
+          <h2 class="panel-title">{L.potencyT}</h2>
+          <p class="panel-sub">{L.potencySub(peerThc.length)}</p>
+          <RangeMarker values={peerThc} value={thcTop} fmt={(v) => `${num(v)} %`} lowLabel={L.low} highLabel={L.high} markerLabel={L.thisOne} medianLabel={L.median} />
+        </div>
+      )}
+      {f?.lineage && (
+        <div class="panel">
+          <h2 class="panel-title">{L.geneticsT}</h2>
+          <div class="mt-4"><Lineage lineage={f.lineage} name={strain?.name ?? p.name} indicaPct={p.indicaPct} lang={lang} /></div>
+        </div>
+      )}
+      {!f?.lineage && p.indicaPct !== null && (
+        <div class="panel">
+          <h2 class="panel-title">{L.geneticsT}</h2>
+          <div class="mt-6"><Lineage lineage={typeLabel ?? "Cannabis"} name={strain?.name ?? p.name} indicaPct={p.indicaPct} lang={lang} /></div>
+        </div>
+      )}
+      {(f?.flavors?.length || f?.effects?.length || f?.terpenes?.length) ? (
+        <div class="panel">
+          <h2 class="panel-title">{L.tastingT}</h2>
+          <dl class="mt-3 space-y-3">
+            {f?.flavors?.length ? <div><dt class="text-xs text-muted">{L.flavors}</dt><dd class="mt-1 flex flex-wrap gap-1.5">{f.flavors.map((x) => <span class="rounded-full border border-kraft bg-kraft-light px-2.5 py-0.5 text-sm capitalize">{x}</span>)}</dd></div> : null}
+            {f?.effects?.length ? <div><dt class="text-xs text-muted">{L.effects}</dt><dd class="mt-1 flex flex-wrap gap-1.5">{f.effects.map((x) => <span class="rounded-full border border-line bg-fog px-2.5 py-0.5 text-sm capitalize">{x}</span>)}</dd></div> : null}
+            {f?.terpenes?.length ? <div><dt class="text-xs text-muted">{L.terpenes}</dt><dd class="mt-1 flex flex-wrap gap-1.5">{f.terpenes.map((x) => <span class="rounded-full border border-line px-2.5 py-0.5 text-sm capitalize">{x}</span>)}</dd></div> : null}
+          </dl>
+          <p class="mt-3 text-xs text-muted">{L.tasteNote}</p>
+        </div>
+      ) : null}
+      {p.category === "seed" && (flowerWeeks || f?.yield) && (
+        <div class="panel">
+          <h2 class="panel-title">{L.growT}</h2>
+          {flowerWeeks && (
+            <div class="mt-4">
+              <p class="text-sm"><b>{L.flowering}</b> : <span class="num">{flowerWeeks[0] === flowerWeeks[1] ? flowerWeeks[0] : `${flowerWeeks[0]}–${flowerWeeks[1]}`}</span> {L.weeksL}</p>
+              <div class="mt-2 grid grid-cols-16 gap-[2px]" style="grid-template-columns:repeat(16,minmax(0,1fr))" aria-hidden="true">
+                {Array.from({ length: 16 }, (_, i) => <span class:list={["h-4 rounded-[2px]", i < flowerWeeks[0] ? "bg-stamp-green" : i < flowerWeeks[1] ? "bg-[#9cc9b0]" : "bg-track"]}></span>)}
+              </div>
+              <div class="mt-1 flex justify-between text-xs text-muted"><span>0</span><span>8</span><span>16 {L.weeksL}</span></div>
+            </div>
+          )}
+          {f?.yield && <p class="mt-3 text-sm"><b>{L.yieldL}</b> : {f.yield}</p>}
+          <p class="mt-3 text-xs text-muted">{L.growNote}</p>
+        </div>
+      )}
+      {p.category === "edible" && (
+        <div class="panel">
+          <h2 class="panel-title">{L.doseT}</h2>
+          {p.mgTotal && <div class="mt-3 grid grid-cols-2 gap-3"><div class="tile"><p class="tile-label">{L.doseTotal}</p><p class="tile-value">{p.mgTotal} mg</p></div>{per10mg && <div class="tile"><p class="tile-label">{L.per10}</p><p class="tile-value">{price(per10mg)}</p></div>}</div>}
+          <p class="mt-4 text-sm font-semibold">{L.onsetT}</p>
+          <div class="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-xs">
+            <span>{L.onset}</span><div class="relative h-3 bg-track"><span class="absolute inset-y-0 bg-[#9cc9b0]" style="left:2.1%;width:6.2%"></span></div>
+            <span>{L.peak}</span><div class="relative h-3 bg-track"><span class="absolute inset-y-0 w-1.5 bg-stamp-green" style="left:16.6%"></span></div>
+            <span>{L.lasts}</span><div class="relative h-3 bg-track"><span class="absolute inset-y-0 left-0 bg-[#c9d3ea]" style="width:50%"></span></div>
+          </div>
+          <div class="mt-1 grid grid-cols-[auto_1fr] gap-x-3 text-xs text-muted"><span class="invisible">{L.lasts}</span><div class="relative h-4">{[[0, "0 h"], [16.6, "4 h"], [50, "12 h"], [100, "24 h"]].map(([x, t]) => <span class="absolute -translate-x-1/2 whitespace-nowrap num" style={`left:${x}%`}>{t}</span>)}</div></div>
+          <p class="mt-2 text-xs text-muted">{L.onsetSrc} <a href="https://www.ccsa.ca/sites/default/files/2019-06/CCSA-7-Things-About-Edible-Cannabis-2019-en.pdf" rel="nofollow noopener" target="_blank">CCSA</a></p>
+        </div>
+      )}
+      <div class="panel">
+        <h2 class="panel-title">{L.checkT}</h2>
+        <ul class="check-list mt-3 text-sm">{checklist.map((c) => <li>{c}</li>)}</ul>
+      </div>
+    </section>
+
+    {/* 5. Comparateur et même variété */}
+    {sim.length > 0 && (
+      <section class="section">
+        <h2>{L.compareT}</h2>
+        <div class="mt-4 overflow-x-auto">
+          <table class="table-bb min-w-[36rem]">
+            <thead><tr><th>{L.product}</th>{cmpCols.map((c) => <th>{c.h}</th>)}</tr></thead>
+            <tbody>
+              {cmpRows.map((x, i) => (
+                <tr class:list={[i === 0 && "bg-kraft-light"]}>
+                  <td>{i === 0 ? <b>{x.name}</b> : <a href={r.product(lang, x.slug)} class="font-semibold">{x.name}</a>}</td>
+                  {cmpCols.map((c) => <td class:list={["num", c.strong && "font-semibold"]}>{c.v(x) ?? "-"}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )}
+    {strain && strain.products.length > 1 && (
+      <section class="section">
+        <div class="flex flex-wrap items-end justify-between gap-3"><h2>{L.strainT}</h2><a href={r.strain(lang, strain.slug)} class="text-sm font-semibold text-mailbox">{L.strainAll(strain.products.length)}</a></div>
+        <div class="grid-products mt-5">{strain.products.filter((x) => x.id !== p.id).slice(0, 4).map((x) => <ProductCard p={x} lang={lang} showCategory />)}</div>
+      </section>
+    )}
+
+    {/* 6. Texte (replié) et fiche technique */}
+    <section class="section grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <details class="panel group self-start">
+        <summary class="cursor-pointer list-none"><span class="panel-title">{L.descT}</span> <span class="ml-2 text-sm text-mailbox group-open:hidden">{en ? "Read" : "Lire"}</span></summary>
+        <div class="prose-bb mt-3">
+          {text.sections.map((sec) => (<><h3>{sec.h}</h3>{sec.p.map((para) => <p>{para}</p>)}</>))}
+        </div>
+      </details>
+      <aside class="panel self-start">
+        <p class="panel-title">{L.specs}</p>
+        <dl class="mt-2 divide-y divide-line text-sm">
+          {[[L.cat, cat.label[lang]], [L.type, typeLabel], [L.thc, f?.thc], [L.cbd, f?.cbd], [L.grade, p.grade], [L.lineage, f?.lineage], [L.brand, f?.brand], [L.formats, p.weights.join(", ") || null], [L.shops, String(p.shopCount)]]
+            .filter(([, v]) => v).map(([k, v]) => <div class="grid grid-cols-[8rem_1fr] gap-3 py-2"><dt class="text-muted">{k}</dt><dd class="font-medium">{v}</dd></div>)}
+        </dl>
       </aside>
-    </div>
+    </section>
 
     <Faq items={text.faq} title={s.faqTitle} />
 
-    {/* Barre d'achat fixe sur mobile : le prix et le bouton restent à portée pendant la lecture */}
     <div class="mobile-buybar fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-line bg-white px-4 py-2.5 lg:hidden">
       <div class="min-w-0 flex-1 leading-tight"><p class="truncate text-sm font-semibold">{p.name}</p><p class="text-xs text-muted">{s.from} <b class="text-ink num">{price(p.from)}</b></p></div>
       <a class="btn-buy text-sm" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{s.buyAt(primaryName)}</a>
@@ -179,10 +409,20 @@ const jsonld: object[] = [
       <section class="section">
         <div class="flex items-end justify-between gap-4">
           <h2>{s.related}</h2>
-          <a href={r.category(lang, p.category)} class="text-sm font-semibold text-mailbox">{lang === "en" ? `All ${cat.label.en.toLowerCase()}` : `Tout le rayon ${cat.label.fr.toLowerCase()}`}</a>
+          <a href={r.category(lang, p.category)} class="text-sm font-semibold text-mailbox">{en ? `All ${cat.label.en.toLowerCase()}` : `Tout le rayon ${cat.label.fr.toLowerCase()}`}</a>
         </div>
         <div class="grid-products mt-5">{rel.map((x) => <ProductCard p={x} lang={lang} />)}</div>
       </section>
     )}
   </div>
+  <script is:inline>
+    // Galerie : un clic sur une vignette remplace la grande photo
+    document.querySelectorAll("[data-thumb]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var main = document.querySelector("[data-main]");
+        if (main) { main.src = b.getAttribute("data-thumb"); main.classList.remove("object-cover"); main.classList.add("object-contain"); }
+        document.querySelectorAll("[data-thumb]").forEach(function (x) { x.classList.toggle("border-ink", x === b); x.classList.toggle("border-line", x !== b); });
+      });
+    });
+  </script>
 </Base>

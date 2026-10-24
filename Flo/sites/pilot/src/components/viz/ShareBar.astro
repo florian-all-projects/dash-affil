@@ -1,0 +1,23 @@
+---
+// Répartition d'un tout en parts (ex. indica / sativa / hybride) : une barre empilée, 2 px d'écart entre segments,
+// légende avec nombre et pourcentage (l'identité ne repose jamais sur la couleur seule).
+interface Part { label: string; n: number; color: string; href?: string }
+interface Props { parts: Part[]; ariaLabel: string; lang: "en" | "fr" }
+const { parts, ariaLabel, lang } = Astro.props;
+const total = parts.reduce((a, p) => a + p.n, 0) || 1;
+const pc = (n: number) => Math.round((n / total) * 100);
+---
+<figure>
+  <div class="flex h-6 w-full gap-[2px] overflow-hidden rounded-[4px]" role="img" aria-label={`${ariaLabel} : ${parts.map((p) => `${p.label} ${pc(p.n)} %`).join(", ")}`}>
+    {parts.filter((p) => p.n > 0).map((p) => <span class="h-full" style={`width:${(p.n / total) * 100}%;background:${p.color}`} title={`${p.label} : ${p.n} (${pc(p.n)} %)`}></span>)}
+  </div>
+  <figcaption class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+    {parts.map((p) => (
+      <span class="inline-flex items-center gap-1.5">
+        <span class="size-2.5 rounded-full" style={`background:${p.color}`}></span>
+        {p.href ? <a href={p.href}>{p.label}</a> : p.label}
+        <b class="num">{pc(p.n)} %</b><span class="text-xs text-muted num">({p.n.toLocaleString(lang === "en" ? "en-CA" : "fr-CA")})</span>
+      </span>
+    ))}
+  </figcaption>
+</figure>

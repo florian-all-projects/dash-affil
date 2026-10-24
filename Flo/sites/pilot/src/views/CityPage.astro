@@ -3,6 +3,10 @@ import Base from "../layouts/Base.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import ProductCard from "../components/ProductCard.astro";
 import Faq from "../components/Faq.astro";
+import GuideBlocks from "../components/GuideBlocks.astro";
+import HBars from "../components/viz/HBars.astro";
+import { productsByShop, couponsForShop } from "../lib/catalog";
+import { SHORT_NAME, SHOP_FACTS } from "../data/shops-content";
 import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
 import { products, categoryStats, activeShops, byPopularity, exportedAt, pick } from "../lib/catalog";
 import { cities, provinceOf, cityName, provName, provSlug, nearby, NO_REGISTRY } from "../lib/geo";
@@ -98,6 +102,13 @@ const jsonld: object[] = [
   }] : []),
   ...(content?.faq?.length ? [faqLd(content.faq)] : []),
 ];
+const en = lang === "en";
+// Magasins par secteur postal (RTA, 3 premiers caractères du code postal) : où se concentrent les magasins de la ville
+const fsa = new Map<string, number>();
+for (const st of city.stores) { const k = (st.postal ?? "").replace(/\s+/g, "").slice(0, 3).toUpperCase(); if (/^[A-Z]\d[A-Z]$/.test(k)) fsa.set(k, (fsa.get(k) ?? 0) + 1); }
+const fsaRows = [...fsa.entries()].sort((a, b) => b[1] - a[1]);
+const nearRows = [{ c: city, self: true }, ...near.map((c) => ({ c, self: false }))].filter((x) => x.c.stores.length > 0).sort((a, b) => b.c.stores.length - a.c.stores.length).slice(0, 8);
+const shipRows = activeShops.map((sh) => ({ sh, n: productsByShop(sh.slug).length, f: SHOP_FACTS[sh.slug], coupon: couponsForShop(sh.slug)[0] })).filter((x) => x.f?.shipping || x.f?.freeShipping).sort((a, b) => b.n - a.n);
 const varyCta = pick(city.slug + lang, lang === "en" ? ["See the full catalogue", "Browse every product", "Open the catalogue"] : ["Voir tout le catalogue", "Parcourir tous les produits", "Ouvrir le catalogue"]);
 ---
 <Base lang={lang} title={L.title} description={L.desc} path={r.city(lang, provSlug(prov, lang), city.slug)} alt={r.city(other, provSlug(prov, other), city.slug)} jsonld={jsonld}>
@@ -146,9 +157,17 @@ const varyCta = pick(city.slug + lang, lang === "en" ? ["See the full catalogue"
       {n > 0 ? (
         <>
           <p class="mt-1 text-sm text-muted">{L.storesNote} {sourceLinks.map(([n, u], i) => <>{i > 0 && ", "}<a href={u} rel="nofollow noopener" target="_blank">{n}</a></>)}</p>
-          <ol class="mt-5 grid gap-3 md:grid-cols-2" data-stores>
+          <div class="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div>
+          {n > 6 && (
+            <div class="mb-4 flex flex-wrap items-center gap-3">
+              <label class="min-w-[14rem] flex-1"><span class="sr-only">{en ? "Search stores" : "Chercher un magasin"}</span><input type="search" data-store-q placeholder={en ? `Search ${n} stores by name, street or postal code` : `Chercher parmi ${n} magasins : nom, rue ou code postal`} class="w-full rounded-[4px] border border-line px-3 py-2" /></label>
+              <p class="text-sm text-muted" data-store-n aria-live="polite"></p>
+            </div>
+          )}
+          <ol class="grid gap-3 md:grid-cols-2" data-stores>
             {city.stores.map((st, i) => (
-              <li class:list={["rounded-[4px] border border-line p-4", i >= SHOW && "hidden"]} data-extra={i >= SHOW ? "1" : undefined}>
+              <li class:list={["rounded-[4px] border border-line p-4", i >= SHOW && "hidden"]} data-extra={i >= SHOW ? "1" : undefined} data-s={`${st.name} ${st.address} ${st.postal ?? ""}`.toLowerCase()}>
                 <p class="font-semibold">{st.name}</p>
                 <p class="mt-1 text-sm text-ink-soft">{st.address}{st.postal ? `, ${st.postal}` : ""}</p>
                 <p class="mt-1 flex flex-wrap gap-x-4 text-sm">
@@ -158,17 +177,45 @@ const varyCta = pick(city.slug + lang, lang === "en" ? ["See the full catalogue"
               </li>
             ))}
           </ol>
-          {n > SHOW && <button type="button" class="btn-ghost mt-4" onclick="document.querySelectorAll('[data-extra]').forEach(function(e){e.classList.remove('hidden')});this.remove()">{L.showAll(n)}</button>}
+          {n > SHOW && <button type="button" class="btn-ghost mt-4" data-show-all onclick="document.querySelectorAll('[data-extra]').forEach(function(e){e.classList.remove('hidden')});this.remove()">{L.showAll(n)}</button>}
+          </div>
+          <aside class="space-y-6">
+            {fsaRows.length > 1 && (
+              <div class="panel">
+                <h3 class="panel-title !text-[1.2rem]">{en ? "Stores by postal area" : "Magasins par secteur postal"}</h3>
+                <p class="panel-sub">{en ? "First three characters of the postal code." : "Trois premiers caractères du code postal."}</p>
+                <div class="mt-3"><HBars compact ariaLabel={en ? "Stores by postal area" : "Magasins par secteur postal"} rows={fsaRows.slice(0, 10).map(([k, v]) => ({ label: k, value: v, display: String(v) }))} /></div>
+              </div>
+            )}
+            {nearRows.length > 1 && (
+              <div class="panel">
+                <h3 class="panel-title !text-[1.2rem]">{en ? `Licensed stores in and around ${name}` : `Magasins autorisés à ${name} et autour`}</h3>
+                <div class="mt-3"><HBars compact ariaLabel={en ? "Stores in nearby cities" : "Magasins des villes voisines"} rows={nearRows.map((x) => ({ label: cityName(x.c, lang), value: x.c.stores.length, display: String(x.c.stores.length), href: x.self ? undefined : r.city(lang, provSlug(prov, lang), x.c.slug), best: x.self }))} /></div>
+              </div>
+            )}
+          </aside>
+          </div>
         </>
       ) : <p class="mt-3 max-w-[70ch]">{L.noStores}</p>}
     </section>
 
-    <section class="section grid gap-12 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        {content ? (
-        <article class="prose-bb">
-          {content.sections.map((sec, i) => (<><h2 class:list={[i === 0 && "!mt-0"]}>{sec.h}</h2>{sec.p.map((x) => <p>{x}</p>)}</>))}
-        </article>) : <div />}
-        <aside class="parcel self-start">
+    {shipRows.length > 0 && (
+      <section class="section">
+        <h2>{en ? `Online shops that deliver to ${name}` : `Les boutiques en ligne qui livrent à ${name}`}</h2>
+        <p class="mt-1 text-sm text-muted">{en ? "Terms published by each shop, read on their sites." : "Conditions publiées par chaque boutique, lues sur leur site."}</p>
+        <div class="mt-4 overflow-x-auto">
+          <table class="table-bb min-w-[44rem]">
+            <thead><tr><th>{en ? "Shop" : "Boutique"}</th><th>{en ? "Products" : "Produits"}</th><th>{en ? "Shipping" : "Envoi"}</th><th>{en ? "Free shipping" : "Livraison gratuite"}</th><th>{en ? "Promo code" : "Code promo"}</th></tr></thead>
+            <tbody>{shipRows.map((x) => <tr><td><a href={r.shop(lang, x.sh.slug)} class="font-semibold">{SHORT_NAME[x.sh.slug] ?? x.sh.name}</a></td><td class="num">{x.n}</td><td class="text-sm">{x.f?.shipping?.[lang] ?? "-"}</td><td class="text-sm">{x.f?.freeShipping?.[lang] ?? "-"}</td><td>{x.coupon ? <a href={r.coupon(lang, x.sh.slug)} class="font-semibold text-mailbox">{x.coupon.code}</a> : "-"}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </section>
+    )}
+
+    {content && <GuideBlocks sections={content.sections} lang={lang} title={en ? `Buying cannabis in ${name}: the essentials` : `Acheter du cannabis à ${name} : l'essentiel`} />}
+
+    <section class="section">
+        <aside class="parcel max-w-3xl">
           <p class="parcel-head">{L.rules}</p>
           <ul class="space-y-2 text-sm">
             <li>{lang === "en" ? `Legal age: ${prov.age}.` : `Âge légal : ${prov.age} ans.`}</li>
@@ -192,4 +239,18 @@ const varyCta = pick(city.slug + lang, lang === "en" ? ["See the full catalogue"
       </section>
     )}
   </div>
+  <script>
+    const q = document.querySelector<HTMLInputElement>("[data-store-q]");
+    if (q) {
+      const items = [...document.querySelectorAll<HTMLElement>("[data-stores] > li")];
+      const nEl = document.querySelector<HTMLElement>("[data-store-n]")!;
+      q.addEventListener("input", () => {
+        const v = q.value.trim().toLowerCase().replace(/\s+/g, " ");
+        let k = 0;
+        for (const li of items) { const ok = !v || li.dataset.s!.includes(v) || li.dataset.s!.replace(/\s/g, "").includes(v.replace(/\s/g, "")); li.classList.toggle("hidden", !ok || (!v && li.dataset.extra === "1")); if (ok) k++; }
+        nEl.textContent = v ? String(k) : "";
+        document.querySelector("[data-show-all]")?.classList.toggle("hidden", !!v);
+      });
+    }
+  </script>
 </Base>

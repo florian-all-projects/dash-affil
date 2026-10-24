@@ -1,27 +1,98 @@
 ---
+// Promotions de la semaine : chiffres clés, remises par rayon et par boutique, les plus fortes baisses, puis toutes les
+// promotions dans le moteur de filtres (triées par remise).
 import Base from "../layouts/Base.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
-import ProductCard from "../components/ProductCard.astro";
-import { t, r, fmtDate, type Lang } from "../lib/i18n";
-import { deals, exportedAt } from "../lib/catalog";
-import { breadcrumbLd, itemListLd } from "../lib/seo";
+import Explorer from "../components/Explorer.astro";
+import HBars from "../components/viz/HBars.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
+import { products, exportedAt, shops, couponsForShop } from "../lib/catalog";
+import { median } from "../lib/stats";
+import { dealsSet } from "../lib/sets";
+import { SHORT_NAME } from "../data/shops-content";
+import { breadcrumbLd, itemListLd, title as mkTitle } from "../lib/seo";
 
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const s = t[lang];
-const other: Lang = lang === "en" ? "fr" : "en";
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
 const site = Astro.site!.toString().replace(/\/$/, "");
-const list = deals(240);
-const L = lang === "en"
-  ? { h1: "Weed Deals in Canada This Week", title: "Weed Deals Canada: This Week's Biggest Price Cuts", desc: `${list.length} cannabis products on sale at Canadian online dispensaries this week, sorted by discount. Checked ${fmtDate(exportedAt, "en")}.`, lede: "Products whose price is lower than the regular price the shop itself displays, at least 10% off. Sorted by the size of the cut." }
-  : { h1: "Les promotions cannabis de la semaine", title: "Promotions cannabis au Canada : les plus fortes baisses", desc: `${list.length} produits au cannabis en promotion cette semaine dans les boutiques en ligne canadiennes, triés par remise. Vérifié le ${fmtDate(exportedAt, "fr")}.`, lede: "Les produits dont le prix est inférieur d'au moins 10 % au prix habituel affiché par la boutique elle-même, triés par ampleur de la baisse." };
+const price = (c: number) => fmtPrice(c, lang);
+const nf = (n: number) => n.toLocaleString(en ? "en-CA" : "fr-CA");
+const list = dealsSet();
+const saved = list.map((p) => (p.offers[0].compareAt ?? p.from) - p.from);
+const byCat = CATEGORY_ORDER.map((c) => { const l = list.filter((p) => p.category === c); return { c, n: l.length, med: median(l.map((p) => p.discount)) ?? 0 }; }).filter((x) => x.n >= 3).sort((a, b) => b.n - a.n);
+const shopSlugs = [...new Set(list.map((p) => p.offers[0].shop.slug))];
+const byShop = shopSlugs.map((sl) => ({ sl, n: list.filter((p) => p.offers[0].shop.slug === sl).length })).filter((x) => x.n >= 2).sort((a, b) => b.n - a.n);
+const short = (sl: string) => SHORT_NAME[sl] ?? shops.find((x) => x.slug === sl)?.name ?? sl;
+const top = list.slice(0, 8);
+const withCodes = shops.filter((x) => couponsForShop(x.slug).length);
+const L = en
+  ? { h1: "Weed Deals in Canada This Week", title: mkTitle("Weed Deals Canada: This Week's Biggest Price Cuts", "Weed Deals Canada This Week"), desc: `${list.length} cannabis products on sale at Canadian online shops this week, up to ${list[0]?.discount ?? 0}% off. Filter by category, shop, price and THC. Checked ${fmtDate(exportedAt, "en")}.`, lede: "Every product whose price is at least 5% below the regular price the shop itself displays. Checked every week, so expired cuts disappear on their own." }
+  : { h1: "Les promotions cannabis de la semaine", title: mkTitle("Promotions cannabis au Canada : les plus fortes baisses de la semaine", "Promotions cannabis de la semaine"), desc: `${list.length} produits au cannabis en promotion cette semaine dans les boutiques en ligne canadiennes, jusqu'à −${list[0]?.discount ?? 0} %. Filtres par rayon, boutique, prix et THC. Vérifié le ${fmtDate(exportedAt, "fr")}.`, lede: "Tous les produits dont le prix est inférieur d'au moins 5 % au prix habituel affiché par la boutique elle-même. Vérifié chaque semaine : les baisses terminées disparaissent d'elles-mêmes." };
+const tiles = [
+  { label: en ? "Products on sale" : "Produits en promotion", value: nf(list.length), note: en ? `out of ${nf(products.length)}` : `sur ${nf(products.length)}` },
+  { label: en ? "Biggest cut" : "Plus forte baisse", value: `−${list[0]?.discount ?? 0} %`, note: list[0]?.name ?? null },
+  { label: en ? "Median cut" : "Baisse médiane", value: `−${median(list.map((p) => p.discount)) ?? 0} %`, note: null },
+  { label: en ? "Median saving" : "Économie médiane", value: price(median(saved) ?? 0), note: en ? "per product" : "par produit" },
+];
 const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.deals }];
 ---
-<Base lang={lang} title={L.title} description={L.desc} path={r.deals(lang)} alt={r.deals(other)} jsonld={[breadcrumbLd(site, crumbs), itemListLd(site, L.h1, list.map((p) => r.product(lang, p.slug)))]}>
-  <div class="wrap pt-6">
-    <Breadcrumbs items={crumbs} />
-    <h1 class="mt-4">{L.h1}</h1>
-    <p class="lede mt-3">{L.lede} {s.updated(fmtDate(exportedAt, lang))}.</p>
-    <div class="grid-products mt-8">{list.map((p, i) => <ProductCard p={p} lang={lang} showCategory eager={i < 4} />)}</div>
+<Base lang={lang} title={L.title} description={L.desc} path={r.deals(lang)} alt={r.deals(other)} jsonld={[breadcrumbLd(site, crumbs), itemListLd(site, L.h1, list.slice(0, 48).map((p) => r.product(lang, p.slug)))]}>
+  <div class="band">
+    <div class="wrap py-8">
+      <Breadcrumbs items={crumbs} />
+      <h1 class="mt-4">{L.h1}</h1>
+      <p class="lede mt-3">{L.lede} {s.updated(fmtDate(exportedAt, lang))}.</p>
+      <div class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {tiles.map((x) => <div class="tile"><p class="tile-label">{x.label}</p><p class="tile-value">{x.value}</p>{x.note && <p class="tile-note truncate">{x.note}</p>}</div>)}
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="mt-8 grid gap-6 lg:grid-cols-3">
+      <div class="panel lg:col-span-2">
+        <h2 class="panel-title">{en ? "The 8 biggest cuts" : "Les 8 plus fortes baisses"}</h2>
+        <div class="mt-3 overflow-x-auto">
+          <table class="table-bb min-w-[34rem]">
+            <thead><tr><th>{en ? "Product" : "Produit"}</th><th>{en ? "Was" : "Avant"}</th><th>{en ? "Now" : "Maintenant"}</th><th>{en ? "Cut" : "Baisse"}</th><th>{en ? "Shop" : "Boutique"}</th></tr></thead>
+            <tbody>
+              {top.map((p) => (
+                <tr>
+                  <td><a href={r.product(lang, p.slug)} class="font-semibold">{p.name}</a></td>
+                  <td class="num text-muted"><s>{price(p.offers[0].compareAt!)}</s></td>
+                  <td class="num font-semibold">{price(p.from)}</td>
+                  <td><span class="rounded-[2px] bg-stamp-green px-1.5 py-0.5 text-xs font-bold text-white num">−{p.discount}%</span></td>
+                  <td><a href={p.offers[0].buyUrl} rel="sponsored nofollow noopener" target="_blank" class="text-sm font-semibold text-mailbox">{short(p.offers[0].shop.slug)}</a></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="space-y-6">
+        {byCat.length > 1 && (
+          <div class="panel">
+            <h2 class="panel-title">{en ? "Deals by aisle" : "Promotions par rayon"}</h2>
+            <div class="mt-4"><HBars ariaLabel={en ? "Deals by aisle" : "Promotions par rayon"} rows={byCat.map((x) => ({ label: CATEGORY_SLUGS[x.c].label[lang], value: x.n, display: `${x.n}`, href: `${r.deals(lang)}?cat=${x.c}`, note: `−${x.med} %` }))} /></div>
+          </div>
+        )}
+        {byShop.length > 1 && (
+          <div class="panel">
+            <h2 class="panel-title">{en ? "Deals by shop" : "Promotions par boutique"}</h2>
+            <div class="mt-4"><HBars ariaLabel={en ? "Deals by shop" : "Promotions par boutique"} rows={byShop.map((x) => ({ label: short(x.sl), value: x.n, display: `${x.n}`, href: `${r.deals(lang)}?shop=${x.sl}` }))} /></div>
+          </div>
+        )}
+      </div>
+    </section>
+
+    {withCodes.length > 0 && (
+      <p class="mt-6 text-sm">{en ? "Stack it with a promo code:" : "À cumuler avec un code promo :"} {withCodes.map((x, i) => <>{i > 0 && ", "}<a href={r.coupon(lang, x.slug)} class="font-semibold">{short(x.slug)}</a></>)}.</p>
+    )}
+
+    <h2 class="section !mt-12">{en ? "All deals" : "Toutes les promotions"}</h2>
+    <Explorer lang={lang} list={list} dataUrl={list.length > 300 ? "/data/deals.json" : undefined} showCategory initialSort="discount" hide={["sale"]} />
   </div>
 </Base>

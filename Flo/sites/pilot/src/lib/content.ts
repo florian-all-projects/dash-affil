@@ -12,3 +12,9 @@ const all: Record<string, Record<string, PageText>> = existsSync(path) ? JSON.pa
 export function pageContent(type: string, key: string, lang: Lang): PageText | null {
   return all[`${type}:${key}`]?.[lang] ?? null;
 }
+
+export interface GuideText { key: string; title: string; meta: string; h1: string; lead: string; blocks: any[]; faq: Array<{ q: string; a: string }> }
+/** Guide (blocs structurés générés par scripts/gen-guides.ts). */
+export function guideContent(key: string, lang: Lang): GuideText | null {
+  return (all[`guide:${key}`]?.[lang] as unknown as GuideText) ?? null;
+}

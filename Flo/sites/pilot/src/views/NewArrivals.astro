@@ -1,0 +1,55 @@
+---
+// Nouveautés : boutiques entrées dans le catalogue depuis la première édition, puis produits apparus chez une boutique
+// déjà suivie (date de première détection). Tout est daté ; rien n'est présenté comme nouveau sans relevé à l'appui.
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import Explorer from "../components/Explorer.astro";
+import { t, r, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
+import { products, exportedAt } from "../lib/catalog";
+import { newArrivals } from "../lib/sets";
+import { SHORT_NAME } from "../data/shops-content";
+import { breadcrumbLd, itemListLd, title as mkTitle } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const { newShops, fresh, list } = newArrivals();
+const h1 = en ? "New Cannabis Products in Canadian Online Shops" : "Les nouveaux produits des boutiques en ligne canadiennes";
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: en ? "New" : "Nouveautés" }];
+const short = (sl: string, n: string) => SHORT_NAME[sl] ?? n;
+const catsOf = (l: typeof products) => CATEGORY_ORDER.map((c) => [c, l.filter((p) => p.category === c).length] as const).filter(([, n]) => n);
+---
+<Base lang={lang} title={mkTitle(en ? "New Weed Products in Canada This Week" : "Nouveautés cannabis de la semaine au Canada", h1)} description={en ? `New shops and new products spotted in Canadian online cannabis shops, dated by the day we first saw them. ${list.length} products this edition.` : `Les nouvelles boutiques et nouveaux produits repérés dans les boutiques en ligne canadiennes, datés du jour de leur première détection. ${list.length} produits cette édition.`} path={r.newArrivals(lang)} alt={r.newArrivals(other)} jsonld={[breadcrumbLd(site, crumbs), itemListLd(site, h1, list.slice(0, 48).map((p) => r.product(lang, p.slug)))]}>
+  <div class="band">
+    <div class="wrap py-8">
+      <Breadcrumbs items={crumbs} />
+      <h1 class="mt-4">{h1}</h1>
+      <p class="lede mt-3">{en ? "Each product is dated by the day our weekly check first found it. Shops that join the catalogue are listed first." : "Chaque produit est daté du jour où notre relevé hebdomadaire l'a trouvé pour la première fois. Les boutiques qui entrent au catalogue sont listées en premier."} {s.updated(fmtDate(exportedAt, lang))}.</p>
+    </div>
+  </div>
+  <div class="wrap">
+    {newShops.length > 0 && (
+      <section class="mt-8">
+        <h2>{en ? "New in the catalogue" : "Nouvelles boutiques au catalogue"}</h2>
+        <ul class="mt-4 grid gap-4 md:grid-cols-3">
+          {newShops.map(({ x, list: l, at }) => (
+            <li class="parcel">
+              <p class="parcel-head">{en ? "Added" : "Ajoutée le"} {fmtDate(new Date(at).toISOString(), lang)}</p>
+              <a href={r.shop(lang, x.slug)} class="font-[family-name:var(--font-display)] text-2xl font-extrabold no-underline hover:underline">{x.name}</a>
+              <p class="mt-1 text-sm"><b class="num">{l.length}</b> {en ? "products" : "produits"} : {catsOf(l).map(([c, n]) => `${n} ${CATEGORY_SLUGS[c].label[lang].toLowerCase()}`).join(", ")}</p>
+              <a href={r.shop(lang, x.slug)} class="mt-2 inline-block text-sm font-semibold text-mailbox">{en ? `Read the ${short(x.slug, x.name)} review` : `Lire l'avis ${short(x.slug, x.name)}`}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+    <section class="section">
+      <h2>{fresh.length >= 8 ? (en ? "New products this week" : "Nouveaux produits de la semaine") : (en ? "Products from the new shops" : "Les produits des nouvelles boutiques")}</h2>
+      {fresh.length < 8 && <p class="mt-2 text-sm text-muted">{en ? "New products from shops we already track will appear here from the next weekly check." : "Les nouveaux produits des boutiques déjà suivies apparaîtront ici dès le prochain relevé hebdomadaire."}</p>}
+      <Explorer lang={lang} list={list} dataUrl={list.length > 300 ? "/data/new.json" : undefined} showCategory initialSort="newest" />
+    </section>
+  </div>
+</Base>

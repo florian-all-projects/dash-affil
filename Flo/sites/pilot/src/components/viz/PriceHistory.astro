@@ -1,0 +1,48 @@
+---
+// Historique des prix relevés chaque semaine, une ligne par shop (palette catégorielle validée, légende + valeur en bout de ligne).
+// S'il n'y a qu'un relevé ou aucun changement, on affiche un constat au lieu d'un graphique vide.
+interface Series { name: string; points: Array<{ at: string; price: number }> }
+interface Props { series: Series[]; fmt: (c: number) => string; lang: "en" | "fr" }
+const { series, fmt, lang } = Astro.props;
+const COLORS = ["var(--color-series-1)", "var(--color-series-2)", "var(--color-series-3)", "var(--color-series-4)"];
+const all = series.flatMap((s) => s.points);
+const days = [...new Set(all.map((p) => p.at.slice(0, 10)))].sort();
+const changed = series.some((s) => new Set(s.points.map((p) => p.price)).size > 1);
+const since = days[0] ? new Date(days[0]).toLocaleDateString(lang === "en" ? "en-CA" : "fr-CA", { day: "numeric", month: "long" }) : "";
+const W = 640, H = 200, L = 56, R = 110, T = 14, B = 28;
+const t0 = days.length ? Date.parse(days[0]) : 0, t1 = days.length ? Date.parse(days[days.length - 1]) : 1;
+const prices = all.map((p) => p.price);
+const pmin = Math.min(...prices) * 0.9, pmax = Math.max(...prices) * 1.05;
+const x = (at: string) => L + ((Date.parse(at.slice(0, 10)) - t0) / Math.max(1, t1 - t0)) * (W - L - R);
+const y = (p: number) => T + (1 - (p - pmin) / Math.max(1, pmax - pmin)) * (H - T - B);
+const ticks = [pmin, (pmin + pmax) / 2, pmax].map((v) => Math.round(v / 100) * 100);
+---
+{days.length < 2 || !changed ? (
+  <p class="text-sm">
+    {lang === "en"
+      ? `Price tracked weekly since ${since}: ${series.length > 1 ? "no shop has changed its price so far" : "unchanged so far"}. The chart appears as soon as a price moves.`
+      : `Prix suivi chaque semaine depuis le ${since} : ${series.length > 1 ? "aucune boutique n'a encore changé son prix" : "inchangé pour l'instant"}. Le graphique apparaît dès qu'un prix bouge.`}
+  </p>
+) : (
+  <figure>
+    <svg viewBox={`0 0 ${W} ${H}`} class="w-full" role="img" aria-label={lang === "en" ? "Price history by shop" : "Historique des prix par boutique"}>
+      {ticks.map((v) => (<g><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e8eaef" /><text x={L - 8} y={y(v) + 4} text-anchor="end" font-size="11" fill="#5b6478">{fmt(v)}</text></g>))}
+      {series.map((s, i) => {
+        const pts = [...s.points].sort((a, b) => a.at.localeCompare(b.at));
+        const last = pts[pts.length - 1];
+        return (
+          <g>
+            <polyline fill="none" stroke={COLORS[i % 4]} stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points={pts.map((p) => `${x(p.at)},${y(p.price)}`).join(" ")} />
+            {pts.map((p) => <circle cx={x(p.at)} cy={y(p.price)} r="4" fill={COLORS[i % 4]} stroke="#fff" stroke-width="2"><title>{`${s.name}, ${p.at.slice(0, 10)} : ${fmt(p.price)}`}</title></circle>)}
+            <text x={x(last.at) + 8} y={y(last.price) + 4} font-size="11" fill="#1c2541">{fmt(last.price)}</text>
+          </g>
+        );
+      })}
+      <text x={L} y={H - 8} font-size="11" fill="#5b6478">{days[0]}</text>
+      <text x={W - R} y={H - 8} font-size="11" fill="#5b6478" text-anchor="end">{days[days.length - 1]}</text>
+    </svg>
+    <figcaption class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+      {series.map((s, i) => <span class="inline-flex items-center gap-1.5"><span class="inline-block h-0.5 w-4" style={`background:${COLORS[i % 4]}`}></span>{s.name}</span>)}
+    </figcaption>
+  </figure>
+)}

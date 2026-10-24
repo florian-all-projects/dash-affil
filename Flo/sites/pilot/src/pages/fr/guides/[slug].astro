@@ -1,0 +1,7 @@
+---
+import View from "../../../views/GuidePage.astro";
+import { guidePaths } from "../../../lib/paths";
+export function getStaticPaths() { return guidePaths("fr"); }
+const { key } = Astro.props;
+---
+<View lang="fr" key={key} />

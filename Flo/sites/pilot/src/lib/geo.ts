@@ -50,5 +50,21 @@ export const cityName = (c: CityInfo, l: Lang) => (l === "en" ? c.name : c.nameF
 export const provName = (p: Province, l: Lang) => (l === "en" ? p.name : p.nameFr);
 export const provSlug = (p: Province, l: Lang) => (l === "en" ? p.slug : p.slugFr);
 
-/** Villes voisines : même province, les plus fournies d'abord. */
-export const nearby = (c: CityInfo, n = 8) => citiesOf(c.province).filter((x) => x.slug !== c.slug).slice(0, n);
+/** Centre approximatif d'une ville : moyenne des coordonnées de ses magasins (registres officiels). */
+const centre = (c: CityInfo) => {
+  const pts = c.stores.filter((s) => s.lat && s.lon);
+  return pts.length ? { lat: pts.reduce((a, s) => a + s.lat!, 0) / pts.length, lon: pts.reduce((a, s) => a + s.lon!, 0) / pts.length } : null;
+};
+const km = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => {
+  const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+};
+/** Villes voisines : les plus proches à vol d'oiseau quand on connaît les coordonnées, sinon les plus fournies de la province. */
+export const nearby = (c: CityInfo, n = 8) => {
+  const others = citiesOf(c.province).filter((x) => x.slug !== c.slug);
+  const here = centre(c);
+  if (!here) return others.slice(0, n);
+  const withD = others.map((x) => ({ x, d: centre(x) })).filter((y) => y.d).map((y) => ({ x: y.x, km: km(here, y.d!) }));
+  return withD.length >= 3 ? withD.sort((a, b) => a.km - b.km).slice(0, n).map((y) => y.x) : others.slice(0, n);
+};

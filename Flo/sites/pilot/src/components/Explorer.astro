@@ -1,0 +1,323 @@
+---
+// Moteur de filtres réutilisable (catégories, boutiques, promotions, variétés, nouveautés, sélections).
+// Rendu initial statique (les N premiers produits + pagination, lisibles par Google), puis filtrage dans le navigateur
+// sur toute la liste : cases à cocher avec compteurs, curseurs prix / prix au gramme / THC, bascules, tri, filtres actifs,
+// tiroir plein écran sur mobile, état gardé dans l'URL (?type=indica&shop=bmwo) pour partager une recherche.
+import ProductCard from "./ProductCard.astro";
+import { t, r, fmtPrice, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
+import type { Product } from "../lib/catalog";
+import { byPopularity } from "../lib/catalog";
+import { toRec, subtypeLabel, SUBTYPE_LABELS } from "../lib/explore";
+import { SHORT_NAME } from "../data/shops-content";
+
+type Facet = "cat" | "type" | "sub" | "shop" | "fmt" | "grade" | "price" | "ppg" | "thc" | "sale" | "multi";
+interface Props {
+  lang: Lang; list: Product[]; dataUrl?: string; pageSize?: number; showCategory?: boolean;
+  pager?: { page: number; pages: number; href: (n: number) => string };
+  initialSort?: "popular" | "priceAsc" | "ppgAsc" | "thcDesc" | "discount" | "newest";
+  hide?: Facet[]; search?: boolean;
+}
+const { lang, list: raw, dataUrl, pageSize = 48, showCategory = false, pager, initialSort = "popular", hide = [], search = false } = Astro.props;
+const s = t[lang];
+const en = lang === "en";
+const SORTS: Record<string, (a: Product, b: Product) => number> = {
+  popular: byPopularity, priceAsc: (a, b) => a.from - b.from, ppgAsc: (a, b) => (a.ppg ?? 1e9) - (b.ppg ?? 1e9),
+  thcDesc: (a, b) => (b.thc?.[1] ?? 0) - (a.thc?.[1] ?? 0), discount: (a, b) => b.discount - a.discount || a.from - b.from, newest: (a, b) => b.firstSeen.localeCompare(a.firstSeen),
+};
+const list = [...raw].sort(SORTS[initialSort]);
+const page = pager?.page ?? 1;
+const items = list.slice((page - 1) * pageSize, page * pageSize);
+
+// Valeurs et compteurs de chaque filtre (sur toute la liste)
+const countBy = <T extends string | number>(vals: T[]) => { const m = new Map<T, number>(); for (const v of vals) m.set(v, (m.get(v) ?? 0) + 1); return m; };
+const cats = countBy(list.map((p) => p.category));
+const types = countBy(list.filter((p) => p.strainType).map((p) => p.strainType!));
+const subs = countBy(list.map((p) => p.subtype));
+const shopCounts = countBy(list.flatMap((p) => [...new Set(p.offers.map((o) => o.shop.slug))]));
+const shopName = (sl: string) => SHORT_NAME[sl] ?? list.flatMap((p) => p.offers).find((o) => o.shop.slug === sl)?.shop.name ?? sl;
+const FMTS = [1, 3.5, 7, 14, 28, 56, 112, 224, 448];
+const fmts = countBy(list.flatMap((p) => p.formats.map((f) => f.grams).filter((g) => FMTS.includes(g))));
+const grades = countBy(list.filter((p) => p.grade).map((p) => p.grade!));
+const prices = list.map((p) => p.from);
+const ppgs = list.map((p) => p.ppg).filter((v): v is number => !!v);
+const thcs = list.map((p) => p.thc?.[1]).filter((v): v is number => !!v);
+const nSale = list.filter((p) => p.discount > 0).length;
+const nMulti = list.filter((p) => p.shopCount > 1).length;
+const show = (f: Facet, ok: boolean) => ok && !hide.includes(f);
+const groups = [
+  show("cat", cats.size > 1) && { key: "cat", label: en ? "Category" : "Catégorie", opts: CATEGORY_ORDER.filter((c) => cats.has(c)).map((c) => [c, CATEGORY_SLUGS[c].label[lang], cats.get(c)!] as const) },
+  show("type", types.size > 1) && { key: "type", label: s.filterType, opts: ["indica", "sativa", "hybrid"].filter((x) => types.has(x)).map((x) => [x, s.typeLabel[x as "indica"], types.get(x)!] as const) },
+  show("sub", subs.size > 1) && { key: "sub", label: "Format", opts: [...subs.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => [k, subtypeLabel(k, lang), n] as const) },
+  show("fmt", fmts.size > 1) && { key: "fmt", label: en ? "Weight available" : "Poids disponible", opts: FMTS.filter((g) => (fmts.get(g) ?? 0) >= 3).map((g) => [String(g), g >= 28 && g % 28 === 0 ? `${g} g (${g / 28} oz)` : `${String(g).replace(".", en ? "." : ",")} g`, fmts.get(g)!] as const) },
+  show("grade", grades.size > 1) && { key: "grade", label: "Grade", opts: ["AAAAA", "AAAA+", "AAAA", "AAA+", "AAA", "AA+", "AA"].filter((g) => grades.has(g)).map((g) => [g, g, grades.get(g)!] as const) },
+  show("shop", shopCounts.size > 1) && { key: "shop", label: s.filterShop, opts: [...shopCounts.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => [k, shopName(k), n] as const) },
+].filter(Boolean) as Array<{ key: string; label: string; opts: ReadonlyArray<readonly [string, string, number]> }>;
+const ceil100 = (v: number) => Math.ceil(v / 100) * 100;
+const ranges = [
+  show("price", list.length > 8) && { key: "pmax", label: en ? "Maximum price" : "Prix maximum", min: ceil100(Math.min(...prices)), max: ceil100(Math.max(...prices)), step: 100, unit: "price" },
+  show("ppg", ppgs.length >= 12) && { key: "gmax", label: en ? "Maximum price per gram" : "Prix au gramme maximum", min: ceil100(Math.min(...ppgs)), max: ceil100(Math.min(Math.max(...ppgs), 4000)), step: 50, unit: "ppg" },
+  show("thc", thcs.length >= 12) && { key: "thc", label: en ? "Minimum THC" : "THC minimum", min: Math.floor(Math.min(...thcs)), max: Math.floor(Math.max(...thcs)), step: 1, unit: "pct", lowerBound: true },
+].filter(Boolean) as Array<{ key: string; label: string; min: number; max: number; step: number; unit: string; lowerBound?: boolean }>;
+const toggles = [
+  show("sale", nSale > 0 && nSale < list.length) && { key: "sale", label: en ? "On sale" : "En promotion", n: nSale },
+  show("multi", nMulti > 0 && nMulti < list.length) && { key: "multi", label: en ? "Sold by 2 shops or more" : "Vendu par 2 boutiques ou plus", n: nMulti },
+].filter(Boolean) as Array<{ key: string; label: string; n: number }>;
+const sorts = [
+  ["popular", s.sort.popular], ["priceAsc", s.sort.priceAsc], ["priceDesc", s.sort.priceDesc],
+  ...(ppgs.length >= 12 ? [["ppgAsc", en ? "Price per gram, low to high" : "Prix au gramme croissant"]] : []),
+  ...(thcs.length >= 12 ? [["thcDesc", en ? "THC, high to low" : "THC décroissant"]] : []),
+  ...(nSale ? [["discount", s.sort.discount]] : []),
+  ["newest", en ? "Newest first" : "Nouveautés d'abord"], ["name", s.sort.name],
+] as Array<[string, string]>;
+const inline = !dataUrl;
+const cfg = {
+  lang, src: dataUrl ?? null, data: inline ? list.map(toRec) : null, pageSize, showCategory, initialSort,
+  productBase: en ? "/product/" : "/fr/produit/",
+  L: {
+    from: s.from, compare1: s.compareN(1), compareN: s.compareN(99), buyAt: s.buyAt("{s}"), showing: en ? "{n} products" : "{n} produits", none: en ? "No product matches these filters." : "Aucun produit ne correspond à ces filtres.",
+    clear: en ? "Clear all" : "Tout effacer", perG: "/g", thc: "THC", type: s.typeLabel, cat: Object.fromEntries(CATEGORY_ORDER.map((c) => [c, CATEGORY_SLUGS[c].label[lang]])),
+    sub: Object.fromEntries(Object.keys(SUBTYPE_LABELS).map((k) => [k, subtypeLabel(k, lang)])), shop: Object.fromEntries([...shopCounts.keys()].map((k) => [k, shopName(k)])),
+    max: en ? "up to" : "jusqu'à", min: en ? "at least" : "au moins", any: en ? "Any" : "Indifférent", see: en ? "Show {n} products" : "Voir {n} produits",
+  },
+};
+const fmt = (v: number, unit: string) => unit === "price" ? fmtPrice(v, lang) : unit === "ppg" ? `${fmtPrice(v, lang)}/g` : `${v} %`;
+---
+<div class="explorer mt-6 grid gap-8 lg:grid-cols-[15.5rem_minmax(0,1fr)]" data-explorer>
+  <script type="application/json" data-cfg set:html={JSON.stringify(cfg).replace(/</g, "\\u003c")} />
+
+  <form class="explorer-panel" data-panel aria-label={en ? "Filters" : "Filtres"}>
+    <div class="mb-3 flex items-center justify-between lg:hidden">
+      <p class="font-[family-name:var(--font-display)] text-2xl font-extrabold">{en ? "Filters" : "Filtres"}</p>
+      <button type="button" class="btn-ghost text-sm" data-close>{en ? "Close" : "Fermer"}</button>
+    </div>
+    {toggles.length > 0 && (
+      <fieldset class="facet">
+        <legend class="sr-only">{en ? "Quick filters" : "Filtres rapides"}</legend>
+        {toggles.map((x) => (
+          <label class="facet-opt"><input type="checkbox" name={x.key} value="1" /><span>{x.label}</span><span class="facet-n" data-n={`${x.key}:1`}>{x.n}</span></label>
+        ))}
+      </fieldset>
+    )}
+    {groups.map((g) => (
+      <details class="facet" open={g.opts.length <= 10 || g.key === "type" || g.key === "cat"}>
+        <summary>{g.label}</summary>
+        <div class="facet-list">
+          {g.opts.map(([v, label, n]) => (
+            <label class="facet-opt"><input type="checkbox" name={g.key} value={v} /><span>{label}</span><span class="facet-n" data-n={`${g.key}:${v}`}>{n}</span></label>
+          ))}
+        </div>
+      </details>
+    ))}
+    {ranges.map((x) => (
+      <div class="facet">
+        <label for={`rg-${x.key}`} class="flex items-baseline justify-between gap-2 text-sm font-semibold">
+          <span>{x.label}</span><output class="text-xs font-normal text-muted num" data-out={x.key}>{cfg.L.any}</output>
+        </label>
+        <input id={`rg-${x.key}`} type="range" name={x.key} min={x.min} max={x.max} step={x.step} value={x.lowerBound ? x.min : x.max} data-unit={x.unit} data-bound={x.lowerBound ? "min" : "max"} class="mt-2 w-full accent-[var(--color-mailbox)]" />
+        <div class="flex justify-between text-xs text-muted num"><span>{fmt(x.min, x.unit)}</span><span>{fmt(x.max, x.unit)}</span></div>
+      </div>
+    ))}
+    <div class="sticky bottom-0 -mx-4 mt-4 border-t border-line bg-white p-4 lg:hidden">
+      <button type="button" class="btn-buy w-full" data-close data-see>{cfg.L.see.replace("{n}", String(list.length))}</button>
+    </div>
+  </form>
+
+  <div class="min-w-0">
+    <div class="flex flex-wrap items-center gap-3 border-b border-line pb-3">
+      <button type="button" class="btn-ghost text-sm lg:hidden" data-open aria-expanded="false">{en ? "Filters" : "Filtres"} <span class="num" data-active-n></span></button>
+      {search && <label class="w-full sm:w-auto sm:min-w-[18rem] sm:flex-1"><span class="sr-only">{en ? "Search the catalogue" : "Chercher dans le catalogue"}</span><input type="search" data-q placeholder={en ? "Search by name: Pink Kush, gummies, shatter…" : "Chercher par nom : Pink Kush, jujubes, shatter…"} class="w-full rounded-[4px] border border-line px-3 py-2" /></label>}
+      <p class="text-sm font-semibold" data-count aria-live="polite">{cfg.L.showing.replace("{n}", list.length.toLocaleString(en ? "en-CA" : "fr-CA"))}</p>
+      <label class="ml-auto flex items-center gap-2 text-sm">
+        <span class="text-muted">{s.sortBy}</span>
+        <select name="sort" class="rounded-[4px] border border-line bg-white px-2 py-1.5" data-sort>
+          {sorts.map(([v, label]) => <option value={v} selected={v === initialSort}>{label}</option>)}
+        </select>
+      </label>
+      <div class="flex w-full flex-wrap gap-2 empty:hidden" data-chips></div>
+    </div>
+
+    <div class="grid-products mt-5" data-grid>
+      {items.map((p, i) => <ProductCard p={p} lang={lang} eager={i < 4} showCategory={showCategory} />)}
+    </div>
+    <p class="mt-8 hidden text-center text-muted" data-empty>{cfg.L.none}</p>
+    <button type="button" class="btn-ghost mx-auto mt-8 hidden" data-more>{en ? "Show more" : "Afficher plus"}</button>
+
+    {pager && pager.pages > 1 && (
+      <nav aria-label="Pagination" class="mt-10 flex flex-wrap items-center justify-center gap-2" data-pager>
+        {page > 1 && <a href={pager.href(page - 1)} rel="prev" class="btn-ghost">{s.prev}</a>}
+        {Array.from({ length: pager.pages }, (_, i) => i + 1).map((n) => (
+          n === page ? <span class="min-w-10 rounded-[4px] bg-ink px-3 py-2 text-center font-bold text-white" aria-current="page">{n}</span>
+          : <a href={pager.href(n)} class="min-w-10 rounded-[4px] border border-line px-3 py-2 text-center no-underline hover:border-ink">{n}</a>
+        ))}
+        {page < pager.pages && <a href={pager.href(page + 1)} rel="next" class="btn-ghost">{s.next}</a>}
+      </nav>
+    )}
+    {!pager && list.length > pageSize && <p class="hidden" data-autoload></p>}
+  </div>
+</div>
+
+<script>
+  type Rec = { n: string; s: string; i: string; k: string; p: number; d: number; c: number; t: string | null; sh: string[]; u: string; b: string; bn: string; pp: number; ca: string; st: string; g: string | null; q: number | null; x: number | null; fm: number[]; f: string; w: string[] };
+  const CHECK = ["cat", "type", "sub", "fmt", "grade", "shop"];
+  const TOGGLE = ["sale", "multi"];
+  const RANGE = ["pmax", "gmax", "thc"];
+
+  document.querySelectorAll<HTMLElement>("[data-explorer]").forEach((root) => {
+    const cfg = JSON.parse(root.querySelector("[data-cfg]")!.textContent!);
+    const L = cfg.L, en = cfg.lang === "en";
+    const form = root.querySelector<HTMLFormElement>("[data-panel]")!;
+    const grid = root.querySelector<HTMLElement>("[data-grid]")!, more = root.querySelector<HTMLElement>("[data-more]")!;
+    const pager = root.querySelector<HTMLElement>("[data-pager]"), countEl = root.querySelector<HTMLElement>("[data-count]")!;
+    const chips = root.querySelector<HTMLElement>("[data-chips]")!, empty = root.querySelector<HTMLElement>("[data-empty]")!;
+    const sortSel = root.querySelector<HTMLSelectElement>("[data-sort]")!, openBtn = root.querySelector<HTMLElement>("[data-open]");
+    const activeN = root.querySelector<HTMLElement>("[data-active-n]"), seeBtn = root.querySelector<HTMLElement>("[data-see]");
+    let data: Rec[] | null = cfg.data, rows: Rec[] = [], shown = 0, touched = false;
+    const qInput = root.querySelector<HTMLInputElement>("[data-q]");
+    const norm = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    const money = (c: number) => { const v = c / 100, x = v % 1 ? v.toFixed(2) : String(v); return en ? "$" + x : x.replace(".", ",") + " $"; };
+    const esc = (x: string) => String(x).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[m]!);
+    const fmtVal = (v: number, unit: string) => unit === "price" ? money(v) : unit === "ppg" ? money(v) + "/g" : v + " %";
+    const nf = (n: number) => n.toLocaleString(en ? "en-CA" : "fr-CA");
+
+    function card(p: Rec) {
+      const href = cfg.productBase + p.s + "/";
+      const compare = p.c === 1 ? L.compare1 : L.compareN.replace("99", String(p.c));
+      const facts = [p.q ? `<span><b class="num">${money(p.q)}</b>${L.perG}</span>` : "", p.x ? `<span>${L.thc} <b class="num">${p.x} %</b></span>` : ""].join("");
+      return `<article class="card"><a href="${href}" class="card-media block" tabindex="-1" aria-hidden="true"><img src="${p.i}" alt="" width="600" height="600" loading="lazy" decoding="async"${p.k === "shop" ? "" : ' class="cover"'}>` +
+        (p.d > 0 ? `<span class="absolute left-2 top-2 bg-stamp-green text-white text-xs font-bold px-1.5 py-0.5 rounded-[2px] num">−${p.d}%</span>` : "") +
+        `<span class="card-stamp stamp"><span class="stamp-label">${L.from}</span><span class="stamp-price">${money(p.p)}</span></span></a>` +
+        `<div class="flex flex-1 flex-col gap-2 p-3 pt-5"><h3 class="font-[family-name:var(--font-sans)] text-[0.98rem] font-semibold leading-snug tracking-normal"><a href="${href}" class="no-underline hover:underline">${esc(p.n)}</a></h3>` +
+        `<div class="flex flex-wrap gap-1">${p.t ? `<span class="chip chip-${p.t}">${L.type[p.t]}</span>` : ""}${cfg.showCategory ? `<span class="chip">${L.cat[p.ca]}</span>` : ""}${p.g ? `<span class="chip">${p.g}</span>` : ""}</div>` +
+        (facts ? `<p class="card-facts">${facts}</p>` : "") +
+        `<p class="mt-auto text-xs text-muted">${compare}</p><a class="btn-buy text-sm w-full" href="${p.u}" rel="sponsored nofollow noopener" target="_blank">${esc(L.buyAt.replace("{s}", p.bn))}</a></div></article>`;
+    }
+
+    function readState() {
+      const f = new FormData(form);
+      const st: Record<string, string[]> = {};
+      for (const k of [...CHECK, ...TOGGLE]) { const v = f.getAll(k) as string[]; if (v.length) st[k] = v; }
+      if (qInput && qInput.value.trim()) st.q = [qInput.value.trim()];
+      form.querySelectorAll<HTMLInputElement>("input[type=range]").forEach((el) => {
+        const atDefault = el.dataset.bound === "min" ? Number(el.value) <= Number(el.min) : Number(el.value) >= Number(el.max);
+        if (!atDefault) st[el.name] = [el.value];
+      });
+      return st;
+    }
+    const pass = (p: Rec, st: Record<string, string[]>, skip?: string) => {
+      for (const k in st) {
+        if (k === skip) continue;
+        const v = st[k];
+        if (k === "q") { const hay = norm(`${p.n} ${L.cat[p.ca] ?? ""} ${p.t ?? ""}`); if (!norm(v[0]).split(/\s+/).every((w) => hay.includes(w))) return false; continue; }
+        if (k === "cat" && !v.includes(p.ca)) return false;
+        if (k === "type" && !(p.t && v.includes(p.t))) return false;
+        if (k === "sub" && !v.includes(p.st)) return false;
+        if (k === "grade" && !(p.g && v.includes(p.g))) return false;
+        if (k === "shop" && !p.sh.some((x) => v.includes(x))) return false;
+        if (k === "fmt" && !p.fm.some((g) => v.includes(String(g)))) return false;
+        if (k === "sale" && !(p.d > 0)) return false;
+        if (k === "multi" && !(p.c > 1)) return false;
+        if (k === "pmax" && p.p > Number(v[0])) return false;
+        if (k === "gmax" && !(p.q && p.q <= Number(v[0]))) return false;
+        if (k === "thc" && !(p.x && p.x >= Number(v[0]))) return false;
+      }
+      return true;
+    };
+    const SORT: Record<string, (a: Rec, b: Rec) => number> = {
+      popular: (a, b) => b.c - a.c || Number(a.k === "category") - Number(b.k === "category") || a.p - b.p, priceAsc: (a, b) => a.p - b.p, priceDesc: (a, b) => b.p - a.p,
+      ppgAsc: (a, b) => (a.q ?? 1e9) - (b.q ?? 1e9), thcDesc: (a, b) => (b.x ?? 0) - (a.x ?? 0), discount: (a, b) => b.d - a.d || a.p - b.p,
+      newest: (a, b) => b.f.localeCompare(a.f), name: (a, b) => a.n.localeCompare(b.n),
+    };
+
+    function render() {
+      const st = readState();
+      rows = data!.filter((p) => pass(p, st)).sort(SORT[sortSel.value] ?? SORT.popular);
+      // Compteurs : pour chaque groupe, on applique tous les autres filtres (on voit ce qu'ajouter une case donnerait)
+      form.querySelectorAll<HTMLElement>("[data-n]").forEach((el) => {
+        const [k, v] = el.dataset.n!.split(":");
+        const others = data!.filter((p) => pass(p, st, k));
+        const n = others.filter((p) => pass(p, { [k]: [v] })).length;
+        el.textContent = nf(n);
+        const input = el.parentElement!.querySelector("input")!;
+        el.parentElement!.classList.toggle("is-empty", n === 0 && !input.checked);
+      });
+      form.querySelectorAll<HTMLInputElement>("input[type=range]").forEach((el) => {
+        const out = form.querySelector<HTMLElement>(`[data-out="${el.name}"]`)!;
+        out.textContent = st[el.name] ? `${el.dataset.bound === "min" ? L.min : L.max} ${fmtVal(Number(el.value), el.dataset.unit!)}` : L.any;
+      });
+      // Filtres actifs en pastilles (un clic retire le filtre)
+      const pills: string[] = [];
+      for (const k in st) for (const v of st[k]) {
+        const el = k === "q" ? null : form.querySelector<HTMLInputElement>(`[name="${k}"]${RANGE.includes(k) ? "" : `[value="${CSS.escape(v)}"]`}`);
+        let label = k === "q" ? `« ${v} »` : el?.closest("label")?.querySelector("span")?.textContent ?? v;
+        if (RANGE.includes(k)) label = form.querySelector(`label[for="rg-${k}"] span`)!.textContent + " : " + fmtVal(Number(v), el!.dataset.unit!);
+        pills.push(`<button type="button" class="chip-active" data-rm="${k}" data-v="${esc(v)}">${esc(label)} <span aria-hidden="true">×</span><span class="sr-only">${en ? "remove" : "retirer"}</span></button>`);
+      }
+      if (pills.length) pills.push(`<button type="button" class="text-sm font-semibold text-mailbox underline" data-clear>${L.clear}</button>`);
+      chips.innerHTML = pills.join("");
+      const nActive = Object.values(st).reduce((a, v) => a + v.length, 0);
+      if (activeN) activeN.textContent = nActive ? `(${nActive})` : "";
+      countEl.textContent = L.showing.replace("{n}", nf(rows.length));
+      if (seeBtn) seeBtn.textContent = L.see.replace("{n}", nf(rows.length));
+      grid.innerHTML = ""; shown = 0; if (pager) pager.hidden = true;
+      empty.classList.toggle("hidden", rows.length > 0);
+      more_();
+    }
+    function more_() {
+      const next = rows.slice(shown, shown + cfg.pageSize);
+      grid.insertAdjacentHTML("beforeend", next.map(card).join(""));
+      shown += next.length;
+      more.classList.toggle("hidden", shown >= rows.length);
+    }
+    function syncUrl() {
+      const st = readState(), q = new URLSearchParams();
+      for (const k in st) q.set(k, st[k].join(","));
+      if (sortSel.value !== cfg.initialSort) q.set("sort", sortSel.value);
+      const qs = q.toString();
+      history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+    }
+    async function ensure() {
+      if (!data) data = await (await fetch(cfg.src)).json();
+      return data!;
+    }
+    async function update() { touched = true; await ensure(); render(); syncUrl(); }
+
+    form.addEventListener("input", (e) => { if ((e.target as HTMLInputElement).type === "range") update(); });
+    form.addEventListener("change", (e) => { if ((e.target as HTMLInputElement).type !== "range") update(); });
+    sortSel.addEventListener("change", update);
+    let qTimer: ReturnType<typeof setTimeout>;
+    qInput?.addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(update, 180); });
+    more.addEventListener("click", more_);
+    chips.addEventListener("click", (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>("[data-rm],[data-clear]");
+      if (!b) return;
+      if (b.hasAttribute("data-clear")) { form.reset(); if (qInput) qInput.value = ""; }
+      else if (b.dataset.rm === "q" && qInput) { qInput.value = ""; }
+      else {
+        const k = b.dataset.rm!, v = b.dataset.v!;
+        const el = form.querySelector<HTMLInputElement>(`[name="${k}"]${RANGE.includes(k) ? "" : `[value="${CSS.escape(v)}"]`}`);
+        if (el) { if (el.type === "range") el.value = el.dataset.bound === "min" ? el.min : el.max; else el.checked = false; }
+      }
+      update();
+    });
+    // Tiroir mobile
+    const open = (on: boolean) => { form.classList.toggle("is-open", on); document.body.classList.toggle("overflow-hidden", on); openBtn?.setAttribute("aria-expanded", String(on)); };
+    openBtn?.addEventListener("click", () => open(true));
+    root.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => open(false)));
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") open(false); });
+    // « Afficher plus » sans pagination statique : charge la liste au premier clic
+    if (root.querySelector("[data-autoload]")) { more.classList.remove("hidden"); more.addEventListener("click", async (e) => { if (!touched) { e.stopImmediatePropagation(); touched = true; await ensure(); rows = data!.slice().sort(SORT[sortSel.value]); grid.innerHTML = ""; shown = 0; more_(); more_(); } }, { capture: true }); }
+    // Recherche partagée : on relit l'URL au chargement
+    const q = new URLSearchParams(location.search);
+    let any = false;
+    q.forEach((val, k) => {
+      if (k === "sort") { sortSel.value = val; any = true; return; }
+      if (k === "q") { if (qInput) { qInput.value = val; any = true; } return; }
+      for (const v of val.split(",")) {
+        const el = form.querySelector<HTMLInputElement>(`[name="${k}"]${RANGE.includes(k) ? "" : `[value="${CSS.escape(v)}"]`}`);
+        if (el) { any = true; if (el.type === "range") el.value = v; else el.checked = true; }
+      }
+    });
+    if (any) update();
+  });
+</script>

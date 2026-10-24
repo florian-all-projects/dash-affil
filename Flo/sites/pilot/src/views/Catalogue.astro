@@ -1,9 +1,9 @@
 ---
 import Base from "../layouts/Base.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
-import ProductCard from "../components/ProductCard.astro";
+import Explorer from "../components/Explorer.astro";
 import { t, r, fmtPrice, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
-import { products, categoryStats, showcase, activeShops } from "../lib/catalog";
+import { products, categoryStats, activeShops } from "../lib/catalog";
 import { breadcrumbLd } from "../lib/seo";
 
 interface Props { lang: Lang }
@@ -12,7 +12,6 @@ const s = t[lang];
 const other: Lang = lang === "en" ? "fr" : "en";
 const site = Astro.site!.toString().replace(/\/$/, "");
 const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st);
-const popular = showcase(products, 12);
 const L = lang === "en"
   ? { h1: "The Catalogue", title: `Cannabis Catalogue: ${products.length.toLocaleString("en-CA")} Products From ${activeShops.length} Online Shops`, desc: `Every product sold by ${activeShops.length} Canadian online dispensaries and seed banks, by category, with the lowest price for each.`, lede: `Every product from every shop we track, grouped like a mail-order catalogue. Use the search above or open a category.`, results: "Search results", popular: "Most compared right now", items: "items" }
   : { h1: "Le catalogue", title: `Catalogue cannabis : ${products.length.toLocaleString("fr-CA")} produits de ${activeShops.length} boutiques`, desc: `Tous les produits de ${activeShops.length} boutiques en ligne et banques de graines canadiennes, par catégorie, avec le prix le plus bas de chacun.`, lede: `Tous les produits de toutes les boutiques suivies, classés comme dans un catalogue de vente par correspondance. Utilisez la recherche ou ouvrez une catégorie.`, results: "Résultats de recherche", popular: "Les plus comparés en ce moment", items: "produits" };
@@ -23,11 +22,6 @@ const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.ca
     <Breadcrumbs items={crumbs} />
     <h1 class="mt-4">{L.h1}</h1>
     <p class="lede mt-3">{L.lede}</p>
-
-    <section class="mt-8 hidden" data-search-results>
-      <h2>{L.results}</h2>
-      <div class="grid-products mt-5" data-search-grid></div>
-    </section>
 
     <ul class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {board.map(({ c, st }) => (
@@ -42,29 +36,8 @@ const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.ca
     </ul>
 
     <section class="section">
-      <h2>{L.popular}</h2>
-      <div class="grid-products mt-6">{popular.map((p) => <ProductCard p={p} lang={lang} showCategory />)}</div>
+      <h2>{lang === "en" ? "Search and filter every product" : "Chercher et filtrer tous les produits"}</h2>
+      <Explorer lang={lang} list={products} dataUrl="/data/all.json" showCategory search />
     </section>
   </div>
-  <script is:inline define:vars={{ lang, productBase: lang === "en" ? "/product/" : "/fr/produit/", fromLabel: s.from }}>
-    (function () {
-      // Page de résultats : ?q= (formulaire de l'en-tête sans JavaScript ou touche Entrée)
-      var q = new URLSearchParams(location.search).get("q");
-      if (!q) return;
-      var box = document.querySelector("[data-search-results]"), grid = document.querySelector("[data-search-grid]");
-      document.getElementById("q").value = q;
-      function norm(x) { return x.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
-      function money(c) { var v = c / 100, x = v % 1 ? v.toFixed(2) : String(v); return lang === "en" ? "$" + x : x.replace(".", ",") + " $"; }
-      fetch("/search-index.json").then(function (r) { return r.json(); }).then(function (idx) {
-        var words = norm(q).split(/\s+/).filter(Boolean);
-        var hits = idx.filter(function (it) { return words.every(function (w) { return it.k.indexOf(w) !== -1; }); }).slice(0, 96);
-        grid.innerHTML = hits.map(function (it) {
-          return '<article class="card"><a href="' + productBase + it.s + '/" class="card-media block"><img src="' + it.i + '" alt="" width="600" height="600" loading="lazy" class="cover">' +
-            '<span class="card-stamp stamp"><span class="stamp-label">' + fromLabel + '</span><span class="stamp-price">' + money(it.p) + '</span></span></a>' +
-            '<div class="p-3 pt-5"><a href="' + productBase + it.s + '/" class="font-semibold no-underline hover:underline">' + it.n.replace(/</g, "&lt;") + '</a></div></article>';
-        }).join("") || '<p>' + (lang === "en" ? "No product matches this search." : "Aucun produit ne correspond à cette recherche.") + '</p>';
-        box.classList.remove("hidden");
-      });
-    })();
-  </script>
 </Base>

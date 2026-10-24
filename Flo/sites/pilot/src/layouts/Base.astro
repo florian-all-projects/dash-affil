@@ -81,6 +81,8 @@ const orgLd = {
         <nav aria-label={lang === "en" ? "Site" : "Site"} class="ml-auto hidden lg:block">
           <ul class="flex gap-5 text-sm font-semibold">
             <li><a href={r.deals(lang)} class="no-underline hover:text-mailbox">{s.nav.deals}</a></li>
+            <li><a href={r.strains(lang)} class="no-underline hover:text-mailbox">{lang === "en" ? "Strains" : "Variétés"}</a></li>
+            <li><a href={r.collections(lang)} class="no-underline hover:text-mailbox">{lang === "en" ? "Rankings" : "Classements"}</a></li>
             <li><a href={r.delivery(lang)} class="no-underline hover:text-mailbox">{s.nav.delivery}</a></li>
             <li><a href={r.shops(lang)} class="no-underline hover:text-mailbox">{s.nav.shops}</a></li>
             <li><a href={r.coupons(lang)} class="no-underline hover:text-mailbox">{s.nav.coupons}</a></li>
@@ -93,6 +95,8 @@ const orgLd = {
             <li><a href={r.category(lang, c)} class:list={["no-underline hover:text-mailbox", path.startsWith(r.category(lang, c)) && "text-mailbox"]}>{CATEGORY_SLUGS[c].label[lang]}</a></li>
           ))}
           <li class="lg:hidden"><a href={r.deals(lang)} class="no-underline text-mailbox">{s.nav.deals}</a></li>
+          <li class="lg:hidden"><a href={r.strains(lang)} class="no-underline">{lang === "en" ? "Strains" : "Variétés"}</a></li>
+          <li class="lg:hidden"><a href={r.collections(lang)} class="no-underline">{lang === "en" ? "Rankings" : "Classements"}</a></li>
           <li class="lg:hidden"><a href={r.delivery(lang)} class="no-underline">{s.nav.delivery}</a></li>
           <li class="lg:hidden"><a href={r.shops(lang)} class="no-underline">{s.nav.shops}</a></li>
           <li class="lg:hidden"><a href={r.coupons(lang)} class="no-underline">{s.nav.coupons}</a></li>
@@ -116,6 +120,10 @@ const orgLd = {
           <ul class="mt-3 space-y-1.5">
             {cats.map((c) => <li><a href={r.category(lang, c)} class="no-underline hover:underline">{lang === "en" ? `Buy ${CATEGORY_SLUGS[c].label.en.toLowerCase()} online` : `${CATEGORY_SLUGS[c].label.fr} en ligne`}</a></li>)}
             <li><a href={r.deals(lang)} class="no-underline hover:underline">{s.nav.deals}</a></li>
+            <li><a href={r.newArrivals(lang)} class="no-underline hover:underline">{lang === "en" ? "New products" : "Nouveautés"}</a></li>
+            <li><a href={r.strains(lang)} class="no-underline hover:underline">{lang === "en" ? "Strains" : "Variétés"}</a></li>
+            <li><a href={r.collections(lang)} class="no-underline hover:underline">{lang === "en" ? "Weekly rankings" : "Classements de la semaine"}</a></li>
+            <li><a href={r.guides(lang)} class="no-underline hover:underline">{lang === "en" ? "Buying guides" : "Guides d'achat"}</a></li>
           </ul>
         </div>
         <div>

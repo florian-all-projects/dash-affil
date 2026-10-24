@@ -21,6 +21,8 @@ Surveillance emails : tâche planifiée **1×/jour à 9h** (⚠️ plus rien jou
 - **Infra (23/10)** : D1 `cana-catalog` + Worker `cana-scraper` (plan gratuit) en production ; site pilote **Budboard** EN/FR sur https://budboard-ca.pages.dev (noindex). Voir `Flo/README.md`.
 - **Refonte du 24/10** (demande de Florian) : identité « catalogue postal », gabarits e-commerce, 11 shops collectés (~4 000 produits, Ganja West + QCS + Toronto Seeds ajoutés via JSON-LD), 3 993 fiches produits EN/FR rédigées, annuaire de 3 809 magasins autorisés (registres officiels, publication décidée par Florian malgré l'absence de licence ouverte ; NS et NB manquants), 254 pages villes + 13 provinces + catégories + avis boutiques rédigés, accueil ciblant « buy weed online Canada ». 8 757 pages. À faire avant indexation : NDD, prix au gramme, NS/NB, compléter le Québec (liste SQDC de 2024).
 
+- **24/10 après-midi** (demande de Florian) : prix par format et au gramme (6 269 variantes collectées), fiches produits en modules graphiques, moteur de filtres sur toutes les listes, 242 pages variétés, 13 classements chiffrés, nouveautés, 7 guides en blocs, accueil/villes/provinces/boutiques/codes promo refaits en modules. Manitoba : culture à domicile permise depuis le 01/05/2025 (corrigé). 9 289 pages, noindex. **Critique + SWOT** dans `Flo/docs/critique-swot-2026-10-24.md` : avis d'avocat (loi ontarienne 223, art. 8.2) et révision du modèle « 10 sites sur NDD expirés » (politiques anti-spam Google) recommandés avant indexation.
+
 ## En attente de Florian (bloquant V1)
 1 NDD pilote (le site tourne en attendant sur budboard-ca.pages.dev, noindex) ·  données shops physiques (non bloquant pour le pilote : pages villes d'abord sur le top 30).
 

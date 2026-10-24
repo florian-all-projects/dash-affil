@@ -22,8 +22,14 @@ const label = p.primary.price > p.from ? s.buyAtPrice(shopName, fmtPrice(p.prima
     <div class="flex flex-wrap gap-1">
       {p.strainType && <span class={`chip chip-${p.strainType}`}>{s.typeLabel[p.strainType as "indica"]}</span>}
       {showCategory && <span class="chip">{CATEGORY_SLUGS[p.category]?.label[lang]}</span>}
-      {p.weights.slice(0, 3).map((w) => <span class="chip">{w}</span>)}
+      {p.grade && <span class="chip">{p.grade}</span>}
     </div>
+    {(p.ppg || p.thc) && (
+      <p class="card-facts">
+        {p.ppg && <span><b class="num">{fmtPrice(p.ppg, lang)}</b>/g</span>}
+        {p.thc && <span>THC <b class="num">{p.thc[1]} %</b></span>}
+      </p>
+    )}
     <p class="mt-auto text-xs text-muted">{s.compareN(p.shopCount)}</p>
     <a class="btn-buy text-sm w-full" href={p.primary.buyUrl} rel="sponsored nofollow noopener" target="_blank">{label}</a>
   </div>

@@ -1,0 +1,19 @@
+---
+// Barres horizontales (une seule série) : libellé à gauche, valeur au bout de la barre, la meilleure valeur en vert.
+// Rendu HTML/CSS (pas de JS) ; info-bulle native au survol ; le tableau détaillé est fourni à côté par la page.
+interface Row { label: string; value: number; display: string; href?: string; best?: boolean; note?: string }
+interface Props { rows: Row[]; max?: number; ariaLabel: string; compact?: boolean }
+const { rows, max, ariaLabel, compact = false } = Astro.props;
+const top = max ?? Math.max(...rows.map((r) => r.value), 1);
+---
+<ul class="space-y-2.5" role="list" aria-label={ariaLabel}>
+  {rows.map((r) => (
+    <li class:list={["grid items-center gap-3 text-sm", compact ? "grid-cols-[minmax(3rem,6.5rem)_1fr] gap-2" : "grid-cols-[minmax(6rem,11rem)_1fr]"]} title={`${r.label}: ${r.display}${r.note ? ` (${r.note})` : ""}`}>
+      <span class="truncate">{r.href ? <a href={r.href}>{r.label}</a> : r.label}</span>
+      <span class="flex items-center gap-2">
+        <span class="bar-track flex-1"><span class:list={["bar-fill", r.best && "is-best"]} style={`width:${Math.max(2, (r.value / top) * 100).toFixed(1)}%`}></span></span>
+        <span class:list={["shrink-0 text-right font-semibold num", compact ? "w-10" : "w-24"]}>{r.display}</span>
+      </span>
+    </li>
+  ))}
+</ul>

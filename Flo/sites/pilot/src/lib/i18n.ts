@@ -28,6 +28,13 @@ export const r = {
   coupons: (l: Lang) => (l === "en" ? "/coupons/" : "/fr/codes-promo/"),
   coupon: (l: Lang, slug: string) => `${r.coupons(l)}${slug}/`,
   deals: (l: Lang) => (l === "en" ? "/deals/" : "/fr/promotions/"),
+  strains: (l: Lang) => (l === "en" ? "/strains/" : "/fr/varietes/"),
+  strain: (l: Lang, slug: string) => `${l === "en" ? "/strains/" : "/fr/varietes/"}${slug}/`,
+  newArrivals: (l: Lang) => (l === "en" ? "/new/" : "/fr/nouveautes/"),
+  collections: (l: Lang) => (l === "en" ? "/best/" : "/fr/selection/"),
+  collection: (l: Lang, slug: string) => `${l === "en" ? "/best/" : "/fr/selection/"}${slug}/`,
+  guides: (l: Lang) => (l === "en" ? "/guides/" : "/fr/guides/"),
+  guide: (l: Lang, slug: string) => `${l === "en" ? "/guides/" : "/fr/guides/"}${slug}/`,
   about: (l: Lang) => (l === "en" ? "/about/" : "/fr/a-propos/"),
   legal: (l: Lang) => (l === "en" ? "/legal/" : "/fr/mentions-legales/"),
 };

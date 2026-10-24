@@ -1,0 +1,40 @@
+---
+// Index des sélections : chaque classement avec son numéro 1 de la semaine.
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { t, r, fmtPrice, fmtDate, type Lang } from "../lib/i18n";
+import { products, exportedAt } from "../lib/catalog";
+import { COLLECTIONS } from "../data/collections";
+import { breadcrumbLd } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const price = (c: number) => fmtPrice(c, lang);
+const rows = COLLECTIONS.map((c) => ({ c, list: products.filter(c.filter).sort(c.rank) })).filter((x) => x.list.length >= (x.c.min ?? 6));
+const h1 = en ? "Weekly Rankings: Cheapest, Strongest, Best Value" : "Les classements de la semaine : moins cher, plus fort, meilleur rapport";
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: en ? "Best of" : "Sélections" }];
+---
+<Base lang={lang} title={en ? "Cannabis Rankings Canada: Updated Every Week" : "Classements cannabis au Canada, mis à jour chaque semaine"} description={en ? `${rows.length} rankings built from prices and THC figures checked every week across Canadian online shops.` : `${rows.length} classements construits à partir des prix et du THC vérifiés chaque semaine dans les boutiques en ligne canadiennes.`} path={r.collections(lang)} alt={r.collections(other)} jsonld={[breadcrumbLd(site, crumbs)]}>
+  <div class="wrap pt-6">
+    <Breadcrumbs items={crumbs} />
+    <h1 class="mt-4 max-w-4xl">{h1}</h1>
+    <p class="lede mt-3">{en ? "Each ranking uses one measured number, written next to it. No paid placement." : "Chaque classement repose sur un chiffre mesuré, affiché à côté. Aucune place payée."} {s.updated(fmtDate(exportedAt, lang))}.</p>
+    <ul class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {rows.map(({ c, list }) => (
+        <li class="panel flex flex-col">
+          <a href={r.collection(lang, c.slug[lang])} class="panel-title no-underline hover:underline">{c.h1[lang]}</a>
+          <p class="panel-sub">{en ? `${list.length} products` : `${list.length} produits`}</p>
+          <div class="mt-4 flex items-center gap-3 rounded-[4px] bg-kraft-light p-3">
+            <span class="font-[family-name:var(--font-display)] text-3xl font-extrabold">1</span>
+            <div class="min-w-0"><a href={r.product(lang, list[0].slug)} class="block truncate font-semibold">{list[0].name}</a><span class="text-sm num">{c.metric(list[0], lang, price)}</span></div>
+          </div>
+          <a href={r.collection(lang, c.slug[lang])} class="mt-auto pt-4 text-sm font-semibold text-mailbox">{en ? "See the ranking" : "Voir le classement"}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Base>

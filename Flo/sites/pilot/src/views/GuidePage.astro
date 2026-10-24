@@ -1,0 +1,94 @@
+---
+// Guide en blocs : repères, tableaux, étapes, comparatifs, listes à cocher, encadrés et graphiques en direct.
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import Faq from "../components/Faq.astro";
+import GuideChart from "../components/GuideChart.astro";
+import { t, r, fmtDate, type Lang } from "../lib/i18n";
+import { exportedAt } from "../lib/catalog";
+import { GUIDES } from "../data/guides";
+import { guideContent } from "../lib/content";
+import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
+
+interface Props { lang: Lang; key: string }
+const { lang, key } = Astro.props;
+const G = GUIDES.find((g) => g.key === key)!;
+const C = guideContent(key, lang)!;
+const s = t[lang];
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: "Guides", href: r.guides(lang) }, { name: C.h1 }];
+const jsonld = [
+  breadcrumbLd(site, crumbs),
+  { "@context": "https://schema.org", "@type": "Article", headline: C.h1, description: C.meta, inLanguage: en ? "en-CA" : "fr-CA", dateModified: exportedAt, publisher: { "@type": "Organization", name: "Budboard" } },
+  ...(C.faq?.length ? [faqLd(C.faq)] : []),
+];
+let n = 0;
+const blocks = C.blocks.map((b: any) => (b.h && b.type !== "keyfacts" ? { ...b, anchor: `b${n++}` } : b));
+const toc = blocks.filter((b: any) => b.anchor).map((b: any) => ({ h: b.h, id: b.anchor }));
+const others = GUIDES.filter((g) => g.key !== key);
+const bold = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+---
+<Base lang={lang} title={mkTitle(C.title, C.h1)} description={C.meta} path={r.guide(lang, G.slug[lang])} alt={r.guide(other, G.slug[other])} jsonld={jsonld}>
+  <div class="band">
+    <div class="wrap py-8">
+      <Breadcrumbs items={crumbs} />
+      <h1 class="mt-4 max-w-4xl">{C.h1}</h1>
+      <p class="lede mt-3">{C.lead}</p>
+      <p class="mt-3 text-sm text-muted">{en ? "Charts use this week's catalogue data." : "Les graphiques utilisent les données du catalogue de cette semaine."} {s.updated(fmtDate(exportedAt, lang))}.</p>
+    </div>
+  </div>
+  <div class="wrap grid gap-10 lg:grid-cols-[14rem_minmax(0,1fr)]">
+    <nav class="hidden lg:block" aria-label={en ? "On this page" : "Sur cette page"}>
+      <div class="sticky top-4 mt-8">
+        <p class="text-sm font-semibold">{en ? "On this page" : "Sur cette page"}</p>
+        <ol class="mt-2 space-y-1.5 border-l-2 border-line pl-3 text-sm">{toc.map((x: any) => <li><a href={`#${x.id}`} class="no-underline hover:underline">{x.h}</a></li>)}</ol>
+      </div>
+    </nav>
+    <article class="min-w-0 max-w-3xl space-y-6 pt-8">
+      {blocks.map((b: any) => (
+        b.type === "keyfacts" ? (
+          <div class="grid grid-cols-2 gap-3 md:grid-cols-4">{b.items.map((x: any) => <div class="tile"><p class="tile-label">{x.label}</p><p class="tile-value !text-[1.15rem]">{x.value}</p>{x.note && <p class="tile-note">{x.note}</p>}</div>)}</div>
+        ) : b.type === "section" ? (
+          <section id={b.anchor} class="scroll-mt-6"><h2 class="!text-[1.9rem]">{b.h}</h2>{b.p.map((x: string) => <p class="mt-3 leading-relaxed text-ink-soft" set:html={bold(x)} />)}</section>
+        ) : b.type === "table" ? (
+          <section id={b.anchor} class="panel scroll-mt-6">
+            <h2 class="panel-title">{b.h}</h2>
+            <div class="mt-3 overflow-x-auto"><table class="table-bb"><thead><tr>{b.head.map((x: string) => <th>{x}</th>)}</tr></thead><tbody>{b.rows.map((row: string[]) => <tr>{row.map((c, i) => <td class:list={[i === 0 && "font-semibold"]}>{c}</td>)}</tr>)}</tbody></table></div>
+            {b.note && <p class="mt-2 text-xs text-muted">{b.note}</p>}
+          </section>
+        ) : b.type === "steps" ? (
+          <section id={b.anchor} class="scroll-mt-6">
+            <h2 class="!text-[1.9rem]">{b.h}</h2>
+            <ol class="mt-4 space-y-3">{b.items.map((x: any, i: number) => <li class="grid grid-cols-[2.5rem_1fr] gap-3"><span class="grid size-10 place-items-center rounded-full bg-ink font-[family-name:var(--font-display)] text-xl font-extrabold text-white">{i + 1}</span><div><p class="font-semibold">{x.h.replace(/^\s*\d+[.)]\s*/, "")}</p><p class="text-ink-soft">{x.p}</p></div></li>)}</ol>
+          </section>
+        ) : b.type === "compare" ? (
+          <section id={b.anchor} class="scroll-mt-6">
+            <h2 class="!text-[1.9rem]">{b.h}</h2>
+            <div class:list={["mt-4 grid gap-3", b.cols.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"]}>
+              {b.cols.map((c: any) => <div class="panel"><p class="panel-title !text-[1.3rem]">{c.name}</p><ul class="mt-2 space-y-1.5 text-sm">{c.points.map((x: string) => <li class="border-t border-line pt-1.5">{x}</li>)}</ul></div>)}
+            </div>
+          </section>
+        ) : b.type === "checklist" ? (
+          <section id={b.anchor} class="parcel scroll-mt-6"><p class="parcel-head">{b.h}</p><ul class="check-list text-sm">{b.items.map((x: string) => <li>{x}</li>)}</ul></section>
+        ) : b.type === "callout" ? (
+          <aside class:list={["rounded-[4px] border-l-4 p-4 text-sm", b.tone === "warn" ? "border-mailbox bg-[#fbeceb]" : "border-series-1 bg-[#eef2fa]"]}>{b.text}</aside>
+        ) : b.type === "chart" ? (
+          <div id={b.anchor} class="scroll-mt-6"><GuideChart id={b.id === undefined ? "" : b.id} lang={lang} h={b.h} caption={b.caption} /></div>
+        ) : null
+      ))}
+      {G.sources.length > 0 && (
+        <section class="border-t border-line pt-4 text-sm">
+          <p class="font-semibold">Sources</p>
+          <ul class="mt-1 space-y-1">{G.sources.map((x) => <li><a href={x.url} rel="nofollow noopener" target="_blank">{x.name}</a></li>)}</ul>
+        </section>
+      )}
+      <Faq items={C.faq} title={s.faqTitle} />
+      <section class="section">
+        <h2 class="!text-[1.6rem]">{en ? "More guides" : "Autres guides"}</h2>
+        <ul class="mt-3 grid gap-2 sm:grid-cols-2">{others.map((g) => { const c = guideContent(g.key, lang); return c && <li><a href={r.guide(lang, g.slug[lang])} class="block h-full rounded-[4px] border border-line p-3 font-semibold no-underline hover:border-ink">{c.h1}</a></li>; })}</ul>
+      </section>
+    </article>
+  </div>
+</Base>

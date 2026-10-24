@@ -1,0 +1,151 @@
+---
+// Page variété : tout ce que les boutiques publient sur une variété, réuni et compté (type, génétique, THC, saveurs,
+// effets, terpènes), ses prix par boutique et par format, tous ses produits filtrables, variétés proches, FAQ factuelle.
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import Explorer from "../components/Explorer.astro";
+import Faq from "../components/Faq.astro";
+import HBars from "../components/viz/HBars.astro";
+import Lineage from "../components/viz/Lineage.astro";
+import ShareBar from "../components/viz/ShareBar.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
+import { strainBySlug, strains, exportedAt, shops } from "../lib/catalog";
+import { strainProfile } from "../lib/strains";
+import { medianBy, ppgByFormat, shopsOf } from "../lib/stats";
+import { SHORT_NAME } from "../data/shops-content";
+import { title as mkTitle, breadcrumbLd, faqLd, itemListLd } from "../lib/seo";
+
+interface Props { lang: Lang; slug: string }
+const { lang, slug } = Astro.props;
+const st = strainBySlug.get(slug)!;
+const P = strainProfile(st);
+const s = t[lang];
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const price = (c: number) => fmtPrice(c, lang);
+const nf = (n: number) => n.toLocaleString(en ? "en-CA" : "fr-CA");
+const name = st.name;
+const typeLabel = P.type ? s.typeLabel[P.type] : null;
+const short = (sl: string) => SHORT_NAME[sl] ?? shops.find((x) => x.slug === sl)?.name ?? sl;
+const ppgShop = medianBy(st.products.filter((p) => p.category === "flower"), shopsOf, (p) => p.ppg, 1);
+const byFormat = ppgByFormat(st.products.filter((p) => p.category === "flower"), undefined, 1);
+const seeds = st.products.filter((p) => p.category === "seed");
+const catLabel = (c: string) => CATEGORY_SLUGS[c].label[lang];
+const thcTxt = P.thc ? (P.thc[0] === P.thc[1] ? `${P.thc[1]} %` : `${P.thc[0]} ${en ? "to" : "à"} ${P.thc[1]} %`) : null;
+// Variétés proches : même type dominant et des saveurs en commun
+const flav = new Set(P.flavors.map((f) => f.label));
+const near = strains.filter((x) => x.slug !== slug).map((x) => ({ x, p: strainProfile(x) }))
+  .filter(({ p }) => p.type === P.type).map(({ x, p }) => ({ x, p, score: p.flavors.filter((f) => flav.has(f.label)).length * 10 + Math.min(x.products.length, 9) }))
+  .sort((a, b) => b.score - a.score).slice(0, 6);
+
+const h1 = en ? `${name} Strain: Prices and Where to Buy in Canada` : `Variété ${name} : prix et où l'acheter au Canada`;
+const pageTitle = en ? mkTitle(`${name} Strain: Prices, THC & Where to Buy in Canada`, `${name} Strain: Prices & Where to Buy`) : mkTitle(`${name} : prix, THC et où acheter cette variété`, `${name} : prix et où l'acheter`);
+const desc = en
+  ? `${name}${typeLabel ? `, a${P.type === "indica" ? "n" : ""} ${typeLabel.toLowerCase()}` : ""} strain: ${st.products.length} products from ${P.shops.length} Canadian online shops, from ${price(P.from)}.${thcTxt ? ` THC ${thcTxt}.` : ""} Prices checked weekly.`
+  : `Variété ${name}${typeLabel ? ` (${typeLabel.toLowerCase()})` : ""} : ${st.products.length} produits de ${P.shops.length} boutiques en ligne canadiennes, dès ${price(P.from)}.${thcTxt ? ` THC ${thcTxt}.` : ""} Prix vérifiés chaque semaine.`;
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: en ? "Strains" : "Variétés", href: r.strains(lang) }, { name }];
+const faq = [
+  { q: en ? `How much does ${name} cost in Canada?` : `Combien coûte ${name} au Canada ?`, a: en ? `The lowest price this week is ${price(P.from)} at ${P.cheapest.offers[0].shop.name}${P.bestPpg ? `, and the best price per gram is ${price(P.bestPpg)}` : ""}. We compare ${st.products.length} ${name} products from ${P.shops.length} online shops every week.` : `Le prix le plus bas cette semaine est de ${price(P.from)} chez ${P.cheapest.offers[0].shop.name}${P.bestPpg ? `, et le meilleur prix au gramme est de ${price(P.bestPpg)}` : ""}. Nous comparons ${st.products.length} produits ${name} de ${P.shops.length} boutiques en ligne chaque semaine.` },
+  ...(P.type ? [{ q: en ? `Is ${name} indica or sativa?` : `${name} est-elle indica ou sativa ?`, a: en ? `Shops list ${name} as ${typeLabel!.toLowerCase()} on ${P.types[P.type]} of the ${P.typed} products that state a type.${P.indicaPct !== null ? ` Published ratios average ${P.indicaPct}% indica.` : ""}` : `Les boutiques classent ${name} en ${typeLabel!.toLowerCase()} sur ${P.types[P.type]} des ${P.typed} produits qui indiquent un type.${P.indicaPct !== null ? ` Les ratios publiés donnent en moyenne ${P.indicaPct} % indica.` : ""}` }] : []),
+  ...(thcTxt ? [{ q: en ? `How much THC does ${name} have?` : `Quel est le taux de THC de ${name} ?`, a: en ? `Shops list THC between ${thcTxt} for ${name}. THC varies from batch to batch, so check the label on the product you buy.` : `Les boutiques indiquent un THC de ${thcTxt} pour ${name}. Le taux varie d'un lot à l'autre : vérifiez l'étiquette du produit acheté.` }] : []),
+  ...(P.flavors.length >= 2 ? [{ q: en ? `What does ${name} taste like?` : `Quel goût a ${name} ?`, a: en ? `Shop descriptions most often mention ${P.flavors.slice(0, 3).map((f) => f.label).join(", ")}.` : `Les descriptions des boutiques citent le plus souvent : ${P.flavors.slice(0, 3).map((f) => f.label).join(", ")}.` }] : []),
+  ...(seeds.length ? [{ q: en ? `Can I buy ${name} seeds in Canada?` : `Peut-on acheter des graines de ${name} au Canada ?`, a: en ? `Yes: ${seeds.length} ${name} seed product${seeds.length > 1 ? "s are" : " is"} listed this week, from ${price(Math.min(...seeds.map((p) => p.from)))}. Home growing rules depend on your province.` : `Oui : ${seeds.length} produit${seeds.length > 1 ? "s" : ""} de graines ${name} cette semaine, dès ${price(Math.min(...seeds.map((p) => p.from)))}. Les règles de culture à domicile dépendent de votre province.` }] : []),
+];
+const jsonld = [breadcrumbLd(site, crumbs), itemListLd(site, h1, st.products.map((p) => r.product(lang, p.slug))), faqLd(faq)];
+const tiles = [
+  { label: en ? "Products" : "Produits", value: nf(st.products.length), note: P.cats.map(([c, n]) => `${n} ${catLabel(c).toLowerCase()}`).join(", ") },
+  { label: en ? "Lowest price" : "Prix le plus bas", value: price(P.from), note: short(P.cheapest.offers[0].shop.slug) },
+  ...(P.bestPpg ? [{ label: en ? "Best price per gram" : "Meilleur prix au gramme", value: `${price(P.bestPpg)}/g`, note: null }] : []),
+  ...(thcTxt ? [{ label: "THC", value: thcTxt, note: en ? "as listed by shops" : "selon les boutiques" }] : [{ label: en ? "Shops" : "Boutiques", value: String(P.shops.length), note: null }]),
+].slice(0, 4);
+const tallyPanels = [
+  { title: en ? "Flavours" : "Saveurs", items: P.flavors },
+  { title: en ? "Described effects" : "Effets décrits", items: P.effects },
+  { title: en ? "Terpenes" : "Terpènes", items: P.terpenes },
+].filter((x) => x.items.length);
+---
+<Base lang={lang} title={pageTitle} description={desc} path={r.strain(lang, slug)} alt={r.strain(other, slug)} jsonld={jsonld}>
+  <div class="band">
+    <div class="wrap py-8">
+      <Breadcrumbs items={crumbs} />
+      <div class="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start">
+        <div>
+          <div class="flex flex-wrap gap-1.5">{typeLabel && <span class={`chip chip-${P.type}`}>{typeLabel}</span>}{P.cats.map(([c, n]) => <a href={`${r.strain(lang, slug)}?cat=${c}`} class="rounded-[2px] border border-line bg-white px-2 py-0.5 text-[0.8rem] font-semibold no-underline hover:border-ink">{catLabel(c)} <span class="num font-normal text-muted">{n}</span></a>)}</div>
+          <h1 class="mt-3">{h1}</h1>
+          <p class="lede mt-3">{desc}</p>
+          <div class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {tiles.map((x) => <div class="tile"><p class="tile-label">{x.label}</p><p class="tile-value">{x.value}</p>{x.note && <p class="tile-note">{x.note}</p>}</div>)}
+          </div>
+          <p class="mt-3 text-sm text-muted">{s.updated(fmtDate(exportedAt, lang))}.</p>
+        </div>
+        <div class="panel">
+          <h2 class="panel-title">{en ? "Genetics" : "Génétique"}</h2>
+          {P.lineage ? <div class="mt-4"><Lineage lineage={P.lineage} name={name} indicaPct={P.indicaPct} lang={lang} /></div>
+            : <p class="mt-3 text-sm text-muted">{en ? "No shop publishes the parents of this strain yet." : "Aucune boutique ne publie encore les parents de cette variété."}</p>}
+          {P.typed >= 2 && (
+            <div class="mt-5">
+              <p class="mb-2 text-sm font-semibold">{en ? "Type listed by shops" : "Type indiqué par les boutiques"}</p>
+              <ShareBar lang={lang} ariaLabel={en ? "Type listed by shops" : "Type indiqué"} parts={(["indica", "hybrid", "sativa"] as const).filter((ty) => P.types[ty]).map((ty) => ({ label: s.typeLabel[ty], n: P.types[ty], color: `var(--color-${ty})` }))} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    {(P.flavors.length || P.effects.length || P.terpenes.length) ? (
+      <section class="section">
+        <h2>{en ? `What shops say about ${name}` : `Ce que les boutiques disent de ${name}`}</h2>
+        <p class="mt-2 text-sm text-muted">{en ? `Words found in the descriptions of the ${st.products.length} products, with the number of products that use them. Effects vary from person to person.` : `Mots relevés dans les descriptions des ${st.products.length} produits, avec le nombre de produits qui les emploient. Les effets varient d'une personne à l'autre.`}</p>
+        <div class="mt-5 grid gap-6 md:grid-cols-3">
+          {tallyPanels.map((panel) => (
+              <div class="panel">
+                <h3 class="panel-title !text-[1.2rem]">{panel.title}</h3>
+                <ul class="mt-3 space-y-1.5">
+                  {panel.items.map((f) => (
+                    <li class="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-2 text-sm"><span class="truncate capitalize">{f.label}</span><span class="bar-track !h-2.5"><span class="bar-fill" style={`width:${(f.n / panel.items[0].n) * 100}%`}></span></span><span class="num text-xs text-muted">{f.n}</span></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+        </div>
+      </section>
+    ) : null}
+
+    {(ppgShop.length > 1 || byFormat.length > 1) && (
+      <section class="section grid gap-6 lg:grid-cols-2">
+        {ppgShop.length > 1 && (
+          <div class="panel">
+            <h2 class="panel-title">{en ? `${name} flower: price per gram by shop` : `Fleur ${name} : prix au gramme par boutique`}</h2>
+            <div class="mt-4"><HBars ariaLabel={en ? "Price per gram by shop" : "Prix au gramme par boutique"} rows={ppgShop.map((x, i) => ({ label: short(x.key), value: x.value, display: `${price(x.value)}/g`, href: r.shop(lang, x.key), best: i === 0 }))} /></div>
+          </div>
+        )}
+        {byFormat.length > 1 && (
+          <div class="panel">
+            <h2 class="panel-title">{en ? "Price per gram by weight" : "Prix au gramme selon le poids"}</h2>
+            <div class="mt-4"><HBars ariaLabel={en ? "Price per gram by weight" : "Prix au gramme selon le poids"} rows={byFormat.map((x) => ({ label: `${String(x.grams).replace(".", en ? "." : ",")} g`, value: x.value, display: `${price(x.value)}/g`, best: x.value === Math.min(...byFormat.map((y) => y.value)) }))} /></div>
+          </div>
+        )}
+      </section>
+    )}
+
+    <section class="section">
+      <h2>{en ? `All ${name} products` : `Tous les produits ${name}`}</h2>
+      <Explorer lang={lang} list={st.products} showCategory pageSize={24} />
+    </section>
+
+    {near.length >= 3 && (
+      <section class="section">
+        <h2>{en ? `Strains like ${name}` : `Variétés proches de ${name}`}</h2>
+        <p class="mt-2 text-sm text-muted">{en ? "Same dominant type, flavours in common." : "Même type dominant, saveurs en commun."}</p>
+        <ul class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {near.map(({ x, p }) => <li><a href={r.strain(lang, x.slug)} class="block h-full rounded-[4px] border border-line p-3 no-underline hover:border-ink"><span class="block font-semibold">{x.name}</span><span class="text-xs text-muted">{s.productsCount(x.products.length)}, {s.from} {price(p.from)}</span>{p.flavors[0] && <span class="mt-1 block text-xs capitalize">{p.flavors.slice(0, 2).map((f) => f.label).join(", ")}</span>}</a></li>)}
+        </ul>
+      </section>
+    )}
+
+    <Faq items={faq} title={s.faqTitle} />
+  </div>
+</Base>

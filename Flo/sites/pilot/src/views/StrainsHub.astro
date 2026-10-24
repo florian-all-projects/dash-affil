@@ -1,0 +1,114 @@
+---
+// Index des variétés : recherche instantanée, filtre par type et par rayon, lettres A-Z, tableau trié (produits, prix, THC).
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import ShareBar from "../components/viz/ShareBar.astro";
+import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, type Lang } from "../lib/i18n";
+import { strains, exportedAt } from "../lib/catalog";
+import { strainProfile } from "../lib/strains";
+import { title as mkTitle, breadcrumbLd, itemListLd } from "../lib/seo";
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t[lang];
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const price = (c: number) => fmtPrice(c, lang);
+const rows = strains.map((x) => ({ x, p: strainProfile(x) })).sort((a, b) => a.x.name.localeCompare(b.x.name));
+const letters = [...new Set(rows.map(({ x }) => (/[a-z]/i.test(x.name[0]) ? x.name[0].toUpperCase() : "#")))];
+const types = { indica: 0, hybrid: 0, sativa: 0 } as Record<string, number>;
+for (const { p } of rows) if (p.type) types[p.type]++;
+const top = [...rows].sort((a, b) => b.x.products.length - a.x.products.length).slice(0, 8);
+const h1 = en ? "Cannabis Strains: Prices Compared Across Canadian Shops" : "Variétés de cannabis : prix comparés dans les boutiques canadiennes";
+const pageTitle = en ? mkTitle(`Cannabis Strains in Canada: ${strains.length} Strains, Prices Compared`, "Cannabis Strains: Prices Compared in Canada") : mkTitle(`Variétés de cannabis : ${strains.length} variétés, prix comparés`, "Variétés de cannabis : prix comparés");
+const desc = en ? `${strains.length} cannabis strains sold by Canadian online shops: type, THC, flavours and the lowest price for each, from flower to seeds and concentrates. Updated weekly.` : `${strains.length} variétés de cannabis vendues par les boutiques en ligne canadiennes : type, THC, saveurs et prix le plus bas de chacune, des fleurs aux graines et concentrés. Mis à jour chaque semaine.`;
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: en ? "Strains" : "Variétés" }];
+const catsOf = (p: ReturnType<typeof strainProfile>) => p.cats.map(([c]) => c);
+---
+<Base lang={lang} title={pageTitle} description={desc} path={r.strains(lang)} alt={r.strains(other)} jsonld={[breadcrumbLd(site, crumbs), itemListLd(site, h1, top.map(({ x }) => r.strain(lang, x.slug)))]}>
+  <div class="band">
+    <div class="wrap py-8">
+      <Breadcrumbs items={crumbs} />
+      <h1 class="mt-4">{h1}</h1>
+      <p class="lede mt-3">{desc}</p>
+      <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div class="panel">
+          <h2 class="panel-title">{en ? "Most compared strains" : "Les variétés les plus comparées"}</h2>
+          <ol class="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+            {top.map(({ x, p }, i) => <li class="flex items-baseline gap-2"><span class="num w-4 text-muted">{i + 1}</span><a href={r.strain(lang, x.slug)} class="font-semibold">{x.name}</a><span class="ml-auto text-xs text-muted num">{x.products.length}</span></li>)}
+          </ol>
+        </div>
+        <div class="panel">
+          <h2 class="panel-title">{en ? "Dominant type" : "Type dominant"}</h2>
+          <p class="panel-sub">{en ? "Type most often listed by shops for each strain." : "Type le plus souvent indiqué par les boutiques pour chaque variété."}</p>
+          <div class="mt-4"><ShareBar lang={lang} ariaLabel={en ? "Strains by type" : "Variétés par type"} parts={(["indica", "hybrid", "sativa"] as const).map((ty) => ({ label: s.typeLabel[ty], n: types[ty], color: `var(--color-${ty})` }))} /></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap" data-strains>
+    <div class="sticky top-0 z-20 -mx-4 mt-6 border-b border-line bg-white/95 px-4 py-3 backdrop-blur">
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="min-w-[14rem] flex-1"><span class="sr-only">{en ? "Find a strain" : "Trouver une variété"}</span>
+          <input type="search" data-q placeholder={en ? "Find a strain: Gelato, Pink Kush…" : "Trouver une variété : Gelato, Pink Kush…"} class="w-full rounded-[4px] border border-line px-3 py-2" /></label>
+        <div class="flex flex-wrap gap-1.5" role="group" aria-label={en ? "Type" : "Type"}>
+          {["", "indica", "hybrid", "sativa"].map((ty) => <button type="button" data-type={ty} aria-pressed={ty === "" ? "true" : "false"} class="seg">{ty ? s.typeLabel[ty as "indica"] : s.all}</button>)}
+        </div>
+        <div class="flex flex-wrap gap-1.5" role="group" aria-label={en ? "Aisle" : "Rayon"}>
+          {["", "flower", "seed", "concentrate", "vape"].map((c) => <button type="button" data-cat={c} aria-pressed={c === "" ? "true" : "false"} class="seg">{c ? CATEGORY_SLUGS[c].label[lang] : (en ? "All aisles" : "Tous rayons")}</button>)}
+        </div>
+        <p class="text-sm text-muted" data-n aria-live="polite">{strains.length} {en ? "strains" : "variétés"}</p>
+      </div>
+      <nav class="mt-2 flex flex-wrap gap-1 text-sm" aria-label="A-Z">{letters.map((l) => <a href={`#l-${l}`} class="min-w-7 rounded-[2px] px-1.5 py-0.5 text-center font-semibold no-underline hover:bg-fog">{l}</a>)}</nav>
+    </div>
+
+    <div class="mt-4 overflow-x-auto">
+      <table class="table-bb min-w-[44rem]">
+        <thead><tr><th>{en ? "Strain" : "Variété"}</th><th>Type</th><th>{en ? "Aisles" : "Rayons"}</th><th>THC</th><th>{en ? "Products" : "Produits"}</th><th>{en ? "From" : "Dès"}</th><th>{en ? "Best per gram" : "Meilleur au gramme"}</th></tr></thead>
+        <tbody>
+          {rows.map(({ x, p }, i) => {
+            const l = /[a-z]/i.test(x.name[0]) ? x.name[0].toUpperCase() : "#";
+            const first = i === 0 || (/[a-z]/i.test(rows[i - 1].x.name[0]) ? rows[i - 1].x.name[0].toUpperCase() : "#") !== l;
+            return (
+              <tr id={first ? `l-${l}` : undefined} data-name={x.name.toLowerCase()} data-t={p.type ?? ""} data-c={catsOf(p).join(" ")} class="scroll-mt-40">
+                <td><a href={r.strain(lang, x.slug)} class="font-semibold">{x.name}</a>{p.flavors[0] && <span class="block text-xs capitalize text-muted">{p.flavors.slice(0, 3).map((f) => f.label).join(", ")}</span>}</td>
+                <td>{p.type ? <span class={`chip chip-${p.type}`}>{s.typeLabel[p.type]}</span> : "-"}</td>
+                <td class="text-xs">{catsOf(p).map((c) => CATEGORY_SLUGS[c].label[lang]).join(", ")}</td>
+                <td class="num">{p.thc ? `${p.thc[1]} %` : "-"}</td>
+                <td class="num">{x.products.length}</td>
+                <td class="num font-semibold">{price(p.from)}</td>
+                <td class="num">{p.bestPpg ? `${price(p.bestPpg)}/g` : "-"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-4 text-sm text-muted">{s.updated(fmtDate(exportedAt, lang))}. {en ? "A strain gets a page once at least two products cite it." : "Une variété a sa page dès que deux produits au moins la citent."}</p>
+  </div>
+  <script>
+    const root = document.querySelector<HTMLElement>("[data-strains]")!;
+    const q = root.querySelector<HTMLInputElement>("[data-q]")!, nEl = root.querySelector<HTMLElement>("[data-n]")!;
+    const rows = [...root.querySelectorAll<HTMLTableRowElement>("tbody tr")];
+    let type = "", cat = "";
+    const unit = nEl.textContent!.replace(/^[\d\s]+/, "");
+    function apply() {
+      const v = q.value.trim().toLowerCase();
+      let n = 0;
+      for (const tr of rows) {
+        const ok = (!v || tr.dataset.name!.includes(v)) && (!type || tr.dataset.t === type) && (!cat || tr.dataset.c!.split(" ").includes(cat));
+        tr.hidden = !ok; if (ok) n++;
+      }
+      nEl.textContent = n + " " + unit;
+    }
+    q.addEventListener("input", apply);
+    root.querySelectorAll<HTMLButtonElement>("[data-type],[data-cat]").forEach((b) => b.addEventListener("click", () => {
+      const isType = b.hasAttribute("data-type");
+      root.querySelectorAll<HTMLButtonElement>(isType ? "[data-type]" : "[data-cat]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      if (isType) type = b.dataset.type!; else cat = b.dataset.cat!;
+      apply();
+    }));
+  </script>
+</Base>

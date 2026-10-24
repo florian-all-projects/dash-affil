@@ -4,11 +4,16 @@ import type { APIRoute } from "astro";
 import { r, type Lang } from "../lib/i18n";
 import { products, activeShops } from "../lib/catalog";
 import { PROVINCES, cities, provSlug, provinceOf } from "../lib/geo";
-import { categoryPaths } from "../lib/paths";
+import { categoryPaths, strainPaths, collectionPaths, guidePaths } from "../lib/paths";
+import { COLLECTIONS } from "../data/collections";
+import { GUIDES } from "../data/guides";
 
 export const GET: APIRoute = ({ site }) => {
   const base = site!.toString().replace(/\/$/, "");
-  const pairs: Array<(l: Lang) => string> = [r.home, r.catalogue, r.deals, r.delivery, r.shops, r.coupons, r.about, r.legal];
+  const pairs: Array<(l: Lang) => string> = [r.home, r.catalogue, r.deals, r.delivery, r.shops, r.coupons, r.about, r.legal, r.strains, r.collections, r.newArrivals, r.guides];
+  for (const { props } of strainPaths()) pairs.push((l) => r.strain(l, props.slug));
+  for (const { props } of collectionPaths("en")) { const c = COLLECTIONS.find((x) => x.key === props.key)!; pairs.push((l) => r.collection(l, c.slug[l])); }
+  for (const { props } of guidePaths("en")) { const g = GUIDES.find((x) => x.key === props.key)!; pairs.push((l) => r.guide(l, g.slug[l])); }
   for (const { props } of categoryPaths("en", false)) pairs.push((l) => r.category(l, props.cat));
   for (const { props } of categoryPaths("en", true)) pairs.push((l) => r.category(l, props.cat, props.page));
   for (const p of products) pairs.push((l) => r.product(l, p.slug));

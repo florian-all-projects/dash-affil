@@ -3,6 +3,10 @@ import Base from "../layouts/Base.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import ProductCard from "../components/ProductCard.astro";
 import Faq from "../components/Faq.astro";
+import GuideBlocks from "../components/GuideBlocks.astro";
+import HBars from "../components/viz/HBars.astro";
+import { PROVINCES } from "../lib/geo";
+import { LEGAL_VERIFIED } from "../data/geo";
 import { t, r, fmtPrice, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
 import { products, categoryStats, activeShops, byPopularity } from "../lib/catalog";
 import { provinceOf, citiesOf, storesOf, cityName, provName, provSlug, LEGAL_SOURCE, NO_REGISTRY } from "../lib/geo";
@@ -53,6 +57,17 @@ const L = lang === "en"
       cities: `Les villes ${prov.inFr}`, citiesNote: nStores ? `${nStoresFmt} magasins autorisés dans le registre officiel, par ville.` : NO_REGISTRY.has(code) ? `La liste officielle des magasins ${prov.inFr} n'est pas encore chargée dans ce catalogue.` : "Les villes qui ont une page livraison.",
       prices: `Les prix en ligne livrés ${prov.inFr}`, picks: `Des fleurs livrées ${prov.inFr}`, stores: "magasins",
     };
+const en = lang === "en";
+const nf = (n: number) => n.toLocaleString(en ? "en-CA" : "fr-CA");
+const withStores = list.filter((c) => c.stores.length > 0);
+const topCities = [...withStores].sort((a, b) => b.stores.length - a.stores.length).slice(0, 12);
+const provRows = PROVINCES.map((p) => ({ p, n: storesOf(p.code).length })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n);
+const tiles = [
+  { label: L.age, value: `${prov.age}+`, note: null },
+  { label: en ? "Licensed stores" : "Magasins autorisés", value: nStores ? nStoresFmt : "-", note: nStores ? (en ? `in ${withStores.length} cities` : `dans ${withStores.length} villes`) : null },
+  { label: L.grow, value: prov.homeGrow ? (en ? "Allowed" : "Permise") : (en ? "Not allowed" : "Interdite"), note: prov.homeGrow ? (en ? "4 plants per household" : "4 plants par logement") : null },
+  { label: en ? "Online shops delivering" : "Boutiques en ligne qui livrent", value: String(activeShops.length), note: en ? `${nf(products.length)} products` : `${nf(products.length)} produits` },
+];
 const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.delivery, href: r.delivery(lang) }, { name: pName }];
 const jsonld = [breadcrumbLd(site, crumbs), ...(content?.faq?.length ? [faqLd(content.faq)] : [])];
 ---
@@ -64,6 +79,9 @@ const jsonld = [breadcrumbLd(site, crumbs), ...(content?.faq?.length ? [faqLd(co
         <h1 class="mt-4">{L.h1}</h1>
         <p class="display mt-2 text-2xl text-mailbox">{L.kicker}</p>
         <p class="lede mt-4">{content?.lead ?? L.desc}</p>
+        <div class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {tiles.map((x) => <div class="tile"><p class="tile-label">{x.label}</p><p class="tile-value">{x.value}</p>{x.note && <p class="tile-note">{x.note}</p>}</div>)}
+        </div>
       </div>
       <div class="parcel self-start">
         <p class="parcel-head">{L.law}</p>
@@ -74,18 +92,38 @@ const jsonld = [breadcrumbLd(site, crumbs), ...(content?.faq?.length ? [faqLd(co
           <dt class="font-semibold">{L.grow}</dt><dd>{prov.homeGrow ? L.growYes : L.growNo}</dd>
           <dt class="font-semibold">{L.sales}</dt><dd>{lang === "en" ? prov.retailer : prov.retailerFr}</dd>
         </dl>
-        <p class="mt-3 text-xs text-muted">{L.verified} 2026-10-23 (<a href={LEGAL_SOURCE} rel="nofollow noopener">source</a>).</p>
+        <p class="mt-3 text-xs text-muted">{L.verified} {LEGAL_VERIFIED} (<a href={LEGAL_SOURCE} rel="nofollow noopener">source</a>).</p>
       </div>
     </div>
   </section>
 
   <div class="wrap">
+    {(topCities.length > 1 || provRows.length > 1) && (
+      <section class="section grid gap-6 lg:grid-cols-2">
+        {topCities.length > 1 && (
+          <div class="panel">
+            <h2 class="panel-title">{en ? `Where the licensed stores are in ${prov.name}` : `Où sont les magasins autorisés ${prov.inFr}`}</h2>
+            <p class="panel-sub">{en ? "Cities with the most stores in the official registry." : "Les villes qui comptent le plus de magasins dans le registre officiel."}</p>
+            <div class="mt-4"><HBars ariaLabel={en ? "Stores by city" : "Magasins par ville"} rows={topCities.map((c) => ({ label: cityName(c, lang), value: c.stores.length, display: nf(c.stores.length), href: r.city(lang, provSlug(prov, lang), c.slug) }))} /></div>
+          </div>
+        )}
+        {provRows.length > 1 && (
+          <div class="panel">
+            <h2 class="panel-title">{en ? "Licensed stores by province" : "Magasins autorisés par province"}</h2>
+            <p class="panel-sub">{en ? `${pName} highlighted. Provinces whose registry is loaded.` : `${pName} en vert. Provinces dont le registre est chargé.`}</p>
+            <div class="mt-4"><HBars ariaLabel={en ? "Stores by province" : "Magasins par province"} rows={provRows.map((x) => ({ label: provName(x.p, lang), value: x.n, display: nf(x.n), href: x.p.code === code ? undefined : r.province(lang, provSlug(x.p, lang)), best: x.p.code === code }))} /></div>
+          </div>
+        )}
+      </section>
+    )}
+
     <section class="section">
       <h2>{L.cities}</h2>
       <p class="mt-1 text-sm text-muted">{L.citiesNote}</p>
-      <ul class="mt-5 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+      {list.length > 12 && <input type="search" data-city-q placeholder={en ? `Find a city in ${prov.name}` : `Trouver une ville ${prov.inFr}`} class="mt-4 w-full max-w-md rounded-[4px] border border-line px-3 py-2" aria-label={en ? "Find a city" : "Trouver une ville"} />}
+      <ul class="mt-5 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4" data-cities>
         {list.map((c) => (
-          <li class="flex items-baseline justify-between gap-2 border-b border-line py-1.5">
+          <li class="flex items-baseline justify-between gap-2 border-b border-line py-1.5" data-n={cityName(c, lang).toLowerCase()}>
             <a href={r.city(lang, provSlug(prov, lang), c.slug)} class="font-semibold">{cityName(c, lang)}</a>
             {c.stores.length > 0 && <span class="text-xs text-muted num">{c.stores.length} {L.stores}</span>}
           </li>
@@ -105,13 +143,7 @@ const jsonld = [breadcrumbLd(site, crumbs), ...(content?.faq?.length ? [faqLd(co
       </ul>
     </section>
 
-    {content && (
-      <section class="section">
-        <article class="prose-bb">
-          {content.sections.map((sec, i) => (<><h2 class:list={[i === 0 && "!mt-0"]}>{sec.h}</h2>{sec.p.map((x) => <p>{x}</p>)}</>))}
-        </article>
-      </section>
-    )}
+    {content && <GuideBlocks sections={content.sections} lang={lang} title={en ? `Cannabis in ${prov.name}: what to know` : `Le cannabis ${prov.inFr} : l'essentiel`} />}
 
     <section class="section">
       <h2>{L.picks}</h2>
@@ -120,4 +152,8 @@ const jsonld = [breadcrumbLd(site, crumbs), ...(content?.faq?.length ? [faqLd(co
 
     {content?.faq && <Faq items={content.faq} title={s.faqTitle} />}
   </div>
+  <script>
+    const q = document.querySelector<HTMLInputElement>("[data-city-q]");
+    q?.addEventListener("input", () => { const v = q.value.trim().toLowerCase(); document.querySelectorAll<HTMLElement>("[data-cities] > li").forEach((li) => { li.hidden = !!v && !li.dataset.n!.includes(v); }); });
+  </script>
 </Base>

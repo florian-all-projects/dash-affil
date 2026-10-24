@@ -1,0 +1,7 @@
+---
+import View from "../../views/CollectionPage.astro";
+import { collectionPaths } from "../../lib/paths";
+export function getStaticPaths() { return collectionPaths("en"); }
+const { key } = Astro.props;
+---
+<View lang="en" key={key} />

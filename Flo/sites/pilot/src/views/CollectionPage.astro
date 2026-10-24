@@ -1,0 +1,88 @@
+---
+// Sélection classée sur des chiffres relevés (prix au gramme, prix de l'once, THC, prix par 10 mg) : podium en tableau
+// avec barre de mesure, méthode affichée, liste complète filtrable, autres sélections.
+import Base from "../layouts/Base.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import Explorer from "../components/Explorer.astro";
+import Faq from "../components/Faq.astro";
+import { t, r, fmtPrice, fmtDate, type Lang } from "../lib/i18n";
+import { products, exportedAt } from "../lib/catalog";
+import { COLLECTIONS } from "../data/collections";
+import { SHORT_NAME } from "../data/shops-content";
+import { title as mkTitle, breadcrumbLd, faqLd, itemListLd } from "../lib/seo";
+
+interface Props { lang: Lang; key: string }
+const { lang, key } = Astro.props;
+const C = COLLECTIONS.find((c) => c.key === key)!;
+const s = t[lang];
+const en = lang === "en";
+const other: Lang = en ? "fr" : "en";
+const site = Astro.site!.toString().replace(/\/$/, "");
+const price = (c: number) => fmtPrice(c, lang);
+const list = products.filter(C.filter).sort(C.rank);
+const top = list.slice(0, 10);
+const shopsN = new Set(list.flatMap((p) => p.offers.map((o) => o.shop.slug))).size;
+const short = (p: (typeof list)[number]) => SHORT_NAME[p.offers[0].shop.slug] ?? p.offers[0].shop.name;
+const date = fmtDate(exportedAt, lang);
+const h1 = C.h1[lang];
+const desc = `${C.intro[lang]} ${en ? `${list.length} products from ${shopsN} shops, checked ${date}.` : `${list.length} produits de ${shopsN} boutiques, vérifiés le ${date}.`}`;
+const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: en ? "Best of" : "Sélections", href: r.collections(lang) }, { name: h1 }];
+const faq = [
+  { q: en ? `Which is number one this week?` : `Quel produit est premier cette semaine ?`, a: en ? `${top[0].name} at ${short(top[0])}, with ${C.metricLabel.en.toLowerCase()} of ${C.metric(top[0], lang, price)}.` : `${top[0].name} chez ${short(top[0])}, avec un ${C.metricLabel.fr.toLowerCase()} de ${C.metric(top[0], lang, price)}.` },
+  { q: en ? "How is this ranking made?" : "Comment ce classement est-il fait ?", a: C.method[lang] },
+  { q: en ? "How often is it updated?" : "À quelle fréquence est-il mis à jour ?", a: en ? `Every week, when prices are checked again. This edition is dated ${date}.` : `Chaque semaine, quand les prix sont vérifiés à nouveau. Cette édition est datée du ${date}.` },
+];
+const jsonld = [breadcrumbLd(site, crumbs), itemListLd(site, h1, top.map((p) => r.product(lang, p.slug))), faqLd(faq)];
+const others = COLLECTIONS.filter((c) => c.key !== key && products.filter(c.filter).length >= (c.min ?? 6));
+---
+<Base lang={lang} title={mkTitle(C.title[lang], h1)} description={desc} path={r.collection(lang, C.slug[lang])} alt={r.collection(other, C.slug[other])} jsonld={jsonld}>
+  <div class="band">
+    <div class="wrap py-8">
+      <Breadcrumbs items={crumbs} />
+      <h1 class="mt-4 max-w-4xl">{h1}</h1>
+      <p class="lede mt-3">{C.intro[lang]}</p>
+      <p class="mt-3 text-sm text-muted">{en ? `${list.length} products, ${shopsN} shops.` : `${list.length} produits, ${shopsN} boutiques.`} {s.updated(date)}.</p>
+    </div>
+  </div>
+  <div class="wrap">
+    <section class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div class="panel">
+        <h2 class="panel-title">{en ? "The top 10 this week" : "Le top 10 de la semaine"}</h2>
+        <ol class="mt-4 divide-y divide-line">
+          {top.map((p, i) => (
+            <li class="grid grid-cols-[2rem_3.5rem_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+              <span class="font-[family-name:var(--font-display)] text-2xl font-extrabold text-ink-soft num">{i + 1}</span>
+              <img src={p.image.src} alt="" width="56" height="56" loading="lazy" class:list={["size-14 rounded-[4px] border border-line bg-fog", p.image.kind === "shop" ? "object-contain" : "object-cover"]} />
+              <div class="min-w-0">
+                <a href={r.product(lang, p.slug)} class="block truncate font-semibold">{p.name}</a>
+                <p class="text-xs text-muted">{p.strainType ? `${s.typeLabel[p.strainType as "indica"]}, ` : ""}{short(p)}{p.shopCount > 1 ? (en ? ` and ${p.shopCount - 1} more` : ` et ${p.shopCount - 1} autre${p.shopCount > 2 ? "s" : ""}`) : ""}</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-right"><span class="block font-semibold num">{C.metric(p, lang, price)}</span><span class="block text-xs text-muted">{s.from} {price(p.from)}</span></span>
+                <a href={p.offers[0].buyUrl} rel="sponsored nofollow noopener" target="_blank" class="btn-buy hidden px-3 py-1.5 text-sm sm:inline-flex">{en ? "Buy" : "Acheter"}</a>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <aside class="parcel self-start">
+        <p class="parcel-head">{en ? "How we rank" : "Notre méthode"}</p>
+        <p class="text-sm">{C.method[lang]}</p>
+        <p class="mt-3 text-sm">{en ? "No shop pays to be ranked. Budboard earns a commission on some links, which never changes the order." : "Aucune boutique ne paie pour être classée. Budboard touche une commission sur certains liens, sans effet sur l'ordre."}</p>
+      </aside>
+    </section>
+
+    <section class="section">
+      <h2>{en ? "The full list" : "La liste complète"}</h2>
+      <Explorer lang={lang} list={list} pageSize={24} dataUrl={list.length > 300 ? `/data/col-${C.key}.json` : undefined} initialSort={C.metricLabel.en.includes("THC") ? "thcDesc" : C.metricLabel.en.includes("gram") ? "ppgAsc" : "priceAsc"} />
+    </section>
+
+    <section class="section">
+      <h2>{en ? "Other rankings" : "Autres classements"}</h2>
+      <ul class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {others.map((c) => <li><a href={r.collection(lang, c.slug[lang])} class="block h-full rounded-[4px] border border-line p-3 font-semibold no-underline hover:border-ink">{c.h1[lang]}</a></li>)}
+      </ul>
+    </section>
+    <Faq items={faq} title={s.faqTitle} />
+  </div>
+</Base>

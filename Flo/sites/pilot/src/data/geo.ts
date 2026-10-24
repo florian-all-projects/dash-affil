@@ -3,7 +3,7 @@
 // et Cannabis Act fédéral (30 g en public). À revérifier avant chaque mise à jour majeure.
 
 export const LEGAL_SOURCE = "https://en.wikipedia.org/wiki/Cannabis_laws_of_Canada_by_province_or_territory";
-export const LEGAL_VERIFIED = "2026-10-23";
+export const LEGAL_VERIFIED = "2026-10-24";
 
 export interface Province {
   code: string;
@@ -30,7 +30,8 @@ export const PROVINCES: Province[] = [
     homeGrow: true, publicUse: "allowed where tobacco smoking is allowed, banned near playgrounds, schools and places used by children", publicUseFr: "permise là où l'on peut fumer du tabac, interdite près des aires de jeux, des écoles et des lieux fréquentés par les enfants", inFr: "en Colombie-Britannique" },
   { code: "MB", slug: "manitoba", slugFr: "manitoba", name: "Manitoba", nameFr: "Manitoba", age: 19,
     retailer: "licensed private retailers", retailerFr: "les détaillants privés autorisés",
-    homeGrow: false, publicUse: "banned in public places", publicUseFr: "interdite dans les lieux publics", inFr: "au Manitoba" },
+    // Culture à domicile permise depuis le 1er mai 2025 (4 plants par logement, à l'intérieur) : gov.mb.ca/cannabis/knowthelaw/growathome.html
+    homeGrow: true, publicUse: "banned in public places", publicUseFr: "interdite dans les lieux publics", inFr: "au Manitoba" },
   { code: "NB", slug: "new-brunswick", slugFr: "nouveau-brunswick", name: "New Brunswick", nameFr: "Nouveau-Brunswick", age: 19,
     retailer: "Cannabis NB stores and its online shop", retailerFr: "les magasins Cannabis NB et leur boutique en ligne",
     homeGrow: true, publicUse: "banned in public places and vehicles", publicUseFr: "interdite dans les lieux publics et les véhicules", inFr: "au Nouveau-Brunswick" },

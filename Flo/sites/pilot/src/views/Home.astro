@@ -3,6 +3,15 @@ import Base from "../layouts/Base.astro";
 import ProductCard from "../components/ProductCard.astro";
 import Postmark from "../components/Postmark.astro";
 import Faq from "../components/Faq.astro";
+import GuideBlocks from "../components/GuideBlocks.astro";
+import HBars from "../components/viz/HBars.astro";
+import { strains } from "../lib/catalog";
+import { strainProfile } from "../lib/strains";
+import { COLLECTIONS } from "../data/collections";
+import { GUIDES } from "../data/guides";
+import { guideContent } from "../lib/content";
+import { median, medianBy, shopsOf } from "../lib/stats";
+import { chartData } from "../lib/guide-data";
 import { t, r, fmtPrice, fmtDate, fmtStamp, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
 import { products, deals, categoryStats, activeShops, productsByShop, byPopularity, couponsForShop, exportedAt } from "../lib/catalog";
 import { PROVINCES, cities, stores, cityName, provName, provSlug, provinceOf } from "../lib/geo";
@@ -59,6 +68,21 @@ const L = lang === "en"
       provinces: "Par province", topCities: "Villes les plus demandées", allCities: "Toutes les villes",
       catTitle: "Acheter par catégorie", items: "produits",
     };
+const en = lang === "en";
+const nf = (n: number) => n.toLocaleString(en ? "en-CA" : "fr-CA");
+const flowerBuds = products.filter((p) => p.category === "flower" && !["shake", "preroll"].includes(p.subtype));
+const ppgShop = medianBy(flowerBuds, shopsOf, (p) => p.ppg, 5);
+const byWeight = chartData("ppg_by_weight") as Array<{ key: string; value: number; n: number }>;
+const medPpg = median(flowerBuds.map((p) => p.ppg).filter((v): v is number => !!v));
+const market = [
+  { label: en ? "Products compared" : "Produits comparés", value: nf(products.length), note: en ? `${activeShops.length} shops` : `${activeShops.length} boutiques` },
+  ...(medPpg ? [{ label: en ? "Median flower price per gram" : "Prix médian du gramme de fleur", value: `${price(medPpg)}/g`, note: en ? "buds, all weights" : "cocottes, tous poids" }] : []),
+  { label: en ? "On sale this week" : "En promotion cette semaine", value: nf(products.filter((p) => p.discount >= 5).length), note: null },
+  { label: en ? "Strains tracked" : "Variétés suivies", value: nf(strains.length), note: null },
+];
+const ranks = COLLECTIONS.map((c) => ({ c, top: products.filter(c.filter).sort(c.rank) })).filter((x) => x.top.length >= 6).slice(0, 6);
+const popStrains = strains.slice(0, 12).map((x) => ({ x, p: strainProfile(x) }));
+const guides = GUIDES.map((g) => ({ g, c: guideContent(g.key, lang) })).filter((x) => x.c);
 const jsonld = [
   itemListLd(site, L.deals, topDeals.map((p) => r.product(lang, p.slug))),
   ...(content?.faq?.length ? [faqLd(content.faq)] : []),
@@ -92,6 +116,30 @@ const jsonld = [
   </section>
 
   <div class="wrap">
+    <section class="section !mt-10" aria-label={en ? "The market this week" : "Le marché cette semaine"}>
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {market.map((x) => <div class="tile"><p class="tile-label">{x.label}</p><p class="tile-value">{x.value}</p>{x.note && <p class="tile-note">{x.note}</p>}</div>)}
+      </div>
+      {(ppgShop.length > 1 || byWeight.length > 1) && (
+        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+          {ppgShop.length > 1 && (
+            <div class="panel">
+              <h2 class="panel-title">{en ? "Who sells flower for less" : "Qui vend la fleur le moins cher"}</h2>
+              <p class="panel-sub">{en ? "Median price per gram of buds, best weight of each product." : "Prix médian au gramme des cocottes, meilleur poids de chaque produit."}</p>
+              <div class="mt-4"><HBars ariaLabel={en ? "Median price per gram by shop" : "Prix médian au gramme par boutique"} rows={ppgShop.map((x, i) => ({ label: SHORT_NAME[x.key] ?? x.key, value: x.value, display: `${price(x.value)}/g`, href: r.shop(lang, x.key), best: i === 0 }))} /></div>
+            </div>
+          )}
+          {byWeight.length > 1 && (
+            <div class="panel">
+              <h2 class="panel-title">{en ? "What a gram costs, by bag size" : "Le prix du gramme selon la taille du sac"}</h2>
+              <p class="panel-sub">{en ? "Median price per gram of buds for each weight, all shops." : "Prix médian au gramme des cocottes pour chaque poids, toutes boutiques."}</p>
+              <div class="mt-4"><HBars ariaLabel={en ? "Price per gram by weight" : "Prix au gramme selon le poids"} rows={byWeight.map((x) => ({ label: `${x.key.replace(".", en ? "." : ",")} g`, value: x.value, display: `${price(x.value)}/g`, best: x.value === Math.min(...byWeight.map((y) => y.value)) }))} /></div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+
     {topDeals.length > 0 && (
       <section class="section">
         <div class="flex flex-wrap items-end justify-between gap-3">
@@ -132,6 +180,36 @@ const jsonld = [
       </div>
     </section>
 
+    {ranks.length > 0 && (
+      <section class="section">
+        <div class="flex flex-wrap items-end justify-between gap-3"><h2>{en ? "This week's rankings" : "Les classements de la semaine"}</h2><a href={r.collections(lang)} class="text-sm font-semibold text-mailbox">{en ? "All rankings" : "Tous les classements"}</a></div>
+        <ul class="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {ranks.map(({ c, top }) => (
+            <li class="panel">
+              <a href={r.collection(lang, c.slug[lang])} class="font-semibold">{c.h1[lang]}</a>
+              <ol class="mt-2 space-y-1 text-sm">{top.slice(0, 3).map((p, i) => <li class="flex gap-2"><span class="num w-3 text-muted">{i + 1}</span><a href={r.product(lang, p.slug)} class="min-w-0 flex-1 truncate no-underline hover:underline">{p.name}</a><span class="num font-semibold">{c.metric(p, lang, price)}</span></li>)}</ol>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {popStrains.length > 0 && (
+      <section class="section">
+        <div class="flex flex-wrap items-end justify-between gap-3"><h2>{en ? "Popular strains" : "Variétés populaires"}</h2><a href={r.strains(lang)} class="text-sm font-semibold text-mailbox">{en ? `All ${strains.length} strains` : `Les ${strains.length} variétés`}</a></div>
+        <ul class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {popStrains.map(({ x, p }) => <li><a href={r.strain(lang, x.slug)} class="block h-full rounded-[4px] border border-line p-3 no-underline hover:border-ink"><span class="block font-semibold">{x.name}</span>{p.type && <span class={`chip chip-${p.type} mt-1`}>{s.typeLabel[p.type]}</span>}<span class="mt-1 block text-xs text-muted">{s.productsCount(x.products.length)}, {s.from} {price(p.from)}</span></a></li>)}
+        </ul>
+      </section>
+    )}
+
+    {guides.length > 0 && (
+      <section class="section">
+        <div class="flex flex-wrap items-end justify-between gap-3"><h2>{en ? "Buying guides" : "Guides d'achat"}</h2><a href={r.guides(lang)} class="text-sm font-semibold text-mailbox">{en ? "All guides" : "Tous les guides"}</a></div>
+        <ul class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{guides.slice(0, 4).map(({ g, c }) => <li><a href={r.guide(lang, g.slug[lang])} class="block h-full rounded-[4px] border border-line p-4 no-underline hover:border-ink"><span class="display block text-xl leading-tight">{c!.h1}</span></a></li>)}</ul>
+      </section>
+    )}
+
     <section class="section">
       <h2>{L.deliveryTitle}</h2>
       <p class="lede mt-2">{L.deliveryNote}</p>
@@ -152,13 +230,7 @@ const jsonld = [
       </div>
     </section>
 
-    {content && (
-      <section class="section">
-        <article class="prose-bb">
-          {content.sections.map((sec) => (<><h2>{sec.h}</h2>{sec.p.map((x) => <p>{x}</p>)}</>))}
-        </article>
-      </section>
-    )}
+    {content && <GuideBlocks sections={content.sections} lang={lang} cols={3} title={en ? "Buying weed online in Canada: what to know" : "Acheter du cannabis en ligne au Canada : l'essentiel"} />}
     {content?.faq && <Faq items={content.faq} title={s.faqTitle} />}
   </div>
 </Base>

@@ -1,0 +1,57 @@
+---
+// Graphique d'un guide, dessiné à partir des données en direct du catalogue (lib/guide-data.ts).
+import HBars from "./viz/HBars.astro";
+import ShareBar from "./viz/ShareBar.astro";
+import { chartData, provinceRows, paymentRows } from "../lib/guide-data";
+import { subtypeLabel } from "../lib/explore";
+import { t, r, fmtPrice, type Lang } from "../lib/i18n";
+interface Props { id: string; lang: Lang; h: string; caption: string }
+const { id, lang, h, caption } = Astro.props;
+const en = lang === "en";
+const s = t[lang];
+const price = (c: number) => fmtPrice(c, lang);
+const rows = chartData(id) as Array<{ key: string; value: number; n: number; label?: string }>;
+const TYPE = { indica: "var(--color-indica)", hybrid: "var(--color-hybrid)", sativa: "var(--color-sativa)" } as Record<string, string>;
+const g = (k: string) => `${k.replace(".", en ? "." : ",")} g`;
+const minOf = (l: typeof rows) => Math.min(...l.map((x) => x.value));
+---
+<figure class="panel">
+  <h2 class="panel-title">{h}</h2>
+  <div class="mt-4">
+    {id === "ppg_by_weight" && <HBars ariaLabel={h} rows={rows.map((x) => ({ label: g(x.key), value: x.value, display: `${price(x.value)}/g`, best: x.value === minOf(rows), note: `${x.n}` }))} />}
+    {(id === "ppg_by_grade") && <HBars ariaLabel={h} rows={rows.map((x) => ({ label: x.key, value: x.value, display: `${price(x.value)}/g`, note: `${x.n}` }))} />}
+    {id === "count_by_grade" && <HBars ariaLabel={h} rows={rows.map((x) => ({ label: x.key, value: x.value, display: String(x.value) }))} />}
+    {id === "type_share" && <ShareBar lang={lang} ariaLabel={h} parts={rows.map((x) => ({ label: s.typeLabel[x.key as "indica"], n: x.value, color: TYPE[x.key] }))} />}
+    {id === "thc_by_type" && <HBars ariaLabel={h} rows={rows.map((x) => ({ label: s.typeLabel[x.key as "indica"], value: x.value, display: `${x.value} %`, note: `${x.n}` }))} />}
+    {id === "ppg_by_type" && <HBars ariaLabel={h} rows={rows.map((x) => ({ label: s.typeLabel[x.key as "indica"], value: x.value, display: `${price(x.value)}/g`, best: x.value === minOf(rows), note: `${x.n}` }))} />}
+    {id === "per10mg_by_subtype" && <HBars ariaLabel={h} rows={rows.map((x) => ({ label: subtypeLabel(x.key, lang), value: x.value, display: `${price(x.value)} / 10 mg`, best: x.value === minOf(rows), note: `${x.n}` }))} />}
+    {id === "seed_price_by_subtype" && <HBars ariaLabel={h} rows={rows.map((x) => ({ label: subtypeLabel(x.key, lang), value: x.value, display: price(x.value), best: x.value === minOf(rows), note: `${x.n}` }))} />}
+    {id === "free_shipping_by_shop" && <HBars ariaLabel={h} rows={rows.map((x) => ({ label: x.label ?? x.key, value: x.value, display: price(x.value), href: r.shop(lang, x.key), best: x.value === minOf(rows) }))} />}
+    {(id === "province_rules" || id === "province_homegrow") && (
+      <div class="overflow-x-auto">
+        <table class="table-bb min-w-[40rem]">
+          <thead><tr><th>{en ? "Province or territory" : "Province ou territoire"}</th><th>{en ? "Legal age" : "Âge légal"}</th><th>{en ? "Home growing" : "Culture à domicile"}</th>{id === "province_rules" && <th>{en ? "Where to buy legally" : "Où acheter légalement"}</th>}</tr></thead>
+          <tbody>
+            {provinceRows().map((p) => (
+              <tr>
+                <td class="font-semibold">{en ? p.name : p.nameFr}</td>
+                <td class="num">{p.age}</td>
+                <td>{p.homeGrow ? <span class="chip chip-hybrid">{en ? "Up to 4 plants" : "Jusqu'à 4 plants"}</span> : <span class="chip chip-sativa">{en ? "Not allowed" : "Interdite"}</span>}</td>
+                {id === "province_rules" && <td class="text-sm">{en ? p.retailer : p.retailerFr}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+    {id === "payment_by_shop" && (
+      <div class="overflow-x-auto">
+        <table class="table-bb min-w-[40rem]">
+          <thead><tr><th>{en ? "Shop" : "Boutique"}</th><th>{en ? "Payment" : "Paiement"}</th><th>{en ? "Shipping" : "Envoi"}</th><th>{en ? "Free shipping" : "Livraison gratuite"}</th></tr></thead>
+          <tbody>{paymentRows().map((x) => <tr><td><a href={r.shop(lang, x.slug)} class="font-semibold">{x.name}</a></td><td class="text-sm">{x.payment?.[lang] ?? "-"}</td><td class="text-sm">{x.shipping?.[lang] ?? "-"}</td><td class="text-sm">{x.freeShipping?.[lang] ?? "-"}</td></tr>)}</tbody>
+        </table>
+      </div>
+    )}
+  </div>
+  {caption && <figcaption class="mt-3 text-sm text-ink-soft">{caption}</figcaption>}
+</figure>

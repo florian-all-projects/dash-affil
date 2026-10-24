@@ -273,3 +273,20 @@ test("mode step JSON-LD : sitemap, file d'URL, fiches par lots", async () => {
   const offers = d1.raw.prepare("SELECT o.price_cents, p.category FROM product_offers o JOIN products p ON p.id=o.product_id ORDER BY o.price_cents").all() as any[];
   assert.deepEqual(offers.map((o) => [o.price_cents, o.category]), [[5500, "seed"], [6000, "seed"]]);
 });
+
+import { parseFormat } from "../src/formats";
+test("parseFormat lit grammes, onces et fractions de livre", () => {
+  assert.equal(parseFormat("1/4 LB", "attribute_grams").grams, 112);
+  assert.equal(parseFormat("1/2 lb").grams, 224);
+  assert.equal(parseFormat("1/2 oz").grams, 14);
+  assert.equal(parseFormat("Quarter Pound").grams, 112);
+  assert.equal(parseFormat("half-ounce").grams, 14);
+  assert.equal(parseFormat("3-5-grams").grams, 3.5);
+  assert.equal(parseFormat("28 Grams").grams, 28);
+  assert.equal(parseFormat("1 LB").grams, 448);
+  assert.equal(parseFormat("QP").grams, 112);
+  assert.equal(parseFormat("28", "attribute_pa_weight").grams, 28);
+  assert.equal(parseFormat("1-4-lb", "attribute_pa_amount").grams, 112);
+  assert.equal(parseFormat("1-2-lb").grams, 224);
+  assert.equal(parseFormat("1-8-oz").grams, 3.5);
+});
