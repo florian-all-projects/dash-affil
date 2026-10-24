@@ -5,7 +5,7 @@ import ProductCard from "../components/ProductCard.astro";
 import Faq from "../components/Faq.astro";
 import { t, r, fmtPrice, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
 import { products, categoryStats, activeShops, byPopularity } from "../lib/catalog";
-import { provinceOf, citiesOf, storesOf, cityName, provName, provSlug, LEGAL_SOURCE } from "../lib/geo";
+import { provinceOf, citiesOf, storesOf, cityName, provName, provSlug, LEGAL_SOURCE, NO_REGISTRY } from "../lib/geo";
 import { pageContent } from "../lib/content";
 import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
 
@@ -21,25 +21,36 @@ const list = citiesOf(code);
 const nStores = storesOf(code).length;
 const content = pageContent("province", code, lang);
 const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st && x.c !== "other");
-const picks = [...products].filter((p) => p.category === "flower").sort(byPopularity).slice(code.charCodeAt(0) % 8, (code.charCodeAt(0) % 8) + 8);
+// Fleurs avec photo, une par marque, sélection décalée selon la province
+const brand = (n: string) => n.split(/\s[–-]\s|\s\(/)[0].toLowerCase();
+const flowerPool = products.filter((p) => p.category === "flower" && p.image.kind !== "category").sort(byPopularity).slice(0, 150);
+const seen = new Set<string>();
+const picks = [];
+for (let i = 0; i < flowerPool.length && picks.length < 8; i++) {
+  const p = flowerPool[(code.charCodeAt(0) * 13 + code.charCodeAt(1) + i * 11) % flowerPool.length];
+  if (seen.has(brand(p.name))) continue;
+  seen.add(brand(p.name));
+  picks.push(p);
+}
+const nStoresFmt = nStores.toLocaleString(lang === "en" ? "en-CA" : "fr-CA");
 
 const L = lang === "en"
   ? {
       h1: `Buy Weed Online in ${prov.name}`,
       kicker: "Delivery, prices and cannabis laws",
       title: mkTitle(`Buy Weed Online in ${prov.name}: Delivery, Prices & Laws`, `Weed in ${prov.name}: Delivery, Prices & Laws`),
-      desc: `Buy weed online in ${prov.name}: legal age ${prov.age}, rules for public use and home growing, ${nStores ? `${nStores} licensed stores, ` : ""}and ${products.length.toLocaleString("en-CA")} products from ${activeShops.length} online shops that deliver in ${prov.name}.`,
+      desc: `Buy weed online in ${prov.name}: legal age ${prov.age}, rules for public use and home growing, ${nStores ? `${nStoresFmt} licensed stores, ` : ""}and ${products.length.toLocaleString("en-CA")} products from ${activeShops.length} online shops that deliver in ${prov.name}.`,
       law: `Cannabis law in ${prov.name}`, age: "Legal age", possession: "Possession in public", possessionV: "30 g of dried cannabis (federal)", publicUse: "Public use", grow: "Home growing", growYes: "Allowed, 4 plants per household", growNo: "Not allowed", sales: "Legal sales", verified: "Checked against the provincial rules summary on",
-      cities: `Cities in ${prov.name}`, citiesNote: nStores ? `${nStores} provincially licensed stores in the official registry, by city.` : "Cities with a delivery page.",
+      cities: `Cities in ${prov.name}`, citiesNote: nStores ? `${nStoresFmt} provincially licensed stores in the official registry, by city.` : NO_REGISTRY.has(code) ? `The official store list for ${prov.name} is not loaded in this catalogue yet.` : "Cities with a delivery page.",
       prices: `Online prices delivered in ${prov.name}`, picks: `Flower delivered in ${prov.name}`, stores: "stores",
     }
   : {
       h1: `Acheter du cannabis en ligne ${prov.inFr}`,
       kicker: "Livraison, prix et lois sur le cannabis",
       title: mkTitle(`Acheter du cannabis en ligne ${prov.inFr} : livraison, prix, lois`, `Cannabis ${prov.inFr} : livraison, prix et lois`),
-      desc: `Acheter du cannabis en ligne ${prov.inFr} : âge légal ${prov.age} ans, règles de consommation et de culture, ${nStores ? `${nStores} magasins autorisés, ` : ""}et ${products.length.toLocaleString("fr-CA")} produits de ${activeShops.length} boutiques en ligne qui livrent ${prov.inFr}.`,
+      desc: `Acheter du cannabis en ligne ${prov.inFr} : âge légal ${prov.age} ans, règles de consommation et de culture, ${nStores ? `${nStoresFmt} magasins autorisés, ` : ""}et ${products.length.toLocaleString("fr-CA")} produits de ${activeShops.length} boutiques en ligne qui livrent ${prov.inFr}.`,
       law: `La loi sur le cannabis ${prov.inFr}`, age: "Âge légal", possession: "Possession en public", possessionV: "30 g de cannabis séché (fédéral)", publicUse: "Consommation en public", grow: "Culture à domicile", growYes: "Permise, 4 plants par résidence", growNo: "Interdite", sales: "Vente légale", verified: "Vérifié d'après le résumé des règles provinciales le",
-      cities: `Les villes ${prov.inFr}`, citiesNote: nStores ? `${nStores} magasins autorisés dans le registre officiel, par ville.` : "Les villes qui ont une page livraison.",
+      cities: `Les villes ${prov.inFr}`, citiesNote: nStores ? `${nStoresFmt} magasins autorisés dans le registre officiel, par ville.` : NO_REGISTRY.has(code) ? `La liste officielle des magasins ${prov.inFr} n'est pas encore chargée dans ce catalogue.` : "Les villes qui ont une page livraison.",
       prices: `Les prix en ligne livrés ${prov.inFr}`, picks: `Des fleurs livrées ${prov.inFr}`, stores: "magasins",
     };
 const crumbs = [{ name: s.breadcrumbHome, href: r.home(lang) }, { name: s.nav.delivery, href: r.delivery(lang) }, { name: pName }];

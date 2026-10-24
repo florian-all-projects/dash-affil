@@ -3,7 +3,7 @@ import Base from "../layouts/Base.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import ProductCard from "../components/ProductCard.astro";
 import { t, r, fmtPrice, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
-import { products, categoryStats, byPopularity, activeShops } from "../lib/catalog";
+import { products, categoryStats, showcase, activeShops } from "../lib/catalog";
 import { breadcrumbLd } from "../lib/seo";
 
 interface Props { lang: Lang }
@@ -12,7 +12,7 @@ const s = t[lang];
 const other: Lang = lang === "en" ? "fr" : "en";
 const site = Astro.site!.toString().replace(/\/$/, "");
 const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st);
-const popular = [...products].sort(byPopularity).slice(0, 12);
+const popular = showcase(products, 12);
 const L = lang === "en"
   ? { h1: "The Catalogue", title: `Cannabis Catalogue: ${products.length.toLocaleString("en-CA")} Products From ${activeShops.length} Online Shops`, desc: `Every product sold by ${activeShops.length} Canadian online dispensaries and seed banks, by category, with the lowest price for each.`, lede: `Every product from every shop we track, grouped like a mail-order catalogue. Use the search above or open a category.`, results: "Search results", popular: "Most compared right now", items: "items" }
   : { h1: "Le catalogue", title: `Catalogue cannabis : ${products.length.toLocaleString("fr-CA")} produits de ${activeShops.length} boutiques`, desc: `Tous les produits de ${activeShops.length} boutiques en ligne et banques de graines canadiennes, par catégorie, avec le prix le plus bas de chacun.`, lede: `Tous les produits de toutes les boutiques suivies, classés comme dans un catalogue de vente par correspondance. Utilisez la recherche ou ouvrez une catégorie.`, results: "Résultats de recherche", popular: "Les plus comparés en ce moment", items: "produits" };

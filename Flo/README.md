@@ -24,30 +24,37 @@ Pas de VPS. Compte Cloudflare de Florian (celui relié à Claude, qui héberge a
 - Clés (token Cloudflare `cana-deploy`, OpenAI, 21st.dev) : **dans `secrets.enc`** uniquement. Pour travailler : les exporter en variables d'environnement (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `OPENAI_API_KEY`, `TWENTYFIRST_API_KEY`).
 - ⚠️ **Piège Wrangler (constaté le 23/10)** : `wrangler pages project create` convertit maintenant le projet en Worker (ajoute `@astrojs/cloudflare`, un `wrangler.jsonc`, et publie sur `<projet>.floriancaux.workers.dev`, qui affiche le nom de Florian). Ne pas l'utiliser : le projet Pages existe déjà (créé par l'API), déployer avec `npm run deploy` (`wrangler pages deploy dist --project-name budboard-ca --branch main`).
 
-## Ce qui existe (23/10/2026)
+## Ce qui existe (mis à jour le 24/10/2026)
 | Dossier | Contenu | État |
 |---|---|---|
-| `db/schema.sql` | Schéma D1 : shops, products, product_offers, price_history, product_images, sites, content, cities, provinces, physical_shops, coupons, strains, scrape_runs | **appliqué** sur D1 |
-| `db/seed.sql` | 11 shops actifs (plateforme détectée, deep-link affilié), 3 coupons, 13 provinces (âge légal), site `pilot` | **appliqué** sur D1 |
-| `scraper/` | Worker TypeScript : collecte WooCommerce Store API, normalisation, catégories, exclusions, upsert D1, empreinte prix/stock, historique des prix, journal des runs | **déployé** (9 tests OK) |
-| `sites/pilot/` | Site pilote **Budboard**, Astro 5 statique, **EN + FR**, alimenté par D1 au build | **en ligne** (noindex) |
+| `db/schema.sql` | Schéma D1 : shops, products, product_offers, price_history, product_images, sites, content, cities, provinces, physical_shops, coupons, strains, scrape_runs, scrape_state, scrape_queue | **appliqué** sur D1 |
+| `db/seed.sql` | 11 shops actifs (plateforme, deep-link affilié, config JSON-LD), 3 coupons, 13 provinces, site `pilot` | **appliqué** sur D1 |
+| `scraper/` | Worker TypeScript : WooCommerce Store API + **JSON-LD** (sitemap ou pages de liste, pour AbanteCart), normalisation, catégories, exclusions, upsert D1, historique des prix | **déployé** (11 tests OK) |
+| `gen/` | Génération IA : `product-content.mjs` (fiches produits EN/FR), `compliance-pass.mjs` (retire les allégations santé) | utilisé le 24/10 |
+| `stores/` | Annuaire des magasins autorisés (registres officiels des provinces) → D1 `cities` + `physical_shops`. Voir `stores/README.md` (⚠️ droits) | 3 804 magasins, 889 villes |
+| `sites/pilot/` | Site pilote **Budboard**, Astro 5 statique, **EN + FR**, identité « catalogue postal » (`DESIGN.md`) | **en ligne** (noindex) |
 
-### Site pilote Budboard (`sites/pilot/`)
-- **Marque** : Budboard (neutre ; « NorthBud » écarté car North Bud Farms existe). Concept : tableau de prix de dispensaire.
-- **Design** : palette dérivée du thème 21st.dev « Forest Copper » (épinette, feuille, cuivre, sauge), police Archivo (axe de largeur : titres condensés). Listes en « rangées de menu » plutôt qu'en cartes. Voir `src/styles/global.css`.
-- **Pages (EN / FR)** : accueil avec tableau des prix, menu + catégories paginées, fiche produit (tous les prix côte à côte, bouton principal = shop lifetime sinon le moins cher), 38 villes (`/weed-delivery/<ville>/`, `/fr/livraison-cannabis/<ville>/`), 13 provinces (légalité), boutiques, codes promo, méthode, guide d'achat. Contrôle d'âge (19+, 18 AB, 21 QC), mention d'affiliation, liens `rel="sponsored nofollow"`, hreflang, schema (Product, FAQPage, BreadcrumbList).
-- **Contenus** : intros des villes générées par OpenAI (`scripts/gen-city-intros.mjs` → `src/data/city-intros.json`, faits imposés, ~0,02 $) ; provinces, guide, méthode, boutiques rédigés à la main (`src/data/geo.ts`, `src/views/TextPage.astro`, `src/data/shops-content.ts`) ; fiches produits construites à partir des faits (`productBlurb`).
-- **Images** : test A/B le 23/10 sur 3 modèles GPT (1-mini, 1.5, 2) → **gpt-image-1.5 (medium)** retenu pour les visuels mis en avant, gpt-image-1-mini pour le volume. 8 visuels de catégories générés (`public/img/cat/`), `scripts/gen-images.py`.
-  - **Produits mis en avant** : `node scripts/featured-images.mjs [max=30] [--dry]` (après `npm run data`) choisit les plus fortes remises puis, par catégorie, les produits des shops lifetime, au plus 2 par type de visuel ; génère `public/img/p/<slug>.webp` et enregistre la ligne dans `product_images` (D1). Le prompt décrit la forme du produit, **jamais son nom** (marques). Les fiches affichent « Image d'illustration ». Sans image propre, la fiche reprend le visuel de sa catégorie. `--dry` liste les choix et les prompts sans rien générer.
-- **Prix** : le prix affiché est celui du plus petit format. Prix barré retenu seulement pour un produit à prix unique (sur un produit variable, la Store API mélange les variantes). Bouton principal = shop en affiliation à vie ; s'il n'est pas le moins cher, son prix est écrit sur le bouton.
-- **Sitemap** : `/sitemap.xml` (EN + FR, annotations hreflang) généré au build. **Pas encore déclaré dans robots.txt** : à ajouter quand le NDD sera branché et le noindex levé.
-- **Mise à jour** : `npm run data` (export D1 → `src/data/generated/`, non versionné) puis `npm run build` puis `npx wrangler pages deploy dist --project-name budboard-ca --branch main --commit-dirty=true` (variables `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` dans l'environnement, valeurs dans `secrets.enc`).
+### Site pilote Budboard (`sites/pilot/`) : refonte du 24/10/2026
+Refonte demandée par Florian le 24/10 (pas assez e-commerce, contenus trop faibles, pas de commerces locaux, pas d'identité, SEO faible, footer vide).
+- **Identité « catalogue postal »** (choix de Florian) : prix sur timbres, cachet d'édition daté (= date du relevé), encadrés « étiquette de colis », bleu encre + rouge boîte aux lettres + kraft, Big Shoulders Display + Public Sans. Détail : `sites/pilot/DESIGN.md`.
+- **Arborescence** (EN à la racine, FR sous `/fr/`) :
+  - accueil (vise « buy weed online Canada » / « acheter du cannabis en ligne au Canada », comparateur) ;
+  - `/catalogue/` (+ recherche `?q=`), catégories à la racine `/flower/`, `/edibles/`… (`/fr/fleurs/`…) avec filtres type / shop / tri sur la catégorie entière (`/data/cat-<cat>.json`) et pagination 48 ;
+  - fiche produit `/product/<slug>/` (`/fr/produit/<slug>/`) : photo, timbre de prix, formats, bouton d'achat, encadré livraison/paiement du shop, tableau comparatif de tous les shops, fiche technique (THC, CBD, génétique, effets décrits, saveurs…), description en 4 sections, FAQ, produits liés, barre d'achat fixe sur mobile ;
+  - silo géographique `/weed-delivery/<province>/` puis `/weed-delivery/<province>/<ville>/` (`/fr/livraison-cannabis/...`) : règles de la province, prix en ligne, sélection de produits, **annuaire des magasins autorisés** (schema Store), texte long, FAQ, villes voisines ;
+  - `/shops/<shop>/` (avis factuel), `/coupons/<shop>/` (codes promo), `/deals/`, `/about/` (méthode), `/legal/` ;
+  - pied de page complet (catégories, villes, provinces, avis boutiques, codes promo, pages légales) ;
+  - anciennes adresses redirigées en 301 (`public/_redirects`), la page « guide » supprimée redirige vers l'accueil.
+- **Images** : photo publiée par le shop (choix de Florian, 24/10), créditée sous la photo ; images IA conservées pour les 35 produits mis en avant ; sinon visuel de catégorie. Les photos des shops sont téléchargées par `npm run data` dans `public/img/s/` (non versionné) ; CBD Magic et CBD2HEAL refusent les robots (403) → visuel de catégorie.
+- **Contenus** (tous dans D1, table `content`, site `pilot`) :
+  - fiches produits : `node gen/product-content.mjs --site pilot --out <dossier>` (gpt-4.1-mini, ~0,003 $ la fiche EN+FR, à partir de la description du shop, sans invention ni allégation santé ; ne régénère que si les faits changent) puis `node gen/compliance-pass.mjs --cache <dossier>/products-pilot.jsonl` puis relancer `product-content.mjs` pour réécrire le SQL et l'appliquer avec `wrangler d1 execute` ;
+  - pages accueil, catégories, provinces, villes, boutiques : `npx tsx sites/pilot/scripts/gen-page-content.ts --out <dossier>` (gpt-4.1 ; villes en gpt-4.1-mini avec `TEXT_MODEL`), mêmes faits que le site, puis `wrangler d1 execute`.
+- **Mise à jour du site** : `npm run data` (export D1 → `src/data/generated/` + photos des shops) puis `npm run build` puis `npm run deploy`.
 
-### Plateformes des shops actifs (détectées le 23/10/2026 dans un vrai navigateur)
-- **WooCommerce, Store API publique** (`/wp-json/wc/store/v1/products`) : BMWO (150 produits), Get Kush (548), Low Price Bud (1 263), The High Club (366), Chronic Farms (525), CBD Magic (174), CBD2HEAL (39), CBD2GO (144). Environ **3 200 produits**.
-- **AbanteCart** (pas d'API) : Quebec Cannabis Seeds, Toronto Cannabis Seeds → scraping HTML à écrire.
-- **Ganja West** : bloqué par un challenge Cloudflare (« Just a moment »), même dans un navigateur → à résoudre.
-- Low Price Bud affiche aussi un challenge Cloudflare au premier accès : à surveiller au premier run.
+### Plateformes des shops actifs
+- **WooCommerce, Store API publique** (`/wp-json/wc/store/v1/products`) : BMWO, Get Kush, Low Price Bud, The High Club, Chronic Farms, CBD Magic, CBD2HEAL, CBD2GO et **Ganja West** (le challenge Cloudflare vu le 23/10 dans un navigateur ne bloque pas le Worker : 917 offres le 24/10).
+- **JSON-LD** (méthode n°3 du PLAN) : **Quebec Cannabis Seeds** (sitemap.xml) et **Toronto Cannabis Seeds** (pages de liste `/cannabis-seeds?page=N`), lus fiche par fiche (8 par exécution). Config dans `shops.scrape_config`.
+- En attente de lien affilié (donc pas collectés) : Herbies, True North / Canuk, Green Affiliates (Crop King…).
 
 ### Règle de périmètre
 Le catalogue couvre **cannabis, CBD, graines et accessoires uniquement**. Chronic Farms vend aussi des produits à la psilocybine : le scraper **exclut** tout produit psilocybine / champignons / autres substances (`isExcluded` dans `scraper/src/normalize.ts`).
@@ -66,9 +73,9 @@ npx wrangler deploy --dry-run --outdir /tmp/dist  # compilation du Worker sans d
 - Lancer une tranche à la main : `npx wrangler dev --remote --test-scheduled` puis `curl "http://127.0.0.1:8787/__scheduled?cron=*+*+*+*+*"` (⚠️ peut doubler une page si le cron tourne en même temps : sans gravité).
 - Vider le catalogue pour repartir de zéro : `DELETE FROM price_history; DELETE FROM product_offers; DELETE FROM products; DELETE FROM scrape_state; DELETE FROM scrape_runs;`.
 
-## Paramètres actés (23/10/2026)
+## Paramètres actés (23 et 24/10/2026)
 - Budget IA : **50 €/mois** (texte + images).
-- Images : **GPT Image** préféré, **1 image par produit** au départ, test A/B sur ~10 produits avant génération en masse. Avec ~3 200 produits à ~0,034 $ l'image (qualité medium), le catalogue complet coûte ~110 $ : à étaler sur plusieurs mois ou à réserver d'abord aux produits mis en avant.
+- Images : **photos des shops pour le catalogue** (décision de Florian le 24/10) + images GPT (gpt-image-1.5) déjà générées pour les produits mis en avant ; la génération IA en masse est reportée.
 - Langues : **EN + FR dès le départ** (demande de Florian le 23/10), EN à la racine, FR sous `/fr/`.
 - NDD pilote : recherche via Semrush (accès Ranker Fox) ; en attendant, `budboard-ca.pages.dev` en noindex.
 

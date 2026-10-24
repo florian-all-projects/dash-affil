@@ -5,7 +5,7 @@ import ProductCard from "../components/ProductCard.astro";
 import Faq from "../components/Faq.astro";
 import { t, r, fmtPrice, fmtDate, CATEGORY_SLUGS, CATEGORY_ORDER, type Lang } from "../lib/i18n";
 import { products, categoryStats, activeShops, byPopularity, exportedAt, pick } from "../lib/catalog";
-import { cities, provinceOf, cityName, provName, provSlug, nearby } from "../lib/geo";
+import { cities, provinceOf, cityName, provName, provSlug, nearby, NO_REGISTRY } from "../lib/geo";
 import { pageContent } from "../lib/content";
 import { title as mkTitle, breadcrumbLd, faqLd } from "../lib/seo";
 
@@ -23,9 +23,21 @@ const n = city.stores.length;
 const content = pageContent("city", cityKey, lang);
 const board = CATEGORY_ORDER.map((c) => ({ c, st: categoryStats(c) })).filter((x) => x.st && x.c !== "other");
 // Sélection propre à chaque ville (variation stable) parmi les produits les plus comparés
-const pool = [...products].filter((p) => ["flower", "edible", "concentrate", "vape"].includes(p.category)).sort(byPopularity).slice(0, 160);
-const start = pool.length > 8 ? (city.slug.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0) * 7) % (pool.length - 8) : 0;
-const picks = pool.slice(start, start + 8);
+// 2 produits par catégorie (fleurs, comestibles, concentrés, vapoteuses), une seule fois par marque, décalage propre à la ville
+const seed = city.slug.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
+const brand = (n: string) => n.split(/\s[–-]\s/)[0].toLowerCase();
+const picks = ["flower", "edible", "concentrate", "vape"].flatMap((cat, ci) => {
+  const pool = products.filter((p) => p.category === cat && p.image.kind !== "category").sort(byPopularity).slice(0, 120);
+  const seen = new Set<string>();
+  const out: typeof pool = [];
+  for (let i = 0; i < pool.length && out.length < 2; i++) {
+    const p = pool[(seed * (ci + 3) + i * 7) % pool.length];
+    if (seen.has(brand(p.name))) continue;
+    seen.add(brand(p.name));
+    out.push(p);
+  }
+  return out;
+});
 const near = nearby(city, 10);
 const SHOW = 40;
 
@@ -38,10 +50,13 @@ const L = lang === "en"
       label: `Delivery to ${name}, ${prov.code}`, age: "Legal age", shipping: "Online shops shipping here", storesL: "Licensed stores in the city", grow: "Home growing", growYes: "Allowed, up to 4 plants", growNo: "Not allowed",
       priceTitle: `Lowest online prices for delivery to ${name}`, priceNote: "Online prices are the same everywhere in Canada; shipping terms vary by shop.",
       picksTitle: `Popular picks delivered to ${name}`,
-      storesTitle: `Cannabis stores in ${name}`, storesNote: (src: string) => `Stores authorized by the province, from the official registry (${src}). Hours and stock can change: call before you go.`,
+      storesTitle: `Cannabis stores in ${name}`, storesNote: "Stores authorized by the province. Hours and stock change: call before you go. Source:",
       addr: "Address", phone: "Phone", web: "Website", showAll: (k: number) => `Show all ${k} stores`,
       rules: `Cannabis rules in ${prov.name}`, rulesMore: `Everything about buying weed in ${prov.name}`, near: `Weed delivery near ${name}`,
-      noStores: `We did not find a provincially licensed store located in ${name} in the official registry. ${prov.retailer[0].toUpperCase() + prov.retailer.slice(1)} remain the legal options.`,
+      noStores: NO_REGISTRY.has(prov.code)
+        ? `We have not loaded the official store list for ${prov.name} yet. Legal purchase in ${name} goes through ${prov.retailer}.`
+        : prov.code === "NU" ? `Nunavut has no cannabis store open to the public: legal purchase goes through ${prov.retailer}.`
+        : `We did not find a provincially licensed store located in ${name} in the official registry. ${prov.retailer[0].toUpperCase() + prov.retailer.slice(1)} remain the legal options.`,
     }
   : {
       h1: `Livraison de cannabis à ${name}`,
@@ -51,10 +66,13 @@ const L = lang === "en"
       label: `Livraison à ${name}, ${prov.code}`, age: "Âge légal", shipping: "Boutiques en ligne qui livrent ici", storesL: "Magasins autorisés en ville", grow: "Culture à domicile", growYes: "Permise, jusqu'à 4 plants", growNo: "Interdite",
       priceTitle: `Les prix en ligne les plus bas pour une livraison à ${name}`, priceNote: "Les prix en ligne sont les mêmes partout au Canada ; les conditions d'envoi varient selon la boutique.",
       picksTitle: `Des produits populaires livrés à ${name}`,
-      storesTitle: `Magasins de cannabis à ${name}`, storesNote: (src: string) => `Magasins autorisés par la province, d'après le registre officiel (${src}). Horaires et stocks peuvent changer : appelez avant de vous déplacer.`,
+      storesTitle: `Magasins de cannabis à ${name}`, storesNote: "Magasins autorisés par la province. Horaires et stocks changent : appelez avant de vous déplacer. Source :",
       addr: "Adresse", phone: "Téléphone", web: "Site web", showAll: (k: number) => `Voir les ${k} magasins`,
       rules: `Les règles du cannabis ${prov.inFr}`, rulesMore: `Tout savoir pour acheter du cannabis ${prov.inFr}`, near: `Livraison de cannabis près de ${name}`,
-      noStores: `Nous n'avons pas trouvé de magasin autorisé situé à ${name} dans le registre officiel. ${prov.retailerFr[0].toUpperCase() + prov.retailerFr.slice(1)} restent les options légales.`,
+      noStores: NO_REGISTRY.has(prov.code)
+        ? `Nous n'avons pas encore chargé la liste officielle des magasins ${prov.inFr}. À ${name}, l'achat légal passe par ${prov.retailerFr}.`
+        : prov.code === "NU" ? `Le Nunavut n'a pas de magasin de cannabis ouvert au public : l'achat légal passe par ${prov.retailerFr}.`
+        : `Nous n'avons pas trouvé de magasin autorisé situé à ${name} dans le registre officiel. ${prov.retailerFr[0].toUpperCase() + prov.retailerFr.slice(1)} restent les options légales.`,
     };
 const crumbs = [
   { name: s.breadcrumbHome, href: r.home(lang) },
@@ -62,7 +80,8 @@ const crumbs = [
   { name: pName, href: r.province(lang, provSlug(prov, lang)) },
   { name },
 ];
-const sources = [...new Set(city.stores.map((x) => x.source))].join(", ");
+const sourceLinks = [...new Map(city.stores.map((x) => [x.source, x.sourceUrl])).entries()];
+const sources = sourceLinks.map(([n]) => n).join(", ");
 const jsonld: object[] = [
   breadcrumbLd(site, crumbs),
   ...(n ? [{
@@ -126,7 +145,7 @@ const varyCta = pick(city.slug + lang, lang === "en" ? ["See the full catalogue"
       <h2>{L.storesTitle}</h2>
       {n > 0 ? (
         <>
-          <p class="mt-1 text-sm text-muted">{L.storesNote(sources)}</p>
+          <p class="mt-1 text-sm text-muted">{L.storesNote} {sourceLinks.map(([n, u], i) => <>{i > 0 && ", "}<a href={u} rel="nofollow noopener" target="_blank">{n}</a></>)}</p>
           <ol class="mt-5 grid gap-3 md:grid-cols-2" data-stores>
             {city.stores.map((st, i) => (
               <li class:list={["rounded-[4px] border border-line p-4", i >= SHOW && "hidden"]} data-extra={i >= SHOW ? "1" : undefined}>
@@ -134,7 +153,7 @@ const varyCta = pick(city.slug + lang, lang === "en" ? ["See the full catalogue"
                 <p class="mt-1 text-sm text-ink-soft">{st.address}{st.postal ? `, ${st.postal}` : ""}</p>
                 <p class="mt-1 flex flex-wrap gap-x-4 text-sm">
                   {st.phone && <a href={`tel:${st.phone.replace(/[^0-9+]/g, "")}`}>{st.phone}</a>}
-                  {st.website && <a href={st.website} rel="nofollow noopener" target="_blank">{L.web}</a>}
+                  {st.website && <a href={st.website.startsWith("http") ? st.website : `https://${st.website}`} rel="nofollow noopener" target="_blank">{(() => { try { return new URL(st.website!.startsWith("http") ? st.website! : `https://${st.website}`).hostname.replace(/^www\./, ""); } catch { return L.web; } })()}</a>}
                 </p>
               </li>
             ))}

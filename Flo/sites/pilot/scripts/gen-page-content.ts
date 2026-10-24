@@ -7,7 +7,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { CATEGORY_ORDER, CATEGORY_SLUGS, fmtPrice } from "../src/lib/i18n";
 import { products, activeShops, categoryStats, productsByCategory, productsByShop, couponsForShop, byPopularity, deals } from "../src/lib/catalog";
-import { PROVINCES, cities, stores, citiesOf, storesOf, provinceOf, nearby } from "../src/lib/geo";
+import { PROVINCES, cities, stores, citiesOf, storesOf, provinceOf, nearby, NO_REGISTRY } from "../src/lib/geo";
 import { SHOP_FACTS, SHOP_INTRO } from "../src/data/shops-content";
 
 const argv = process.argv.slice(2);
@@ -74,7 +74,7 @@ if (TYPES.includes("province")) for (const p of PROVINCES) {
     type: "province", key: p.code,
     brief: `Province page for ${p.name}. Main keywords EN: "buy weed online ${p.name}", "weed delivery ${p.name}", "is weed legal in ${p.name}". FR: « acheter du cannabis en ligne ${p.inFr} », « livraison cannabis ${p.inFr} ».
 Lead: 40-60 words. 5 sections, each with 3 paragraphs of 3-4 sentences (about 160 words per section, 800+ words per language): the cannabis law in ${p.name} (age, public use, home growing, possession); where to buy legally in ${p.name} (provincial channel, licensed stores count and main cities); ordering online by mail from ${p.name} (how shops ship, what to check); prices this week (from FACTS); cities covered. FAQ: 7 questions (legal age, public use, home growing, online delivery, stores, possession, travelling with cannabis between provinces only as general federal info: no carrying across the border).`,
-    facts: { ...legal(p.code), licensedStoresInRegistry: storesOf(p.code).length, citiesWithMostStores: cs.slice(0, 10).map((c) => ({ city: c.name, stores: c.stores.length })), onlineShopsDelivering: activeShops.length, productsAvailable: products.length, lowestPrices: catFacts().slice(0, 6) },
+    facts: { ...legal(p.code), storeListAvailable: !NO_REGISTRY.has(p.code), licensedStoresInRegistry: NO_REGISTRY.has(p.code) ? "not loaded in this catalogue yet" : storesOf(p.code).length, citiesWithMostStores: cs.slice(0, 10).map((c) => ({ city: c.name, stores: c.stores.length })), onlineShopsDelivering: activeShops.length, productsAvailable: products.length, lowestPrices: catFacts().slice(0, 6) },
   });
 }
 if (TYPES.includes("city")) for (const c of cities) {
@@ -82,8 +82,8 @@ if (TYPES.includes("city")) for (const c of cities) {
   jobs.push({
     type: "city", key: `${c.province}/${c.slug}`,
     brief: `City page for ${c.name}, ${provinceOf(c.province).name}. Main keywords EN: "weed delivery ${c.name}", "dispensary ${c.name}", "buy weed online ${c.name}". FR: « livraison cannabis ${c.nameFr} », « magasin de cannabis ${c.nameFr} ».
-Lead: 35-55 words. 4 sections, each with 3 paragraphs of 3-4 sentences (about 140 words per section, 550+ words per language): getting weed delivered to ${c.name} by mail from online shops (what to check, free-shipping thresholds from FACTS); the licensed stores in ${c.name} (count, a few names exactly as given, the provincial channel); the rules that apply in ${c.name} (province facts); comparing prices before ordering (from FACTS). If storesInCity is 0, say no licensed store is located in the city in the registry and point to the provincial channel. FAQ: 6 questions specific to ${c.name}.`,
-    facts: { city: c.name, cityFr: c.nameFr, ...legal(c.province), storesInCity: c.stores.length, someStoreNames: c.stores.slice(0, 6).map((s) => s.name), nearbyCities: near.map((n) => n.name), onlineShopsDelivering: activeShops.length, shopsFreeShipping: shopFacts().filter((s) => s.freeShipping).map((s) => `${s.name}: ${s.freeShipping}`), lowestPrices: catFacts().slice(0, 5) },
+Lead: 35-55 words. 4 sections, each with 3 paragraphs of 3-4 sentences (about 140 words per section, 550+ words per language): getting weed delivered to ${c.name} by mail from online shops (what to check, free-shipping thresholds from FACTS); the licensed stores in ${c.name} (count, a few names exactly as given, the provincial channel); the rules that apply in ${c.name} (province facts); comparing prices before ordering (from FACTS). If storeListAvailable is false, say that this catalogue does not list the province's stores yet and point to the provincial channel; never claim there is no store. If storeListAvailable is true and storesInCity is 0, say no licensed store is located in the city in the registry and point to the provincial channel. FAQ: 6 questions specific to ${c.name}.`,
+    facts: { city: c.name, cityFr: c.nameFr, ...legal(c.province), storeListAvailable: !NO_REGISTRY.has(c.province) && c.province !== "NU", storesInCity: c.stores.length, someStoreNames: c.stores.slice(0, 6).map((s) => s.name), nearbyCities: near.map((n) => n.name), onlineShopsDelivering: activeShops.length, shopsFreeShipping: shopFacts().filter((s) => s.freeShipping).map((s) => `${s.name}: ${s.freeShipping}`), lowestPrices: catFacts().slice(0, 5) },
   });
 }
 if (TYPES.includes("shop")) for (const s of activeShops) {

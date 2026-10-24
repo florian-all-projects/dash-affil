@@ -9,12 +9,14 @@ import type { Lang } from "./i18n";
 export { PROVINCES, provinceOf, LEGAL_SOURCE, type Province };
 
 export interface Store {
-  province: string; city: string; name: string; address: string; postal: string | null; phone: string | null;
-  website: string | null; lat: number | null; lon: number | null; source: string; sourceUrl: string;
+  province: string; citySlug: string; cityName: string; cityNameFr: string | null; name: string; address: string; postal: string | null;
+  phone: string | null; website: string | null; lat: number | null; lon: number | null; source: string; sourceUrl: string;
 }
 export interface CityInfo { slug: string; name: string; nameFr: string; province: string; stores: Store[]; big: boolean }
 
 export const MIN_STORES_FOR_PAGE = 3;
+/** Provinces dont le registre des magasins n'a pas pu être chargé (NSLC et Cannabis NB bloquent les robots) ; NU n'a pas de magasin physique. */
+export const NO_REGISTRY = new Set(["NS", "NB"]);
 
 const storesPath = join(process.cwd(), "src", "data", "generated", "stores.json");
 export const stores: Store[] = existsSync(storesPath) ? JSON.parse(readFileSync(storesPath, "utf8")) : [];
@@ -22,21 +24,15 @@ export const stores: Store[] = existsSync(storesPath) ? JSON.parse(readFileSync(
 export const slugify = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
-// Noms français des villes dont l'orthographe change (le reste est identique dans les deux langues)
-const FR_NAMES: Record<string, string> = { montreal: "Montréal", "quebec-city": "Québec", "trois-rivieres": "Trois-Rivières" };
-const EN_NAMES: Record<string, string> = { montreal: "Montreal", "quebec-city": "Quebec City", "trois-rivieres": "Trois-Rivières" };
-
 const byKey = new Map<string, CityInfo>();
 const key = (prov: string, slug: string) => `${prov}/${slug}`;
 for (const c of CITIES) byKey.set(key(c.province, c.slug), { ...c, stores: [], big: true });
+// Les villes viennent de D1 (table cities) : slug unique par province, fusions municipales déjà faites (Flo/stores/load_stores.py)
 for (const st of stores) {
-  // « Québec » (ville) devient quebec-city pour ne pas se confondre avec la province
-  let slug = slugify(st.city);
-  if (st.province === "QC" && slug === "quebec") slug = "quebec-city";
-  const k = key(st.province, slug);
+  const k = key(st.province, st.citySlug);
   let c = byKey.get(k);
   if (!c) {
-    c = { slug, name: EN_NAMES[slug] ?? st.city, nameFr: FR_NAMES[slug] ?? st.city, province: st.province, stores: [], big: false };
+    c = { slug: st.citySlug, name: st.cityName, nameFr: st.cityNameFr ?? st.cityName, province: st.province, stores: [], big: false };
     byKey.set(k, c);
   }
   c.stores.push(st);

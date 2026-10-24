@@ -61,6 +61,34 @@ for (let offset = 0; ; offset += 1500) {
 for (const [id, e] of Object.entries(contentByProduct)) if (!e.en || !e.fr) delete contentByProduct[id];
 save("content-products", contentByProduct);
 
+// Annuaire des magasins autorisés (registres provinciaux), avec la ville rattachée
+const stores = [];
+for (let offset = 0; ; offset += 2000) {
+  const rows = await q(
+    `SELECT c.province, c.slug AS citySlug, c.name AS cityName, c.name_fr AS cityNameFr, s.name, s.address, s.postal_code AS postal,
+            s.phone, s.website, s.lat, s.lng AS lon, s.source, s.source_url AS sourceUrl
+     FROM physical_shops s JOIN cities c ON c.id = s.city_id ORDER BY s.id LIMIT 2000 OFFSET ${offset}`,
+  );
+  stores.push(...rows);
+  if (rows.length < 2000) break;
+}
+save("stores", stores);
+// Contenus des pages (accueil, catégories, provinces, villes, boutiques) : clé « type:clé »
+const contentPages = {};
+for (let offset = 0; ; offset += 1500) {
+  const rows = await q(
+    `SELECT c.entity_type, c.lang, c.body FROM content c JOIN sites s ON s.id = c.site_id
+     WHERE s.slug = 'pilot' AND c.entity_type IN ('home','category','province','city','shop') AND c.field = 'page'
+     ORDER BY c.id LIMIT 1500 OFFSET ${offset}`,
+  );
+  for (const r of rows) {
+    const b = JSON.parse(r.body);
+    (contentPages[`${r.entity_type}:${b.key}`] ??= {})[r.lang] = b;
+  }
+  if (rows.length < 1500) break;
+}
+save("content-pages", contentPages);
+
 save("shops", shops);
 save("products", products);
 save("offers", offers);
@@ -68,4 +96,4 @@ save("coupons", coupons);
 save("images", images);
 save("runs", runs);
 save("meta", { exported_at: new Date().toISOString() });
-console.log(`export : ${shops.length} shops, ${products.length} produits, ${offers.length} offres en stock, ${coupons.length} coupons, ${Object.keys(contentByProduct).length} fiches rédigées`);
+console.log(`export : ${shops.length} shops, ${products.length} produits, ${offers.length} offres en stock, ${coupons.length} coupons, ${Object.keys(contentByProduct).length} fiches rédigées, ${stores.length} magasins, ${Object.keys(contentPages).length} pages rédigées`);

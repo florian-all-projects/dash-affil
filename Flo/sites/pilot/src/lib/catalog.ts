@@ -114,6 +114,17 @@ export function categoryStats(cat: string) {
 /** Meilleures remises du moment (prix barré publié par le shop, produits à prix unique). */
 export const deals = (n = 8) => products.filter((p) => p.discount >= 10).sort((a, b) => b.discount - a.discount || byPopularity(a, b)).slice(0, n);
 
+/** Vitrine variée : tour à tour une fleur, un comestible, un concentré… (les accessoires en dernier), les plus comparés d'abord. */
+export function showcase(list: Product[], n = 12): Product[] {
+  const order = ["flower", "edible", "concentrate", "vape", "cbd", "seed", "other", "accessory"];
+  const queues = order.map((c) => list.filter((p) => p.category === c).sort(byPopularity));
+  const out: Product[] = [];
+  for (let round = 0; out.length < n && queues.some((q) => q.length > round); round++) {
+    for (const q of queues) if (q[round] && out.length < n) out.push(q[round]);
+  }
+  return out;
+}
+
 /** Produits liés : même catégorie, même type de préférence, prix voisin. */
 export function related(p: Product, n = 8): Product[] {
   return productsByCategory(p.category)

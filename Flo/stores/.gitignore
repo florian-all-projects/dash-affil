@@ -1,0 +1,4 @@
+# Données brutes des registres et CSV dérivé : non versionnés (droits des sources, voir README.md)
+raw/
+stores.csv
+*.sql
